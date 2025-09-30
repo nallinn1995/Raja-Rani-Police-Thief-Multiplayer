@@ -2,7 +2,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 export const apiService = {
   async createRoom(roomName: string, playerName: string, totalRounds: number) {
-    const response = await fetch(`${API_BASE_URL}/rooms`, {
+    const response = await fetch(`${API_BASE_URL}/api/rooms`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -19,7 +19,7 @@ export const apiService = {
   },
 
   async joinRoom(roomCode: string, playerName: string) {
-    const response = await fetch(`${API_BASE_URL}/rooms/${roomCode}/join`, {
+    const response = await fetch(`${API_BASE_URL}/api/rooms/${roomCode}/join`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

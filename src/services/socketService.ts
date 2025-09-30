@@ -2,7 +2,7 @@ import { io, Socket } from "socket.io-client";
 
 class SocketService {
   private socket: Socket | null = null;
-  private serverUrl = "http://localhost:3001";
+  private serverUrl = import.meta.env.VITE_SERVER_URL || "";
 
   public connect(): Socket {
     if (!this.socket) {
