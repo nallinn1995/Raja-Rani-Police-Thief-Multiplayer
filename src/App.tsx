@@ -29,14 +29,11 @@ function App() {
   const [error, setError] = useState<string>('');
 
 
-  console.log(socket);
 
   useEffect(() => {
-    console.log(socket);
     if (!socket) return;
 
     socket.on('room-state', (data) => {
-      console.log(data)
       setRoom(data.room);
       setCurrentPlayerId(data.playerId);
       setPoliceId(data.policeId || '');
@@ -76,7 +73,6 @@ function App() {
     });
 
     socket.on('police-revealed', (data) => {
-      console.log(data);
       setPoliceId(data.policeId);
       setRoom(prev => prev ? { ...prev, gameState: 'guessing' } : null);
     });
@@ -137,7 +133,6 @@ function App() {
   const handleRoomCreated = (roomCode: string, playerId: string) => {
     setCurrentPlayerId(playerId);
     if (socket) {
-      console.log(socket);
       socket.emit('join-room', { roomCode, playerId });
     }
   };

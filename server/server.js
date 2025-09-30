@@ -198,13 +198,10 @@ io.on("connection_error", (err) => {
   console.log("🚨 Engine connection error:", err.code, err.message);
 });
 io.on("connection", (socket) => {
-  console.log(socket);
   console.log("User connected:", socket.id);
 
   socket.on("join-room", ({ roomCode, playerId }) => {
-    console.log(roomCode, playerId, "CHECKINGMNMN");
     const room = rooms.get(roomCode.toUpperCase());
-    console.log(room);
     if (room && room.players.some((p) => p.id === playerId)) {
       socket.join(roomCode);
 
@@ -215,7 +212,6 @@ io.on("connection", (socket) => {
         playerSockets.set(socket.id, { roomCode, playerId });
       }
 
-      console.log(player);
       // Send current room state
       socket.emit("room-state", {
         room: {

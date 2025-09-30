@@ -8,7 +8,6 @@ export const useSocket = () => {
   useEffect(() => {
     // connect
     socketRef.current = socketService.connect();
-    console.log(socketRef);
 
     if (socketRef.current) {
       // add listeners for connection status
