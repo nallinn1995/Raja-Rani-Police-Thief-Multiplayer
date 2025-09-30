@@ -11,7 +11,8 @@ import { Leaderboard } from './components/Leaderboard';
 import { Room, Player, ChatMessage, RoundResult as RoundResultType } from './types/game';
 
 
-const socket = io(import.meta.env.VITE_SERVER_URL || 'http://localhost:3001');
+const socket = io(import.meta.env.VITE_SERVER_URL);
+
 type AppState = 'home' | 'create' | 'join' | 'waiting' | 'playing' | 'result' | 'leaderboard';
 
 function App() {
