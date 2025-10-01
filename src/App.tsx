@@ -9,6 +9,7 @@ import { GameBoard } from './components/GameBoard';
 import { RoundResult } from './components/RoundResult';
 import { Leaderboard } from './components/Leaderboard';
 import { Room, Player, ChatMessage, RoundResult as RoundResultType } from './types/game';
+import BackgroundMusic from './components/GameBGM';
 
 
 const socket = io(import.meta.env.VITE_SERVER_URL);
@@ -193,74 +194,81 @@ function App() {
     );
   }
 
-  switch (appState) {
-    case 'home':
-      return (
-        <HomePage
-          onCreateRoom={() => setAppState('create')}
-          onJoinRoom={() => setAppState('join')}
-        />
-      );
+  return (
+    <>
+      {/* 🎵 Background music runs across all states */}
+      <BackgroundMusic />
 
-    case 'create':
-      return (
-        <CreateRoom
-          onBack={() => setAppState('home')}
-          onRoomCreated={handleRoomCreated}
-          createRoom={handleCreateRoom}
-        />
-      );
+      {(() => {
+        switch (appState) {
+          case "home":
+            return (
+              <HomePage
+                onCreateRoom={() => setAppState("create")}
+                onJoinRoom={() => setAppState("join")}
+              />
+            );
 
-    case 'join':
-      return (
-        <JoinRoom
-          onBack={() => setAppState('home')}
-          onRoomJoined={handleRoomJoined}
-          joinRoom={handleJoinRoom}
-        />
-      );
+          case "create":
+            return (
+              <CreateRoom
+                onBack={() => setAppState("home")}
+                onRoomCreated={handleRoomCreated}
+                createRoom={handleCreateRoom}
+              />
+            );
 
-    case 'waiting':
-      return room ? (
-        <WaitingRoom
-          room={room}
-          currentPlayerId={currentPlayerId}
-          messages={messages}
-          onSendMessage={handleSendMessage}
-        />
-      ) : null;
+          case "join":
+            return (
+              <JoinRoom
+                onBack={() => setAppState("home")}
+                onRoomJoined={handleRoomJoined}
+                joinRoom={handleJoinRoom}
+              />
+            );
 
-    case 'playing':
-      return room ? (
-        <GameBoard
-          room={room}
-          currentPlayerId={currentPlayerId}
-          myRole={myRole}
-          policeId={policeId}
-          allRoles={allRoles}
-          messages={messages}
-          onPoliceReveal={handlePoliceReveal}
-          onMakeGuess={handleMakeGuess}
-          onSendMessage={handleSendMessage}
-        />
-      ) : null;
+          case "waiting":
+            return room ? (
+              <WaitingRoom
+                room={room}
+                currentPlayerId={currentPlayerId}
+                messages={messages}
+                onSendMessage={handleSendMessage}
+              />
+            ) : null;
 
-    case 'result':
-      return roundResult ? (
-        <RoundResult result={roundResult} />
-      ) : null;
+          case "playing":
+            return room ? (
+              <GameBoard
+                room={room}
+                currentPlayerId={currentPlayerId}
+                myRole={myRole}
+                policeId={policeId}
+                allRoles={allRoles}
+                messages={messages}
+                onPoliceReveal={handlePoliceReveal}
+                onMakeGuess={handleMakeGuess}
+                onSendMessage={handleSendMessage}
+              />
+            ) : null;
 
-    case 'leaderboard':
-      return (
-        <Leaderboard
-          leaderboard={leaderboard}
-          onPlayAgain={handlePlayAgain}
-        />
-      );
+          case "result":
+            return roundResult ? <RoundResult result={roundResult} /> : null;
 
-    default:
-      return null;
-  }
+          case "leaderboard":
+            return (
+              <Leaderboard
+                leaderboard={leaderboard}
+                onPlayAgain={handlePlayAgain}
+              />
+            );
+
+          default:
+            return null;
+        }
+      })()}
+    </>
+  );
 }
 
 export default App;
