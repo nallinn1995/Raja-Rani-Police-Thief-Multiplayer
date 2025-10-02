@@ -164,9 +164,6 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                         {showRole(playerRole || '')}
                       </span>
                       <span className="text-sm mt-1">{player.name}</span>
-                      <span className="text-xs mt-1">
-                        Score: {player.score}
-                      </span>
                     </div>
                   </div>
                 </div>

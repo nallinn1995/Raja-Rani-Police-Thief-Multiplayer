@@ -31,7 +31,6 @@ export const JoinRoom: React.FC<JoinRoomProps> = ({ onBack, onRoomJoined, joinRo
 
     try {
       const response = await joinRoom(roomCode.trim().toUpperCase(), playerName.trim());
-      console.log(response);
       onRoomJoined(roomCode.trim().toUpperCase(), response.playerId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to join room');

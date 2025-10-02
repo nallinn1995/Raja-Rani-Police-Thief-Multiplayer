@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Users, Hash, Clock, Share2 } from 'lucide-react';
+import { ArrowLeft, Users, Hash, Clock } from 'lucide-react';
 
 interface CreateRoomProps {
   onBack: () => void;
