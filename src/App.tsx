@@ -20,6 +20,8 @@ import {
 import { Welcome } from "./components/Welcome";
 
 const socket = io(import.meta.env.VITE_SERVER_URL);
+let currentRoom: string | null = null;
+let playerId = null;
 
 type AppState =
   | "welcome"
@@ -46,7 +48,6 @@ function App() {
 
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
-
 
   const toggleMusic = () => {
     if (audioRef.current) {
@@ -150,6 +151,14 @@ function App() {
       console.error("Socket connection error:", err);
     });
 
+    socket.on("reconnect", () => {
+      console.log("✅ Reconnected to server");
+      if (currentRoom && currentPlayerId) {
+        socket.emit("join-room", { currentRoom, currentPlayerId });
+        console.log("🔁 Rejoined room:", currentRoom);
+      }
+    });
+
     return () => {
       socket.off("room-state");
       socket.off("player-joined");
@@ -164,7 +173,7 @@ function App() {
       socket.off("chat-history");
       socket.off("connect_error");
     };
-  }, [room]);
+  }, [currentPlayerId, room]);
 
   const handleCreateRoom = async (
     roomName: string,
@@ -181,6 +190,7 @@ function App() {
   const handleRoomCreated = (roomCode: string, playerId: string) => {
     setCurrentPlayerId(playerId);
     if (socket) {
+      currentRoom = roomCode;
       socket.emit("join-room", { roomCode, playerId });
     }
   };
@@ -256,10 +266,11 @@ function App() {
   return (
     <>
       <div>
-        <ToastContainer 
-        position="top-center"
-        transition={Bounce}
-        theme="dark"/>
+        <ToastContainer
+          position="top-center"
+          transition={Bounce}
+          theme="dark"
+        />
       </div>
       {/* 🎵 Background music runs across all states */}
       {/* Music Toggle Button */}

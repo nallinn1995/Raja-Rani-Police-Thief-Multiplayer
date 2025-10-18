@@ -9,6 +9,10 @@ class SocketService {
       this.socket = io(this.serverUrl, {
         transports: ["websocket", "polling"],
         autoConnect: true,
+        reconnection: true,
+        reconnectionAttempts: 10,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 1000,
       });
 
       // Debug logs
