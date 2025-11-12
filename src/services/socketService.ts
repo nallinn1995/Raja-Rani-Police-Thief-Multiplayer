@@ -10,8 +10,8 @@ class SocketService {
         transports: ["websocket", "polling"],
         autoConnect: true,
         reconnection: true,
-        reconnectionAttempts: 10,
-        reconnectionDelay: 1000,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 2000,
         reconnectionDelayMax: 1000,
       });
 

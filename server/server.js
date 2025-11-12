@@ -37,6 +37,7 @@ app.get("*", (req, res) => {
 // Game state storage
 const rooms = new Map();
 const playerSockets = new Map();
+const DISCONNECT_TIMEOUT = 30000;
 
 // Generate unique 6-digit alphanumeric room code
 function generateRoomCode() {
@@ -156,6 +157,8 @@ app.post("/api/rooms/:roomCode/join", (req, res) => {
     score: 0,
     role: null,
     socketId: null,
+    disconnected: false,
+    lastSeen: Date.now(),
   };
 
   room.players.push(newPlayer);
@@ -201,7 +204,14 @@ io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
   socket.on("join-room", ({ roomCode, playerId }) => {
-    const room = rooms.get(roomCode.toUpperCase());
+    const upperCode = roomCode.toUpperCase();
+    const room = rooms.get(upperCode);
+
+    if (!room) {
+      socket.emit("error", { message: "Room not found" });
+      return;
+    }
+
     if (room && room.players.some((p) => p.id === playerId)) {
       socket.join(roomCode);
 
@@ -210,6 +220,8 @@ io.on("connection", (socket) => {
       if (player) {
         player.socketId = socket.id;
         playerSockets.set(socket.id, { roomCode, playerId });
+        console.log(`✅ Player ${playerId} reconnected to room ${upperCode}`);
+        io.to(upperCode).emit("player-reconnected", { playerId });
       }
 
       // Send current room state
@@ -226,6 +238,7 @@ io.on("connection", (socket) => {
             isHost: p.isHost,
             score: p.score,
             role: p.id === playerId ? p.role : null,
+            disconnected: !!p.disconnected,
           })),
         },
         playerId,
@@ -332,20 +345,36 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
-
     const playerInfo = playerSockets.get(socket.id);
-    if (playerInfo) {
-      const { roomCode } = playerInfo;
-      const room = rooms.get(roomCode.toUpperCase());
-      if (room) {
-        const player = room.players.find((p) => p.socketId === socket.id);
-        if (player) {
-          player.socketId = null;
-        }
+    if (!playerInfo) return;
+
+    const { roomCode, playerId } = playerInfo;
+    const room = rooms.get(roomCode);
+    if (!room) return;
+
+    const player = room.players.find((p) => p.id === playerId);
+    if (!player) return;
+
+    // Mark temporarily disconnected
+    player.disconnected = true;
+    player.lastSeen = Date.now();
+
+    console.log(`Player ${playerId} disconnected from ${roomCode}`);
+    io.to(roomCode).emit("player-disconnected", { playerId });
+
+    // Remove mapping
+    playerSockets.delete(socket.id);
+
+    // If player never reconnects in 30 seconds, remove them
+    setTimeout(() => {
+      const now = Date.now();
+      if (player.disconnected && now - player.lastSeen >= DISCONNECT_TIMEOUT) {
+        // Still offline — remove them
+        room.players = room.players.filter((p) => p.id !== playerId);
+        io.to(roomCode).emit("player-removed", { playerId });
+        console.log(`Player ${playerId} removed from room ${roomCode}`);
       }
-      playerSockets.delete(socket.id);
-    }
+    }, DISCONNECT_TIMEOUT);
   });
 });
 

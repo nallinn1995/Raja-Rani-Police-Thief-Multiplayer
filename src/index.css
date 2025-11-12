@@ -323,3 +323,33 @@ select:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+
+
+.reconnect-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  font-size: 1.2rem;
+}
+
+.loader {
+  width: 45px;
+  height: 45px;
+  border: 4px solid #fff;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 10px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

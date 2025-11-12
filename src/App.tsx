@@ -18,8 +18,16 @@ import {
   RoundResult as RoundResultType,
 } from "./types/game";
 import { Welcome } from "./components/Welcome";
+const SOCKET_URL = import.meta.env.VITE_SERVER_URL;
 
-const socket = io(import.meta.env.VITE_SERVER_URL);
+
+const socket = io(SOCKET_URL, {
+  transports: ["websocket"],
+  reconnection: true,
+  reconnectionAttempts: Infinity,
+  reconnectionDelay: 2000,
+});
+
 let currentRoom: string | null = null;
 let playerId = null;
 
@@ -36,6 +44,8 @@ type AppState =
 function App() {
   //const socket = useSocket();
   const [appState, setAppState] = useState<AppState>("welcome");
+   // 🔄 Reconnect UI state
+  const [isReconnecting, setIsReconnecting] = useState(false);
   const [room, setRoom] = useState<Room | null>(null);
   const [currentPlayerId, setCurrentPlayerId] = useState<string>("");
   const [myRole, setMyRole] = useState<string>("");
@@ -60,8 +70,31 @@ function App() {
     }
   };
 
+  // 🧠 Remember the last joined room + player for reconnects
+  const currentRoomRef = useRef<string | null>(
+    localStorage.getItem("roomCode") || null
+  );
+  const currentPlayerRef = useRef<string | null>(
+    localStorage.getItem("playerId") || null
+  );
+
   useEffect(() => {
     if (!socket) return;
+
+    socket.on("connect", () => {
+      console.log("✅ Socket connected:", socket.id);
+
+      // Auto rejoin if previously saved session exists
+      const savedRoom = currentRoomRef.current;
+      const savedPlayer = currentPlayerRef.current;
+      if (savedRoom && savedPlayer) {
+        console.log("🔁 Auto rejoining room after connect:", savedRoom);
+        socket.emit("join-room", {
+          roomCode: savedRoom,
+          playerId: savedPlayer,
+        });
+      }
+    });
 
     socket.on("room-state", (data) => {
       setRoom(data.room);
@@ -77,6 +110,13 @@ function App() {
 
       if (data.room.gameState === "waiting") {
         setAppState("waiting");
+      }
+
+      // ✅ Hide reconnect overlay if room state restored
+      if (isReconnecting) {
+        setIsReconnecting(false);
+        toast.dismiss("reconnect");
+        toast.success("✅ Reconnected to game successfully!");
       }
     });
 
@@ -151,11 +191,41 @@ function App() {
       console.error("Socket connection error:", err);
     });
 
-    socket.on("reconnect", () => {
-      console.log("✅ Reconnected to server");
+    socket.on("player-reconnected", ({ playerId }) => {
+      console.log(`🔁 Player ${playerId} reconnected`);
+    });
+
+    socket.on("player-disconnected", ({ playerId }) => {
+      console.log(`🚫 Player ${playerId} temporarily disconnected`);
+    });
+
+     // 🔌 Connection Lost
+    socket.on("disconnect", () => {
       if (currentRoom && currentPlayerId) {
-        socket.emit("join-room", { currentRoom, currentPlayerId });
-        console.log("🔁 Rejoined room:", currentRoom);
+        setIsReconnecting(true);
+        toast.info("🔁 Connection lost. Attempting to reconnect...", {
+          toastId: "reconnect",
+          autoClose: false,
+        });
+      }
+    });
+
+    socket.on("reconnect", (attempt) => {
+      console.log(`✅ Reconnected on attempt ${attempt}`);
+      const savedRoom = currentRoomRef.current;
+      const savedPlayer = currentPlayerRef.current;
+       toast.update("reconnect", {
+          render: "🔗 Reconnecting to room...",
+          type: "info",
+          isLoading: true,
+          autoClose: false,
+        });
+      if (savedRoom && savedPlayer) {
+        socket.emit("join-room", {
+          roomCode: savedRoom,
+          playerId: savedPlayer,
+        });
+        console.log("🔄 Rejoined room after reconnect:", savedRoom);
       }
     });
 
@@ -186,20 +256,22 @@ function App() {
   const handleJoinRoom = async (roomCode: string, playerName: string) => {
     return await apiService.joinRoom(roomCode, playerName);
   };
-
   const handleRoomCreated = (roomCode: string, playerId: string) => {
+    currentRoomRef.current = roomCode;
+    currentPlayerRef.current = playerId;
+    localStorage.setItem("roomCode", roomCode);
+    localStorage.setItem("playerId", playerId);
     setCurrentPlayerId(playerId);
-    if (socket) {
-      currentRoom = roomCode;
-      socket.emit("join-room", { roomCode, playerId });
-    }
+    socket.emit("join-room", { roomCode, playerId });
   };
 
   const handleRoomJoined = (roomCode: string, playerId: string) => {
+    currentRoomRef.current = roomCode;
+    currentPlayerRef.current = playerId;
+    localStorage.setItem("roomCode", roomCode);
+    localStorage.setItem("playerId", playerId);
     setCurrentPlayerId(playerId);
-    if (socket) {
-      socket.emit("join-room", { roomCode, playerId });
-    }
+    socket.emit("join-room", { roomCode, playerId });
   };
 
   const handlePoliceReveal = () => {
@@ -232,6 +304,10 @@ function App() {
   };
 
   const handlePlayAgain = () => {
+    localStorage.removeItem("roomCode");
+    localStorage.removeItem("playerId");
+    currentRoomRef.current = null;
+    currentPlayerRef.current = null;
     setAppState("home");
     setRoom(null);
     setCurrentPlayerId("");
@@ -272,6 +348,16 @@ function App() {
           theme="dark"
         />
       </div>
+
+      {/* 🔄 Reconnect overlay */}
+      {isReconnecting && (
+        <div className="reconnect-overlay">
+          <div className="loader"></div>
+          <p>Reconnecting to room...</p>
+        </div>
+      )}
+
+
       {/* 🎵 Background music runs across all states */}
       {/* Music Toggle Button */}
       <button
