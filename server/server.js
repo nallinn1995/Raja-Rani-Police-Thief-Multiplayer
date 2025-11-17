@@ -175,6 +175,9 @@ app.post("/api/rooms/:roomCode/join", (req, res) => {
         name: p.name,
         isHost: p.isHost,
         score: p.score,
+        role: p.role,
+        disconnected: !!p.disconnected,
+        lastSeen: p.lastSeen,
       })),
     },
   });
@@ -203,6 +206,52 @@ io.on("connection_error", (err) => {
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
+  // socket.on("join-room", ({ roomCode, playerId }) => {
+  //   const upperCode = roomCode.toUpperCase();
+  //   const room = rooms.get(upperCode);
+
+  //   if (!room) {
+  //     socket.emit("error", { message: "Room not found" });
+  //     return;
+  //   }
+
+  //   if (room && room.players.some((p) => p.id === playerId)) {
+  //     socket.join(roomCode);
+
+  //     // Update player's socket ID
+  //     const player = room.players.find((p) => p.id === playerId);
+  //     if (player) {
+  //       player.socketId = socket.id;
+  //       playerSockets.set(socket.id, { roomCode, playerId });
+  //       console.log(`✅ Player ${playerId} reconnected to room ${upperCode}`);
+  //       io.to(upperCode).emit("player-reconnected", { playerId });
+  //     }
+
+  //     // Send current room state
+  //     socket.emit("room-state", {
+  //       room: {
+  //         id: room.id,
+  //         name: room.name,
+  //         totalRounds: room.totalRounds,
+  //         currentRound: room.currentRound,
+  //         gameState: room.gameState,
+  //         players: room.players.map((p) => ({
+  //           id: p.id,
+  //           name: p.name,
+  //           isHost: p.isHost,
+  //           score: p.score,
+  //           role: p.id === playerId ? p.role : null,
+  //           disconnected: !!p.disconnected,
+  //         })),
+  //       },
+  //       playerId,
+  //       policeId: room.policeId,
+  //     });
+
+  //     // Send messages
+  //     socket.emit("chat-history", room.messages);
+  //   }
+  // });
   socket.on("join-room", ({ roomCode, playerId }) => {
     const upperCode = roomCode.toUpperCase();
     const room = rooms.get(upperCode);
@@ -212,44 +261,49 @@ io.on("connection", (socket) => {
       return;
     }
 
-    if (room && room.players.some((p) => p.id === playerId)) {
-      socket.join(roomCode);
-
-      // Update player's socket ID
-      const player = room.players.find((p) => p.id === playerId);
-      if (player) {
-        player.socketId = socket.id;
-        playerSockets.set(socket.id, { roomCode, playerId });
-        console.log(`✅ Player ${playerId} reconnected to room ${upperCode}`);
-        io.to(upperCode).emit("player-reconnected", { playerId });
-      }
-
-      // Send current room state
-      socket.emit("room-state", {
-        room: {
-          id: room.id,
-          name: room.name,
-          totalRounds: room.totalRounds,
-          currentRound: room.currentRound,
-          gameState: room.gameState,
-          players: room.players.map((p) => ({
-            id: p.id,
-            name: p.name,
-            isHost: p.isHost,
-            score: p.score,
-            role: p.id === playerId ? p.role : null,
-            disconnected: !!p.disconnected,
-          })),
-        },
-        playerId,
-        policeId: room.policeId,
-      });
-
-      // Send messages
-      socket.emit("chat-history", room.messages);
+    const player = room.players.find((p) => p.id === playerId);
+    if (!player) {
+      socket.emit("error", { message: "Player not found in this room" });
+      return;
     }
-  });
 
+    // Join socket room
+    socket.join(upperCode);
+
+    // Update player's socket
+    player.socketId = socket.id;
+    player.disconnected = false;
+    playerSockets.set(socket.id, { roomCode: upperCode, playerId });
+
+    console.log(
+      `✅ Player ${playerId} connected/reconnected to room ${upperCode}`
+    );
+
+    io.to(upperCode).emit("player-reconnected", { playerId });
+
+    // Emit full room state
+    socket.emit("room-state", {
+      room: {
+        id: room.id,
+        name: room.name,
+        totalRounds: room.totalRounds,
+        currentRound: room.currentRound,
+        gameState: room.gameState,
+        players: room.players.map((p) => ({
+          id: p.id,
+          name: p.name,
+          isHost: p.isHost,
+          score: p.score,
+          role: p.id === playerId ? p.role : null,
+          disconnected: !!p.disconnected,
+        })),
+      },
+      playerId,
+      policeId: room.policeId,
+    });
+
+    socket.emit("chat-history", room.messages);
+  });
   socket.on("chat-message", ({ roomCode, playerId, message }) => {
     const room = rooms.get(roomCode.toUpperCase());
     if (room) {
@@ -345,6 +399,8 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
+    console.log("Client disconnected:", socket.id);
+
     const playerInfo = playerSockets.get(socket.id);
     if (!playerInfo) return;
 
@@ -355,24 +411,40 @@ io.on("connection", (socket) => {
     const player = room.players.find((p) => p.id === playerId);
     if (!player) return;
 
-    // Mark temporarily disconnected
+    // ------------------------------------------
+    // ✅ MARK PLAYER AS TEMPORARILY OFFLINE
+    // ------------------------------------------
     player.disconnected = true;
     player.lastSeen = Date.now();
 
-    console.log(`Player ${playerId} disconnected from ${roomCode}`);
+    console.log(
+      `Player ${playerId} temporarily disconnected from room ${roomCode}`
+    );
+
+    // Notify others
     io.to(roomCode).emit("player-disconnected", { playerId });
 
-    // Remove mapping
+    // IMPORTANT:
+    // ❌ DO NOT remove player from room here
+    // ❌ DO NOT delete playerId mapping (we need it for reconnection)
+    //
+    // But we CAN remove old socket id mapping because a new socket.id will be created
     playerSockets.delete(socket.id);
 
-    // If player never reconnects in 30 seconds, remove them
+    // ------------------------------------------
+    // ⏳ REMOVE ONLY IF THEY NEVER RECONNECT (30s)
+    // ------------------------------------------
     setTimeout(() => {
       const now = Date.now();
+
+      // If still disconnected → never returned → remove permanently
       if (player.disconnected && now - player.lastSeen >= DISCONNECT_TIMEOUT) {
-        // Still offline — remove them
         room.players = room.players.filter((p) => p.id !== playerId);
+        console.log(
+          `Player ${playerId} permanently removed from room ${roomCode}`
+        );
+
         io.to(roomCode).emit("player-removed", { playerId });
-        console.log(`Player ${playerId} removed from room ${roomCode}`);
       }
     }, DISCONNECT_TIMEOUT);
   });

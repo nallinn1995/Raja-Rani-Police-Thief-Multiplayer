@@ -7,8 +7,6 @@ interface WelcomeProps {
 
 
 export const Welcome: React.FC<WelcomeProps> = ({ startGame}) => {
-  
-
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-pink-50 to-blue-50 overflow-hidden relative">
