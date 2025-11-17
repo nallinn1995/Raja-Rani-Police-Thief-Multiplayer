@@ -442,6 +442,7 @@ io.on("connection", (socket) => {
         );
 
         io.to(roomCode).emit("player-removed", { playerId });
+        endGame(roomCode);
       }
     }, DISCONNECT_TIMEOUT);
   });
@@ -521,7 +522,7 @@ function endGame(roomCode) {
   // Clean up room after 5 minutes
   setTimeout(() => {
     rooms.delete(roomCode.toUpperCase());
-  }, 300000);
+  }, 60000);
 }
 
 const PORT = process.env.PORT || 3001;
