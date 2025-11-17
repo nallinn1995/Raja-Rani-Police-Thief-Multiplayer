@@ -175,9 +175,6 @@ app.post("/api/rooms/:roomCode/join", (req, res) => {
         name: p.name,
         isHost: p.isHost,
         score: p.score,
-        role: p.role,
-        disconnected: !!p.disconnected,
-        lastSeen: p.lastSeen,
       })),
     },
   });
