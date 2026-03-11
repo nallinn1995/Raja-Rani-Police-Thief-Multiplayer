@@ -4,7 +4,7 @@ import { ArrowLeft, Users, Hash, Clock } from 'lucide-react';
 interface CreateRoomProps {
   onBack: () => void;
   onRoomCreated: (roomCode: string, playerId: string) => void;
-  createRoom: (roomName: string, playerName: string, totalRounds: number) => Promise<any>;
+  createRoom: (roomName: string, playerName: string, totalRounds: number) => Promise<{ roomCode: string; playerId: string }>;
 }
 
 export const CreateRoom: React.FC<CreateRoomProps> = ({ onBack, onRoomCreated, createRoom }) => {

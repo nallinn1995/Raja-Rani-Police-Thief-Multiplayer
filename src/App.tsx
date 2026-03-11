@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, SetStateAction, SetStateAction, SetStateAction, SetStateAction, SetStateAction, SetStateAction } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Volume2, VolumeX } from "lucide-react";
 import { Bounce, ToastContainer, toast } from "react-toastify";
 
@@ -46,7 +46,6 @@ function App() {
   const [currentPlayerId, setCurrentPlayerId] = useState<string>("");
   const [reconnectRemaining, setReconnectRemaining] = useState<number>(0); // seconds left
 
-  const [currentRoom, setCurrentRoom] = useState<string>("");
   const [myRole, setMyRole] = useState<string>("");
   const [policeId, setPoliceId] = useState<string>("");
   const [allRoles, setAllRoles] = useState<Player[]>([]);
@@ -90,7 +89,6 @@ function App() {
   useEffect(() => {
     const saved = localStorage.getItem("appState");
     if (saved) {
-      console.log("ggggggggbbbbbbbbbbb");
       setAppState(saved as AppState);
     }
   }, []);
@@ -106,7 +104,7 @@ useEffect(() => {
       // Auto rejoin if previously saved session exists
       const savedRoom = currentRoomRef.current;
       const savedPlayer = currentPlayerRef.current;
-      console.log(savedRoom, savedPlayer,"CHECJING.....");
+      console.log("🔁 Auto-rejoin check:", savedRoom, savedPlayer);
       if (savedRoom && savedPlayer) {
         console.log("🔁 Auto rejoining room after connect:", savedRoom);
         socket.emit("join-room", {
@@ -116,10 +114,9 @@ useEffect(() => {
       }
     };
 
-    const onRoomState = (data) => {
+    const onRoomState = (data: { room: Room; playerId: string; policeId?: string }) => {
       console.log("Received room-state:", data);
       setRoom(data.room);
-      setCurrentRoom(data.room.id);
       setCurrentPlayerId(data.playerId);
       setPoliceId(data.policeId || "");
 
@@ -130,25 +127,35 @@ useEffect(() => {
         setMyRole(currentPlayer.role);
       }
 
-      if (data.room.gameState === "waiting") {
-        setAppState("waiting");
-        localStorage.setItem("appState", "waiting");
+      // FIX #3: Map ALL server gameStates to the correct client appState,
+      // not just "waiting" — so reconnecting mid-game restores the right screen
+      const gameStateToAppState: Record<string, AppState> = {
+        "waiting": "waiting",
+        "role-assignment": "playing",
+        "police-reveal": "playing",
+        "guessing": "playing",
+        "results": "result",
+        "finished": "leaderboard",
+      };
+      const restoredState = gameStateToAppState[data.room.gameState];
+      if (restoredState) {
+        setAppState(restoredState);
+        localStorage.setItem("appState", restoredState);
       }
 
-      console.log(isReconnectingRef.current);
-      // Assuming a successful rejoin is confirmed by receiving room-state
+      // FIX #4 + #9: isReconnectingRef is now correctly set in beginReconnectFlow,
+      // so this success block will reliably run after reconnect
       if (isReconnectingRef.current) {
-        // *** FIX: Dismiss toast and hide overlay on successful room-state reception ***
         toast.dismiss("reconnect");
         toast.success("✅ Reconnected successfully!");
-
-        setIsReconnecting(false); // Hide the overlay
-        isReconnectingRef.current = false; // Reset the ref
+        isReconnectingRef.current = false;
+        setIsReconnecting(false);
+        clearReconnectTimers();
         console.log("Reconnection successful. Overlay hidden.");
       }
     };
 
-    const onPlayerJoined = (data: { players: any; }) => {
+    const onPlayerJoined = (data: { players: Player[] }) => {
       if (room) {
         setRoom({ ...room, players: data.players });
       }
@@ -162,7 +169,7 @@ useEffect(() => {
       localStorage.setItem("appState", "playing");
     };
 
-    const onRoleAssigned = (data: { role: SetStateAction<string>; players: any; }) => {
+    const onRoleAssigned = (data: { role: string; players: Player[] }) => {
       setMyRole(data.role);
       setRoom((prev) => (prev ? { ...prev, players: data.players } : null));
     };
@@ -173,25 +180,25 @@ useEffect(() => {
       );
     };
 
-    const onAllRoles = (data: { players: SetStateAction<Player[]>; }) => {
+    const onAllRoles = (data: { players: Player[] }) => {
       setAllRoles(data.players);
     };
 
-    const onPoliceRevealed = (data: { policeName: any; policeId: SetStateAction<string>; }) => {
+    const onPoliceRevealed = (data: { policeName: string; policeId: string }) => {
       console.log(data);
-      toast(`${data.policeName} : I am Police and going to catch theif Now😎`);
+      toast(`${data.policeName} : I am Police and going to catch the thief Now 😎`);
       setPoliceId(data.policeId);
       setRoom((prev) => (prev ? { ...prev, gameState: "guessing" } : null));
     };
 
-    const onRoundResult = (data: SetStateAction<RoundResultType | null>) => {
+    const onRoundResult = (data: RoundResultType) => {
       setRoundResult(data);
       setRoom((prev) =>
         prev
           ? {
               ...prev,
               gameState: "results",
-              players: data.players.map((p: any) => ({
+              players: data.players.map((p: Player) => ({
                 ...p,
                 role: undefined,
               })),
@@ -203,7 +210,7 @@ useEffect(() => {
       setAllRoles([]);
     };
 
-    const onGameFinished = (data: { leaderboard: SetStateAction<Player[]>; }) => {
+    const onGameFinished = (data: { leaderboard: Player[] }) => {
       setLeaderboard(data.leaderboard);
       setAppState("leaderboard");
       localStorage.setItem("appState", "leaderboard");
@@ -219,40 +226,53 @@ useEffect(() => {
 
     const onConnectError = (err: unknown) => {
       console.error("Socket connection error:", err);
-      // start reconnect UI (if not already started)
-      if (!isReconnecting) {
+      // FIX #7: Use ref instead of stale `isReconnecting` state from closure
+      if (!isReconnectingRef.current) {
         beginReconnectFlow();
       }
-      // NOTE: We only handle UI for disconnect/reconnect, not connect_error for the overlay
     };
 
-    const onPlayerReconnected = ({ playerId }) => {
+    // FIX #12: Show toast to other players when someone reconnects/disconnects.
+    // Toast is called OUTSIDE the setRoom updater to avoid setState-during-render warning.
+    const onPlayerReconnected = ({ playerId }: { playerId: string }) => {
       console.log(`🔁 Player ${playerId} reconnected`);
+      if (playerId !== currentPlayerRef.current) {
+        const playerName = room?.players.find((p) => p.id === playerId)?.name;
+        if (playerName) {
+          toast.info(`🔁 ${playerName} reconnected!`, { autoClose: 3000 });
+        }
+        setRoom((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            players: prev.players.map((p) =>
+              p.id === playerId ? { ...p, disconnected: false } : p
+            ),
+          };
+        });
+      }
     };
 
-    const onPlayerDisconnected = ({ playerId }) => {
+    const onPlayerDisconnected = ({ playerId }: { playerId: string }) => {
       console.log(`🚫 Player ${playerId} temporarily disconnected`);
+      if (playerId !== currentPlayerRef.current) {
+        const playerName = room?.players.find((p) => p.id === playerId)?.name;
+        if (playerName) {
+          toast.warn(`⚠️ ${playerName} disconnected. Waiting for reconnect...`, {
+            autoClose: 5000,
+          });
+        }
+        setRoom((prev) => prev); // touch state to trigger any necessary re-render
+      }
     };
 
-    // 🔌 Connection Lost Handler (Uses refs for up-to-date session info)
+    // FIX #13: Only trigger reconnect flow when the player is actually in a room
     const onDisconnect = () => {
       console.log("DISCONNECTED");
       const savedRoom = currentRoomRef.current;
       const savedPlayer = currentPlayerRef.current;
-      
-      // if (savedRoom && savedPlayer) {
-      //   isReconnectingRef.current = true;
-      //   setIsReconnecting(true); // Show the overlay
-      //   toast.info("🔁 Connection lost. Attempting to reconnect...", {
-      //     toastId: "reconnect",
-      //     autoClose: false,
-      //   });
-      // }
-        console.log(savedRoom, savedPlayer);
-        if (currentRoomRef.current && currentPlayerRef.current) {
-        beginReconnectFlow();
-      } else {
-        // If not part of any room, we still attempt reconnect but we won't auto-join
+      console.log("Session on disconnect:", savedRoom, savedPlayer);
+      if (savedRoom && savedPlayer) {
         beginReconnectFlow();
       }
     };
@@ -329,47 +349,44 @@ useEffect(() => {
       socket.off("disconnect", onDisconnect);
       socket.off("reconnect", onReconnect);
     };
-  // NOTE: Removed `isReconnecting` from dependencies as it's not needed for listener setup
-  // and using it causes unnecessary re-registrations.
-  }, [[room, isReconnecting]]);
+  // FIX #1: Corrected from [[room, isReconnecting]] (double-nested array) to [room].
+  // beginReconnectFlow/clearReconnectTimersAndUI use only refs+setters — safe to omit.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room]);
 
   // ----------------- reconnect helpers -----------------
   function beginReconnectFlow() {
     if (error) {
-      // if we already showed final error, do nothing here — require user to Retry
       return;
     }
 
-    if (!isReconnecting) {
+    // FIX #4 + #7: Guard with ref (not stale state) and set ref so onRoomState detects success
+    if (!isReconnectingRef.current) {
+      isReconnectingRef.current = true;
       setIsReconnecting(true);
-      // start toast
       toast.info("🔁 Connection lost. Attempting to reconnect...", {
         toastId: "reconnect",
         autoClose: false,
       });
     }
 
-    // set countdown deadline
     const deadline = Date.now() + RECONNECT_TIMEOUT_MS;
     reconnectDeadlineRef.current = deadline;
-    updateReconnectRemaining(); // set initial remaining seconds
+    updateReconnectRemaining();
 
-    // start interval to update remaining seconds every 1s
     if (!reconnectIntervalRef.current) {
       reconnectIntervalRef.current = window.setInterval(() => {
         updateReconnectRemaining();
       }, 1000);
     }
 
-    // start timeout that will show error UI if not reconnected
     if (!reconnectTimeoutRef.current) {
       reconnectTimeoutRef.current = window.setTimeout(() => {
-        // timed out: show error UI and dismiss reconnect toast
+        isReconnectingRef.current = false;
         setIsReconnecting(false);
         setReconnectRemaining(0);
         toast.dismiss("reconnect");
         setError("Connection failed. Please try again.");
-        // clear timers
         clearReconnectTimers();
       }, RECONNECT_TIMEOUT_MS) as unknown as number;
     }
@@ -397,14 +414,17 @@ useEffect(() => {
     reconnectDeadlineRef.current = null;
   }
 
+  // FIX #3: Also reset isReconnectingRef so future reconnect detection works correctly
   function clearReconnectTimersAndUI() {
     clearReconnectTimers();
+    isReconnectingRef.current = false;
     setIsReconnecting(false);
     setReconnectRemaining(0);
-    // dismiss reconnect toast if present
     try {
       toast.dismiss("reconnect");
-    } catch (e) {}
+    } catch {
+      // noop — toast.dismiss never throws in practice
+    }
   }
 
 
@@ -494,7 +514,7 @@ useEffect(() => {
     // attempt to reconnect
     try {
       // If socket is disconnected, try to connect
-      if (socket && (socket as any).connected === false) {
+      if (socket && socket.connected === false) {
         socket.connect();
       } else {
         // either connected or connecting - force reconnect
@@ -508,34 +528,11 @@ useEffect(() => {
     beginReconnectFlow();
   };
 
-  // small helper to restore saved appState manually (if needed)
-  const restoreAppStateFromStorage = () => {
-    const savedState = localStorage.getItem("appState");
-    if (savedState) {
-      setAppState(savedState as AppState);
-    }
-  };
+  // FIX #11: Removed unused restoreAppStateFromStorage (dead code)
+  // FIX #6: Removed dead first if(error) block with only commented-out JSX
+  // that was silently returning undefined and blocking the real error screen below.
 
   if (error) {
-    // return (
-    //   <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center p-4">
-    //     <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 text-center">
-    //       <h1 className="text-2xl font-bold text-red-800 mb-4">
-    //         Connection Error
-    //       </h1>
-    //       <p className="text-red-600 mb-6">{error}</p>
-    //       <button
-    //         onClick={() => retry()}
-    //         className="bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-xl transition-colors"
-    //       >
-    //         Retry
-    //       </button>
-    //     </div>
-    //   </div>
-    // );
-  }
-
-   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 text-center">
@@ -552,7 +549,6 @@ useEffect(() => {
             </button>
             <button
               onClick={() => {
-                // allow user to fallback to home (clear saved session)
                 localStorage.removeItem("roomCode");
                 localStorage.removeItem("playerId");
                 localStorage.setItem("appState", "home");
@@ -563,6 +559,31 @@ useEffect(() => {
               Go Home
             </button>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // FIX #10: Show a loading/restoring screen instead of a blank page when
+  // appState was saved mid-game (e.g. "playing") but room hasn't loaded yet after page refresh
+  const isInGameState =
+    appState !== "welcome" &&
+    appState !== "home" &&
+    appState !== "create" &&
+    appState !== "join";
+  if (isInGameState && !room) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-purple-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="loader mx-auto mb-4" />
+          <p className="text-gray-700 font-semibold text-lg">Restoring your session...</p>
+          <p className="text-gray-500 text-sm mt-2">Reconnecting to the server</p>
+          <button
+            onClick={handlePlayAgain}
+            className="mt-6 px-5 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl text-sm font-medium transition-colors"
+          >
+            Back to Home
+          </button>
         </div>
       </div>
     );

@@ -1,5 +1,5 @@
-import { Crown, Sparkles, Shield, Eye, Volume2, VolumeX } from 'lucide-react';
-import { useState, useRef } from 'react';
+import React from 'react';
+import { Crown, Sparkles, Shield, Eye } from 'lucide-react';
 
 interface WelcomeProps {
   startGame: () => void;

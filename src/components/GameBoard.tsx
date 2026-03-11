@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Crown, Shield, Eye, Zap, MessageCircle } from "lucide-react";
+import { Shield, Eye, MessageCircle } from "lucide-react";
 import { Player, ChatMessage } from "../types/game";
 import { Chat } from "./Chat";
 
@@ -21,13 +21,6 @@ interface GameBoardProps {
   onMakeGuess: (guessedThiefId: string) => void;
   onSendMessage: (message: string) => void;
 }
-
-const roleIcons = {
-  Raja: Crown,
-  Rani: Crown,
-  Police: Shield,
-  Thief: Zap,
-};
 
 const roleColors = {
   Raja: "from-yellow-400 to-yellow-600",
@@ -52,11 +45,10 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   const [currentPlayerName, setCurrentPlayerName] = useState("");
 
   useEffect(() => {
-    setCurrentPlayerName(() => {
-      return (
-        room.players.find((player) => player.id === currentPlayerId)?.name ?? ""
-      );
-    });
+    // Use direct value (not updater fn) to avoid setState-during-render warning
+    setCurrentPlayerName(
+      room.players.find((player) => player.id === currentPlayerId)?.name ?? ""
+    );
     if (room.gameState === "role-assignment") {
       // Animate card flips
       room.players.forEach((player, index) => {
@@ -72,10 +64,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   const canMakeGuess =
     room.gameState === "guessing" && currentPlayerId === policeId;
 
-  const getRoleIcon = (role: string) => {
-    const IconComponent = roleIcons[role as keyof typeof roleIcons];
-    return IconComponent ? <IconComponent className="w-6 h-6" /> : null;
-  };
+
 
   const getPlayerRole = (playerId: string) => {
     if (playerId === currentPlayerId) return myRole;
@@ -125,7 +114,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
         {/* Player Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          {room.players.map((player, index) => {
+          {room.players.map((player) => {
             const playerRole = getPlayerRole(player.id);
             const isFlipped = flippedCards.has(player.id);
             const canClick =

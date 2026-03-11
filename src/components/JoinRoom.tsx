@@ -4,7 +4,7 @@ import { ArrowLeft, Users, Hash } from 'lucide-react';
 interface JoinRoomProps {
   onBack: () => void;
   onRoomJoined: (roomCode: string, playerId: string) => void;
-  joinRoom: (roomCode: string, playerName: string) => Promise<any>;
+  joinRoom: (roomCode: string, playerName: string) => Promise<{ playerId: string; roomCode?: string }>;
 }
 
 export const JoinRoom: React.FC<JoinRoomProps> = ({ onBack, onRoomJoined, joinRoom }) => {

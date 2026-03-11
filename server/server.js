@@ -300,6 +300,18 @@ io.on("connection", (socket) => {
     });
 
     socket.emit("chat-history", room.messages);
+
+    // FIX #5: Re-send all-roles to Police if they reconnect during the guessing phase.
+    // Without this, the Police arrives back with no knowledge of who is who.
+    if (room.gameState === "guessing" && room.policeId === playerId) {
+      socket.emit("all-roles", {
+        players: room.players.map((p) => ({
+          id: p.id,
+          name: p.name,
+          role: p.role,
+        })),
+      });
+    }
   });
   socket.on("chat-message", ({ roomCode, playerId, message }) => {
     const room = rooms.get(roomCode.toUpperCase());
@@ -436,13 +448,18 @@ io.on("connection", (socket) => {
 
       // If still disconnected → never returned → remove permanently
       if (player.disconnected && now - player.lastSeen >= DISCONNECT_TIMEOUT) {
-        room.players = room.players.filter((p) => p.id !== playerId);
+      room.players = room.players.filter((p) => p.id !== playerId);
         console.log(
           `Player ${playerId} permanently removed from room ${roomCode}`
         );
 
         io.to(roomCode).emit("player-removed", { playerId });
-        endGame(roomCode);
+
+        // FIX #8: Only end game if it is actively in progress.
+        // Skip endGame during "waiting" (game hasn't started) or "finished" (already over).
+        if (room.gameState !== "waiting" && room.gameState !== "finished") {
+          endGame(roomCode);
+        }
       }
     }, DISCONNECT_TIMEOUT);
   });
