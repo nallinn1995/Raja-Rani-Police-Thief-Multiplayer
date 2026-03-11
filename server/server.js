@@ -273,7 +273,7 @@ io.on("connection", (socket) => {
     playerSockets.set(socket.id, { roomCode: upperCode, playerId });
 
     console.log(
-      `✅ Player ${playerId} connected/reconnected to room ${upperCode}`
+      `✅ Player ${playerId} connected/reconnected to room ${upperCode}`,
     );
 
     io.to(upperCode).emit("player-reconnected", { playerId });
@@ -365,15 +365,15 @@ io.on("connection", (socket) => {
 
       // Calculate scores
       if (isCorrect) {
-        room.players.find((p) => p.role === "Police").score += 100;
-        room.players.find((p) => p.role === "Raja").score += 500;
-        room.players.find((p) => p.role === "Rani").score += 600;
+        room.players.find((p) => p.role === "Police").score += 300;
+        room.players.find((p) => p.role === "Raja").score += 1000;
+        room.players.find((p) => p.role === "Rani").score += 500;
         room.players.find((p) => p.role === "Thief").score += 0;
       } else {
-        room.players.find((p) => p.role === "Thief").score += 100;
+        room.players.find((p) => p.role === "Thief").score += 300;
         room.players.find((p) => p.role === "Police").score += 0;
-        room.players.find((p) => p.role === "Raja").score += 500;
-        room.players.find((p) => p.role === "Rani").score += 600;
+        room.players.find((p) => p.role === "Raja").score += 1000;
+        room.players.find((p) => p.role === "Rani").score += 500;
         // room.players.forEach((p) => {
         //   if (p.role !== "Thief") p.score += 1;
         // });
@@ -427,7 +427,7 @@ io.on("connection", (socket) => {
     player.lastSeen = Date.now();
 
     console.log(
-      `Player ${playerId} temporarily disconnected from room ${roomCode}`
+      `Player ${playerId} temporarily disconnected from room ${roomCode}`,
     );
 
     // Notify others
@@ -448,9 +448,9 @@ io.on("connection", (socket) => {
 
       // If still disconnected → never returned → remove permanently
       if (player.disconnected && now - player.lastSeen >= DISCONNECT_TIMEOUT) {
-      room.players = room.players.filter((p) => p.id !== playerId);
+        room.players = room.players.filter((p) => p.id !== playerId);
         console.log(
-          `Player ${playerId} permanently removed from room ${roomCode}`
+          `Player ${playerId} permanently removed from room ${roomCode}`,
         );
 
         io.to(roomCode).emit("player-removed", { playerId });

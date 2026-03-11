@@ -5,9 +5,10 @@ import { Player } from '../types/game';
 interface LeaderboardProps {
   leaderboard: Player[];
   onPlayAgain: () => void;
+  onBackToHome: () => void;
 }
 
-export const Leaderboard: React.FC<LeaderboardProps> = ({ leaderboard, onPlayAgain }) => {
+export const Leaderboard: React.FC<LeaderboardProps> = ({ leaderboard, onPlayAgain, onBackToHome }) => {
   const getRankIcon = (rank: number) => {
     switch (rank) {
       case 1:
@@ -75,7 +76,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ leaderboard, onPlayAga
           </button>
           
           <button
-            onClick={() => window.location.reload()}
+            onClick={onBackToHome}
             className="w-full bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center space-x-2"
           >
             <Home className="w-5 h-5" />

@@ -508,6 +508,26 @@ useEffect(() => {
     clearReconnectTimersAndUI();
   };
 
+  const handleBackToHome = () => {
+    localStorage.removeItem("roomCode");
+    localStorage.removeItem("playerId");
+    currentRoomRef.current = null;
+    currentPlayerRef.current = null;
+    localStorage.clear();
+     setAppState("welcome");
+
+    setRoom(null);
+    setCurrentPlayerId("");
+    setMyRole("");
+    setPoliceId("");
+    setAllRoles([]);
+    setRoundResult(null);
+    setLeaderboard([]);
+    setMessages([]);
+    setError("");
+    clearReconnectTimersAndUI();
+  };
+
    // Retry function used in error UI
   const retry = () => {
     setError("");
@@ -745,6 +765,7 @@ useEffect(() => {
               <Leaderboard
                 leaderboard={leaderboard}
                 onPlayAgain={handlePlayAgain}
+                onBackToHome={handleBackToHome}
               />
             );
 
