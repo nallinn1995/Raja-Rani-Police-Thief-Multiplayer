@@ -60,7 +60,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
   // Shuffle role colors each round
   useEffect(() => {
-    const colorValues = [
+    const colors = [
       "from-yellow-400 to-yellow-600",
       "from-pink-400 to-pink-600",
       "from-blue-400 to-blue-600",
@@ -68,20 +68,21 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     ];
     const roles = ["Raja", "Rani", "Police", "Thief"];
 
-    // Fisher-Yates shuffle
-    const shuffled = [...colorValues];
-    for (let i = shuffled.length - 1; i > 0; i--) {
+    // Shuffle the color array using Fisher-Yates
+    const shuffledColors = [...colors];
+    for (let i = shuffledColors.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      [shuffledColors[i], shuffledColors[j]] = [shuffledColors[j], shuffledColors[i]];
     }
 
+    // Create new color mapping ensuring each role gets a unique color
     const newRoleColors: Record<string, string> = {};
-    roles.forEach((role, index) => {
-      newRoleColors[role] = shuffled[index];
-    });
+    for (let i = 0; i < roles.length; i++) {
+      newRoleColors[roles[i]] = shuffledColors[i];
+    }
 
     setRoleColors(newRoleColors);
-  }, [room.currentRound]);
+  }, [room.currentRound, room.gameState]);
 
   const isPolice = myRole === "Police";
   const canRevealPolice = room.gameState === "police-reveal" && isPolice;
