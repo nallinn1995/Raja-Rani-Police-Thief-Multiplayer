@@ -80,14 +80,14 @@ function App() {
 
   // 🧠 Remember the last joined room + player for reconnects
   const currentRoomRef = useRef<string | null>(
-    localStorage.getItem("roomCode") || null
+    sessionStorage.getItem("roomCode") || null
   );
   const currentPlayerRef = useRef<string | null>(
-    localStorage.getItem("playerId") || null
+    sessionStorage.getItem("playerId") || null
   );
 
   useEffect(() => {
-    const saved = localStorage.getItem("appState");
+    const saved = sessionStorage.getItem("appState");
     if (saved) {
       setAppState(saved as AppState);
     }
@@ -140,7 +140,7 @@ useEffect(() => {
       const restoredState = gameStateToAppState[data.room.gameState];
       if (restoredState) {
         setAppState(restoredState);
-        localStorage.setItem("appState", restoredState);
+        sessionStorage.setItem("appState", restoredState);
       }
 
       // FIX #4 + #9: isReconnectingRef is now correctly set in beginReconnectFlow,
@@ -166,7 +166,7 @@ useEffect(() => {
         prev ? { ...prev, ...data, gameState: "role-assignment" } : null
       );
       setAppState("playing");
-      localStorage.setItem("appState", "playing");
+      sessionStorage.setItem("appState", "playing");
     };
 
     const onRoleAssigned = (data: { role: string; players: Player[] }) => {
@@ -206,14 +206,14 @@ useEffect(() => {
           : null
       );
       setAppState("result");
-      localStorage.setItem("appState", "result");
+      sessionStorage.setItem("appState", "result");
       setAllRoles([]);
     };
 
     const onGameFinished = (data: { leaderboard: Player[] }) => {
       setLeaderboard(data.leaderboard);
       setAppState("leaderboard");
-      localStorage.setItem("appState", "leaderboard");
+      sessionStorage.setItem("appState", "leaderboard");
     };
 
     const onChatMessage = (message: ChatMessage) => {
@@ -444,8 +444,8 @@ useEffect(() => {
   const handleRoomCreated = (roomCode: string, playerId: string) => {
     currentRoomRef.current = roomCode;
     currentPlayerRef.current = playerId;
-    localStorage.setItem("roomCode", roomCode);
-    localStorage.setItem("playerId", playerId);
+    sessionStorage.setItem("roomCode", roomCode);
+    sessionStorage.setItem("playerId", playerId);
     setCurrentPlayerId(playerId);
     socket.emit("join-room", { roomCode, playerId });
   };
@@ -453,8 +453,8 @@ useEffect(() => {
   const handleRoomJoined = (roomCode: string, playerId: string) => {
     currentRoomRef.current = roomCode;
     currentPlayerRef.current = playerId;
-    localStorage.setItem("roomCode", roomCode);
-    localStorage.setItem("playerId", playerId);
+    sessionStorage.setItem("roomCode", roomCode);
+    sessionStorage.setItem("playerId", playerId);
     setCurrentPlayerId(playerId);
     socket.emit("join-room", { roomCode, playerId });
   };
@@ -489,13 +489,13 @@ useEffect(() => {
   };
 
   const handlePlayAgain = () => {
-    localStorage.removeItem("roomCode");
-    localStorage.removeItem("playerId");
+    sessionStorage.removeItem("roomCode");
+    sessionStorage.removeItem("playerId");
     currentRoomRef.current = null;
     currentPlayerRef.current = null;
-    localStorage.clear();
+    sessionStorage.clear();
     setAppState("home");
-    localStorage.setItem("appState", "home");
+    sessionStorage.setItem("appState", "home");
     setRoom(null);
     setCurrentPlayerId("");
     setMyRole("");
@@ -509,11 +509,11 @@ useEffect(() => {
   };
 
   const handleBackToHome = () => {
-    localStorage.removeItem("roomCode");
-    localStorage.removeItem("playerId");
+    sessionStorage.removeItem("roomCode");
+    sessionStorage.removeItem("playerId");
     currentRoomRef.current = null;
     currentPlayerRef.current = null;
-    localStorage.clear();
+    sessionStorage.clear();
      setAppState("welcome");
 
     setRoom(null);
@@ -569,9 +569,9 @@ useEffect(() => {
             </button>
             <button
               onClick={() => {
-                localStorage.removeItem("roomCode");
-                localStorage.removeItem("playerId");
-                localStorage.setItem("appState", "home");
+                sessionStorage.removeItem("roomCode");
+                sessionStorage.removeItem("playerId");
+                sessionStorage.setItem("appState", "home");
                 handlePlayAgain();
               }}
               className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-xl transition-colors"
@@ -647,9 +647,9 @@ useEffect(() => {
               <button
                 onClick={() => {
                   // allow quick fallback to home
-                  localStorage.removeItem("roomCode");
-                  localStorage.removeItem("playerId");
-                  localStorage.setItem("appState", "home");
+                  sessionStorage.removeItem("roomCode");
+                  sessionStorage.removeItem("playerId");
+                  sessionStorage.setItem("appState", "home");
                   handlePlayAgain();
                 }}
                 className="px-4 py-2 rounded-lg bg-gray-200 text-gray-800"
@@ -688,7 +688,7 @@ useEffect(() => {
             return (
               <Welcome
                 startGame={() => {
-                  localStorage.setItem("appState", "home");
+                  sessionStorage.setItem("appState", "home");
                   setAppState("home");
                 }}
               />
@@ -698,12 +698,12 @@ useEffect(() => {
             return (
               <HomePage
                 onCreateRoom={() => {
-                  localStorage.setItem("appState", "create");
+                  sessionStorage.setItem("appState", "create");
                   setAppState("create");
                 }}
                 onJoinRoom={() => {
                   setAppState("join");
-                  localStorage.setItem("appState", "join");
+                  sessionStorage.setItem("appState", "join");
                 }}
               />
             );
@@ -712,7 +712,7 @@ useEffect(() => {
             return (
               <CreateRoom
                 onBack={() => {
-                  localStorage.setItem("appState", "home");
+                  sessionStorage.setItem("appState", "home");
                   setAppState("home");
                 }}
                 onRoomCreated={handleRoomCreated}
@@ -725,7 +725,7 @@ useEffect(() => {
               <JoinRoom
                 onBack={() => {
                   setAppState("home");
-                  localStorage.setItem("appState", "home");
+                  sessionStorage.setItem("appState", "home");
                 }}
                 onRoomJoined={handleRoomJoined}
                 joinRoom={handleJoinRoom}

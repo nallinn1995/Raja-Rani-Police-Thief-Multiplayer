@@ -22,13 +22,6 @@ interface GameBoardProps {
   onSendMessage: (message: string) => void;
 }
 
-const roleColors = {
-  Raja: "from-yellow-400 to-yellow-600",
-  Rani: "from-pink-400 to-pink-600",
-  Police: "from-blue-400 to-blue-600",
-  Thief: "from-red-400 to-red-600",
-};
-
 export const GameBoard: React.FC<GameBoardProps> = ({
   room,
   currentPlayerId,
@@ -43,6 +36,12 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   const [flippedCards, setFlippedCards] = useState<Set<string>>(new Set());
   const [showChat, setShowChat] = useState(false);
   const [currentPlayerName, setCurrentPlayerName] = useState("");
+  const [roleColors, setRoleColors] = useState<Record<string, string>>({
+    Raja: "from-yellow-400 to-yellow-600",
+    Rani: "from-pink-400 to-pink-600",
+    Police: "from-blue-400 to-blue-600",
+    Thief: "from-red-400 to-red-600",
+  });
 
   useEffect(() => {
     // Use direct value (not updater fn) to avoid setState-during-render warning
@@ -58,6 +57,31 @@ export const GameBoard: React.FC<GameBoardProps> = ({
       });
     }
   }, [currentPlayerId, room, room.gameState, room.players]);
+
+  // Shuffle role colors each round
+  useEffect(() => {
+    const colorValues = [
+      "from-yellow-400 to-yellow-600",
+      "from-pink-400 to-pink-600",
+      "from-blue-400 to-blue-600",
+      "from-red-400 to-red-600",
+    ];
+    const roles = ["Raja", "Rani", "Police", "Thief"];
+
+    // Fisher-Yates shuffle
+    const shuffled = [...colorValues];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    const newRoleColors: Record<string, string> = {};
+    roles.forEach((role, index) => {
+      newRoleColors[role] = shuffled[index];
+    });
+
+    setRoleColors(newRoleColors);
+  }, [room.currentRound]);
 
   const isPolice = myRole === "Police";
   const canRevealPolice = room.gameState === "police-reveal" && isPolice;
