@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Users, Share2, Crown, MessageCircle, Copy } from 'lucide-react';
 import { Player, ChatMessage } from '../types/game';
 import { Chat } from './Chat';
-import { Bounce, ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 
 
 interface WaitingRoomProps {
@@ -39,10 +39,6 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-purple-100 flex flex-col items-center justify-center p-4">
-       <ToastContainer 
-        position="top-center"
-        transition={Bounce}
-        theme="dark"/>
       <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8">
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold text-gray-800 mb-2">{room.name}</h1>

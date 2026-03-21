@@ -185,6 +185,11 @@ useEffect(() => {
     };
 
     const onPoliceRevealed = (data: { policeName: string; policeId: string }) => {
+      // Only show this toast as part of an active game session.
+      if (appState !== "playing" || !room || room.gameState !== "police-reveal") {
+        return;
+      }
+
       console.log(data);
       toast(`${data.policeName} : I am Police and going to catch the thief Now 😎`);
       setPoliceId(data.policeId);
@@ -352,7 +357,7 @@ useEffect(() => {
   // FIX #1: Corrected from [[room, isReconnecting]] (double-nested array) to [room].
   // beginReconnectFlow/clearReconnectTimersAndUI use only refs+setters — safe to omit.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [room]);
+  }, [room, appState]);
 
   // ----------------- reconnect helpers -----------------
   function beginReconnectFlow() {
