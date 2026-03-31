@@ -1,10 +1,10 @@
 import express from "express";
 import path from "path";
-import { createServer } from "http"; // createServer is used instead of require('http')
-import { Server as SocketIoServer } from "socket.io"; // Rename import for clarity
+import { createServer } from "http";
+import { Server as SocketIoServer } from "socket.io";
 import cors from "cors";
 import { v4 as uuidv4 } from "uuid";
-
+import { body, validationResult } from "express-validator";
 import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -60,140 +60,150 @@ function shuffleArray(array) {
 }
 
 // Create room endpoint
-app.post("/api/rooms", (req, res) => {
-  const { roomName, playerName, totalRounds } = req.body;
+app.post(
+  "/api/rooms",
+  [
+    body("roomName").trim().escape(),
+    body("playerName").trim().escape(),
+    body("totalRounds").isInt({ min: 1, max: 10 }),
+  ],
+  (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
 
-  if (!roomName || !playerName || !totalRounds) {
-    return res.status(400).json({ error: "Missing required fields" });
-  }
+    const { roomName, playerName, totalRounds } = req.body;
 
-  if (totalRounds < 1 || totalRounds > 10) {
-    return res
-      .status(400)
-      .json({ error: "Total rounds must be between 1 and 10" });
-  }
+    let roomCode;
+    do {
+      roomCode = generateRoomCode();
+    } while (rooms.has(roomCode));
 
-  let roomCode;
-  do {
-    roomCode = generateRoomCode();
-  } while (rooms.has(roomCode));
+    const room = {
+      id: roomCode,
+      name: roomName,
+      totalRounds: parseInt(totalRounds),
+      currentRound: 0,
+      players: [
+        {
+          id: uuidv4(),
+          name: playerName,
+          isHost: true,
+          score: 0,
+          role: null,
+          socketId: null,
+        },
+      ],
+      gameState: "waiting", // waiting, role-assignment, police-reveal, guessing, results, finished
+      roles: ["Raja", "Rani", "Police", "Thief"],
+      policeId: null,
+      currentGuess: null,
+      messages: [],
+    };
 
-  const room = {
-    id: roomCode,
-    name: roomName,
-    totalRounds: parseInt(totalRounds),
-    currentRound: 0,
-    players: [
-      {
-        id: uuidv4(),
-        name: playerName,
-        isHost: true,
-        score: 0,
-        role: null,
-        socketId: null,
+    rooms.set(roomCode, room);
+
+    res.json({
+      success: true,
+      roomCode,
+      playerId: room.players[0].id,
+      room: {
+        id: room.id,
+        name: room.name,
+        totalRounds: room.totalRounds,
+        players: room.players.map((p) => ({
+          id: p.id,
+          name: p.name,
+          isHost: p.isHost,
+          score: p.score,
+        })),
       },
-    ],
-    gameState: "waiting", // waiting, role-assignment, police-reveal, guessing, results, finished
-    roles: ["Raja", "Rani", "Police", "Thief"],
-    policeId: null,
-    currentGuess: null,
-    messages: [],
-  };
-
-  rooms.set(roomCode, room);
-
-  res.json({
-    success: true,
-    roomCode,
-    playerId: room.players[0].id,
-    room: {
-      id: room.id,
-      name: room.name,
-      totalRounds: room.totalRounds,
-      players: room.players.map((p) => ({
-        id: p.id,
-        name: p.name,
-        isHost: p.isHost,
-        score: p.score,
-      })),
-    },
-  });
-});
+    });
+  }
+);
 
 // Join room endpoint
-app.post("/api/rooms/:roomCode/join", (req, res) => {
-  const { roomCode } = req.params;
-  const { playerName } = req.body;
+app.post(
+  "/api/rooms/:roomCode/join",
+  [body("playerName").trim().escape()],
+  (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
 
-  if (!playerName) {
-    return res.status(400).json({ error: "Player name is required" });
-  }
+    const { roomCode } = req.params;
+    const { playerName } = req.body;
 
-  const room = rooms.get(roomCode.toUpperCase());
+    const room = rooms.get(roomCode.toUpperCase());
 
-  if (!room) {
-    return res.status(404).json({ error: "Room not found" });
-  }
+    if (!room) {
+      return res.status(404).json({ error: "Room not found" });
+    }
 
-  if (room.players.length >= 4) {
-    return res.status(400).json({ error: "Room is full" });
-  }
+    if (room.players.length >= 4) {
+      return res.status(400).json({ error: "Room is full" });
+    }
 
-  if (room.gameState !== "waiting") {
-    return res.status(400).json({ error: "Game already in progress" });
-  }
+    if (room.gameState !== "waiting") {
+      return res.status(400).json({ error: "Game already in progress" });
+    }
 
-  // Check if name already exists
-  if (
-    room.players.some((p) => p.name.toLowerCase() === playerName.toLowerCase())
-  ) {
-    return res.status(400).json({ error: "Player name already taken" });
-  }
+    // Check if name already exists
+    if (
+      room.players.some(
+        (p) => p.name.toLowerCase() === playerName.toLowerCase()
+      )
+    ) {
+      return res.status(400).json({ error: "Player name already taken" });
+    }
 
-  const newPlayer = {
-    id: uuidv4(),
-    name: playerName,
-    isHost: false,
-    score: 0,
-    role: null,
-    socketId: null,
-    disconnected: false,
-    lastSeen: Date.now(),
-  };
+    const newPlayer = {
+      id: uuidv4(),
+      name: playerName,
+      isHost: false,
+      score: 0,
+      role: null,
+      socketId: null,
+      disconnected: false,
+      lastSeen: Date.now(),
+    };
 
-  room.players.push(newPlayer);
+    room.players.push(newPlayer);
 
-  res.json({
-    success: true,
-    playerId: newPlayer.id,
-    room: {
-      id: room.id,
-      name: room.name,
-      totalRounds: room.totalRounds,
+    res.json({
+      success: true,
+      playerId: newPlayer.id,
+      room: {
+        id: room.id,
+        name: room.name,
+        totalRounds: room.totalRounds,
+        players: room.players.map((p) => ({
+          id: p.id,
+          name: p.name,
+          isHost: p.isHost,
+          score: p.score,
+        })),
+      },
+    });
+
+    // Notify all players in the room
+    io.to(roomCode).emit("player-joined", {
       players: room.players.map((p) => ({
         id: p.id,
         name: p.name,
         isHost: p.isHost,
         score: p.score,
       })),
-    },
-  });
+    });
 
-  // Notify all players in the room
-  io.to(roomCode).emit("player-joined", {
-    players: room.players.map((p) => ({
-      id: p.id,
-      name: p.name,
-      isHost: p.isHost,
-      score: p.score,
-    })),
-  });
-
-  // Start game if room is full
-  if (room.players.length === 4) {
-    setTimeout(() => startGame(roomCode), 2000);
+    // Start game if room is full
+    if (room.players.length === 4) {
+      setTimeout(() => startGame(roomCode), 2000);
+    }
   }
-});
+);
 
 // Socket connection handling
 
@@ -203,52 +213,6 @@ io.on("connection_error", (err) => {
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  // socket.on("join-room", ({ roomCode, playerId }) => {
-  //   const upperCode = roomCode.toUpperCase();
-  //   const room = rooms.get(upperCode);
-
-  //   if (!room) {
-  //     socket.emit("error", { message: "Room not found" });
-  //     return;
-  //   }
-
-  //   if (room && room.players.some((p) => p.id === playerId)) {
-  //     socket.join(roomCode);
-
-  //     // Update player's socket ID
-  //     const player = room.players.find((p) => p.id === playerId);
-  //     if (player) {
-  //       player.socketId = socket.id;
-  //       playerSockets.set(socket.id, { roomCode, playerId });
-  //       console.log(`✅ Player ${playerId} reconnected to room ${upperCode}`);
-  //       io.to(upperCode).emit("player-reconnected", { playerId });
-  //     }
-
-  //     // Send current room state
-  //     socket.emit("room-state", {
-  //       room: {
-  //         id: room.id,
-  //         name: room.name,
-  //         totalRounds: room.totalRounds,
-  //         currentRound: room.currentRound,
-  //         gameState: room.gameState,
-  //         players: room.players.map((p) => ({
-  //           id: p.id,
-  //           name: p.name,
-  //           isHost: p.isHost,
-  //           score: p.score,
-  //           role: p.id === playerId ? p.role : null,
-  //           disconnected: !!p.disconnected,
-  //         })),
-  //       },
-  //       playerId,
-  //       policeId: room.policeId,
-  //     });
-
-  //     // Send messages
-  //     socket.emit("chat-history", room.messages);
-  //   }
-  // });
   socket.on("join-room", ({ roomCode, playerId }) => {
     const upperCode = roomCode.toUpperCase();
     const room = rooms.get(upperCode);
@@ -273,7 +237,7 @@ io.on("connection", (socket) => {
     playerSockets.set(socket.id, { roomCode: upperCode, playerId });
 
     console.log(
-      `✅ Player ${playerId} connected/reconnected to room ${upperCode}`,
+      `✅ Player ${playerId} connected/reconnected to room ${upperCode}`
     );
 
     io.to(upperCode).emit("player-reconnected", { playerId });
@@ -318,11 +282,12 @@ io.on("connection", (socket) => {
     if (room) {
       const player = room.players.find((p) => p.id === playerId);
       if (player) {
+        const sanitizedMessage = message.trim();
         const chatMessage = {
           id: uuidv4(),
           playerId,
           playerName: player.name,
-          message,
+          message: sanitizedMessage,
           timestamp: new Date().toISOString(),
         };
 
@@ -366,14 +331,14 @@ io.on("connection", (socket) => {
       // Calculate scores
       if (isCorrect) {
         room.players.find((p) => p.role === "Police").score += 300;
-        room.players.find((p) => p.role === "Raja").score += 1000;
-        room.players.find((p) => p.role === "Rani").score += 500;
+        room.players.find((p) => p.role === "Raja").score += 500;
+        room.players.find((p) => p.role === "Rani").score += 1000;
         room.players.find((p) => p.role === "Thief").score += 0;
       } else {
         room.players.find((p) => p.role === "Thief").score += 300;
         room.players.find((p) => p.role === "Police").score += 0;
-        room.players.find((p) => p.role === "Raja").score += 1000;
-        room.players.find((p) => p.role === "Rani").score += 500;
+        room.players.find((p) => p.role === "Raja").score += 500;
+        room.players.find((p) => p.role === "Rani").score += 1000;
         // room.players.forEach((p) => {
         //   if (p.role !== "Thief") p.score += 1;
         // });
@@ -427,7 +392,7 @@ io.on("connection", (socket) => {
     player.lastSeen = Date.now();
 
     console.log(
-      `Player ${playerId} temporarily disconnected from room ${roomCode}`,
+      `Player ${playerId} temporarily disconnected from room ${roomCode}`
     );
 
     // Notify others
@@ -450,7 +415,7 @@ io.on("connection", (socket) => {
       if (player.disconnected && now - player.lastSeen >= DISCONNECT_TIMEOUT) {
         room.players = room.players.filter((p) => p.id !== playerId);
         console.log(
-          `Player ${playerId} permanently removed from room ${roomCode}`,
+          `Player ${playerId} permanently removed from room ${roomCode}`
         );
 
         io.to(roomCode).emit("player-removed", { playerId });

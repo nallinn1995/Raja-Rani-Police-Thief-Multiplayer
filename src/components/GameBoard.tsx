@@ -35,13 +35,60 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 }) => {
   const [flippedCards, setFlippedCards] = useState<Set<string>>(new Set());
   const [showChat, setShowChat] = useState(false);
+  const [unreadMsgs, setUnreadMsgs] = useState(0);
+  const [lastReadMessageCount, setLastReadMessageCount] = useState(0);
   const [currentPlayerName, setCurrentPlayerName] = useState("");
+
+  useEffect(() => {
+    if (!showChat) {
+      setUnreadMsgs(messages.length - lastReadMessageCount);
+    }
+  }, [messages.length, showChat, lastReadMessageCount]);
+
+  const handleShowChat = () => {
+    setShowChat(true);
+    setUnreadMsgs(0);
+    setLastReadMessageCount(messages.length);
+  };
+
   const [roleColors, setRoleColors] = useState<Record<string, string>>({
     Raja: "from-yellow-400 to-yellow-600",
     Rani: "from-pink-400 to-pink-600",
     Police: "from-blue-400 to-blue-600",
     Thief: "from-red-400 to-red-600",
   });
+
+  useEffect(() => {
+    const colors = [
+      "from-yellow-400 to-yellow-600",
+      "from-pink-400 to-pink-600",
+      "from-blue-400 to-blue-600",
+      "from-red-400 to-red-600",
+    ];
+    const roles = ["Raja", "Rani", "Police", "Thief"];
+
+    // Make a simple PRNG based on room.id and room.currentRound
+    let seed = Array.from(room.id).reduce((acc, char) => acc + char.charCodeAt(0), 0) + room.currentRound;
+    const random = () => {
+      const x = Math.sin(seed++) * 10000;
+      return x - Math.floor(x);
+    };
+
+    // Shuffle the color array using Fisher-Yates with the seeded random
+    const shuffledColors = [...colors];
+    for (let i = shuffledColors.length - 1; i > 0; i--) {
+      const j = Math.floor(random() * (i + 1));
+      [shuffledColors[i], shuffledColors[j]] = [shuffledColors[j], shuffledColors[i]];
+    }
+
+    const newRoleColors: Record<string, string> = {};
+    for (let i = 0; i < roles.length; i++) {
+      newRoleColors[roles[i]] = shuffledColors[i];
+    }
+
+    setRoleColors(newRoleColors);
+  }, [room.currentRound, room.id]);
+
 
   useEffect(() => {
     // Use direct value (not updater fn) to avoid setState-during-render warning
@@ -58,31 +105,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     }
   }, [currentPlayerId, room, room.gameState, room.players]);
 
-  // Shuffle role colors each round
-  useEffect(() => {
-    const colors = [
-      "from-yellow-400 to-yellow-600",
-      "from-pink-400 to-pink-600",
-      "from-blue-400 to-blue-600",
-      "from-red-400 to-red-600",
-    ];
-    const roles = ["Raja", "Rani", "Police", "Thief"];
 
-    // Shuffle the color array using Fisher-Yates
-    const shuffledColors = [...colors];
-    for (let i = shuffledColors.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffledColors[i], shuffledColors[j]] = [shuffledColors[j], shuffledColors[i]];
-    }
-
-    // Create new color mapping ensuring each role gets a unique color
-    const newRoleColors: Record<string, string> = {};
-    for (let i = 0; i < roles.length; i++) {
-      newRoleColors[roles[i]] = shuffledColors[i];
-    }
-
-    setRoleColors(newRoleColors);
-  }, [room.currentRound, room.gameState]);
 
   const isPolice = myRole === "Police";
   const canRevealPolice = room.gameState === "police-reveal" && isPolice;
@@ -117,14 +140,14 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
           <div className="flex justify-between items-center mb-4">
             <h1 className="text-2xl font-bold text-gray-800">Hi {currentPlayerName}, Welcome  to {room.name} Room</h1>
-            <button
-              onClick={() => setShowChat(!showChat)}
+<button
+              onClick={handleShowChat}
               className="p-2 text-purple-600 hover:text-purple-700 transition-colors relative"
             >
               <MessageCircle className="w-6 h-6" />
-              {messages.length > 0 && (
+              {unreadMsgs > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center">
-                  {messages.length > 9 ? "9+" : messages.length}
+                  {unreadMsgs > 9 ? "9+" : unreadMsgs}
                 </span>
               )}
             </button>

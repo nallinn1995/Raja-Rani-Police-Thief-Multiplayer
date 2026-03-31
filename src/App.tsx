@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Volume2, VolumeX } from "lucide-react";
 import { Bounce, ToastContainer, toast } from "react-toastify";
 
@@ -464,16 +464,16 @@ useEffect(() => {
     socket.emit("join-room", { roomCode, playerId });
   };
 
-  const handlePoliceReveal = () => {
+  const handlePoliceReveal = useCallback(() => {
     if (socket && room) {
       socket.emit("police-reveal", {
         roomCode: room.id,
         playerId: currentPlayerId,
       });
     }
-  };
+  }, [room, currentPlayerId]);
 
-  const handleMakeGuess = (guessedThiefId: string) => {
+  const handleMakeGuess = useCallback((guessedThiefId: string) => {
     if (socket && room) {
       socket.emit("make-guess", {
         roomCode: room.id,
@@ -481,9 +481,9 @@ useEffect(() => {
         guessedThiefId,
       });
     }
-  };
+  }, [room, currentPlayerId]);
 
-  const handleSendMessage = (message: string) => {
+  const handleSendMessage = useCallback((message: string) => {
     if (socket && room) {
       socket.emit("chat-message", {
         roomCode: room.id,
@@ -491,7 +491,7 @@ useEffect(() => {
         message,
       });
     }
-  };
+  }, [room, currentPlayerId]);
 
   const handlePlayAgain = () => {
     sessionStorage.removeItem("roomCode");

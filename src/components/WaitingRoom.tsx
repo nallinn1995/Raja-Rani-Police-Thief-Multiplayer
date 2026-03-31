@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Users, Share2, Crown, MessageCircle, Copy } from 'lucide-react';
 import { Player, ChatMessage } from '../types/game';
 import { Chat } from './Chat';
@@ -24,6 +24,20 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
   onSendMessage 
 }) => {
   const [showChat, setShowChat] = useState(false);
+  const [unreadMsgs, setUnreadMsgs] = useState(0);
+  const [lastReadMessageCount, setLastReadMessageCount] = useState(0);
+
+  useEffect(() => {
+    if (!showChat) {
+      setUnreadMsgs(messages.length - lastReadMessageCount);
+    }
+  }, [messages.length, showChat, lastReadMessageCount]);
+
+  const handleShowChat = () => {
+    setShowChat(true);
+    setUnreadMsgs(0);
+    setLastReadMessageCount(messages.length);
+  };
 
   const shareRoom = () => {
     const message = `Join my Raja Rani Police Thief game!%0A%0ARoom: ${room.name}%0ACode: ${room.id}%0A%0AClick here to join: ${window.location.origin}`;
@@ -62,13 +76,13 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
               Players ({room.players.length}/4)
             </h2>
             <button
-              onClick={() => setShowChat(!showChat)}
+              onClick={handleShowChat}
               className="p-2 text-purple-600 hover:text-purple-700 transition-colors relative"
             >
               <MessageCircle className="w-5 h-5" />
-              {messages.length > 0 && (
+              {unreadMsgs > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center">
-                  {messages.length > 9 ? '9+' : messages.length}
+                  {unreadMsgs > 9 ? '9+' : unreadMsgs}
                 </span>
               )}
             </button>
