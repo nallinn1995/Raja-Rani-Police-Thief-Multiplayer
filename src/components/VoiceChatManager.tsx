@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Mic, MicOff } from "lucide-react";
+import { Mic, MicOff, Volume2, VolumeX } from "lucide-react";
 import { Socket } from "socket.io-client";
 import { Room } from "../types/game";
 
@@ -15,11 +15,13 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
   currentPlayerId,
 }) => {
   const [isMuted, setIsMuted] = useState(false);
+  const [isSpeakerMuted, setIsSpeakerMuted] = useState(false);
   const [audioError, setAudioError] = useState("");
 
   const localStreamRef = useRef<MediaStream | null>(null);
   const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const audioContextRef = useRef<Map<string, HTMLAudioElement>>(new Map());
+  const isSpeakerMutedRef = useRef(false);
 
   // Ice servers configuration
   const rtcConfig = {
@@ -48,6 +50,7 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
       if (!audioElement) {
         audioElement = new Audio();
         audioElement.autoplay = true;
+        audioElement.muted = isSpeakerMutedRef.current;
         audioContextRef.current.set(partnerId, audioElement);
       }
       audioElement.srcObject = event.streams[0];
@@ -266,6 +269,16 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
     }
   };
 
+  // Handle speaker toggle
+  const toggleSpeaker = () => {
+    const newState = !isSpeakerMuted;
+    setIsSpeakerMuted(newState);
+    isSpeakerMutedRef.current = newState;
+    audioContextRef.current.forEach((audio) => {
+      audio.muted = newState;
+    });
+  };
+
   return (
     <div className="fixed top-6 right-6 z-[60] flex items-center gap-2">
       {audioError && (
@@ -273,6 +286,17 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
           {audioError}
         </span>
       )}
+      <button
+        onClick={toggleSpeaker}
+        className={`p-3 rounded-full shadow-2xl transition-all transform hover:scale-110 active:scale-95 border-2 border-white ${
+          isSpeakerMuted
+            ? "bg-red-500 hover:bg-red-600 shadow-[0_5px_15px_rgba(239,68,68,0.5)] text-white"
+            : "bg-gradient-to-br from-blue-400 to-blue-600 hover:from-blue-500 hover:to-blue-700 shadow-[0_5px_15px_rgba(59,130,246,0.5)] text-white"
+        }`}
+        title={isSpeakerMuted ? "Unmute Speaker" : "Mute Speaker"}
+      >
+        {isSpeakerMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
+      </button>
       <button
         onClick={toggleMute}
         className={`p-3 rounded-full shadow-2xl transition-all transform hover:scale-110 active:scale-95 border-2 border-white ${
