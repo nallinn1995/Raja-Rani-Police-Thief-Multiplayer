@@ -51,9 +51,16 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
         audioElement = new Audio();
         audioElement.autoplay = true;
         audioElement.muted = isSpeakerMutedRef.current;
+        document.body.appendChild(audioElement);
         audioContextRef.current.set(partnerId, audioElement);
       }
-      audioElement.srcObject = event.streams[0];
+      
+      if (audioElement.srcObject !== event.streams[0]) {
+        audioElement.srcObject = event.streams[0];
+      }
+
+      // Ensure explicit playback due to autoplay policies
+      audioElement.play().catch(e => console.error("Audio playback error:", e));
     };
 
     // Handle ICE candidates
@@ -263,8 +270,9 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
     if (localStreamRef.current) {
       const audioTrack = localStreamRef.current.getAudioTracks()[0];
       if (audioTrack) {
-        audioTrack.enabled = !audioTrack.enabled;
-        setIsMuted(!audioTrack.enabled);
+        const newMutedState = !isMuted;
+        audioTrack.enabled = !newMutedState;
+        setIsMuted(newMutedState);
       }
     }
   };
