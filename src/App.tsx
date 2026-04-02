@@ -11,13 +11,15 @@ import { WaitingRoom } from "./components/WaitingRoom";
 import { GameBoard } from "./components/GameBoard";
 import { RoundResult } from "./components/RoundResult";
 import { Leaderboard } from "./components/Leaderboard";
+import { Welcome } from "./components/Welcome";
 import {
   Room,
   Player,
   ChatMessage,
   RoundResult as RoundResultType,
 } from "./types/game";
-import { Welcome } from "./components/Welcome";
+import { VoiceChatManager } from "./components/VoiceChatManager";
+
 const SOCKET_URL = import.meta.env.VITE_SERVER_URL;
 
 const socket = io(SOCKET_URL, {
@@ -623,6 +625,13 @@ useEffect(() => {
           theme="dark"
         />
       </div>
+      {room && currentPlayerId && (
+        <VoiceChatManager
+          socket={socket as any}
+          room={room}
+          currentPlayerId={currentPlayerId}
+        />
+      )}
       {/* 🔄 Reconnect overlay */}
        {isReconnecting && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">

@@ -372,6 +372,34 @@ io.on("connection", (socket) => {
     }
   });
 
+  // --- WebRTC signaling ---
+  socket.on("voice-offer", ({ roomCode, senderId, targetId, sdp }) => {
+    const room = rooms.get(roomCode.toUpperCase());
+    if (!room) return;
+    const targetPlayer = room.players.find((p) => p.id === targetId);
+    if (targetPlayer && targetPlayer.socketId) {
+      io.to(targetPlayer.socketId).emit("voice-offer", { senderId, sdp });
+    }
+  });
+
+  socket.on("voice-answer", ({ roomCode, senderId, targetId, sdp }) => {
+    const room = rooms.get(roomCode.toUpperCase());
+    if (!room) return;
+    const targetPlayer = room.players.find((p) => p.id === targetId);
+    if (targetPlayer && targetPlayer.socketId) {
+      io.to(targetPlayer.socketId).emit("voice-answer", { senderId, sdp });
+    }
+  });
+
+  socket.on("voice-candidate", ({ roomCode, senderId, targetId, candidate }) => {
+    const room = rooms.get(roomCode.toUpperCase());
+    if (!room) return;
+    const targetPlayer = room.players.find((p) => p.id === targetId);
+    if (targetPlayer && targetPlayer.socketId) {
+      io.to(targetPlayer.socketId).emit("voice-candidate", { senderId, candidate });
+    }
+  });
+
   socket.on("disconnect", () => {
     console.log("Client disconnected:", socket.id);
 
