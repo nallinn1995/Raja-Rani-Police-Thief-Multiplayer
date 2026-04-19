@@ -154,27 +154,27 @@ export const HomePage: React.FC<HomePageProps> = ({ onCreateRoom, onJoinRoom }) 
             </div>
             
             <div className="bg-[#11052C]/80 rounded-xl p-4 border border-[#3A1C61]">
-              <div className="grid grid-cols-3 gap-2 text-center text-sm">
-                <div className="flex flex-col items-center p-2 rounded-lg bg-[#1A0B2E]">
-                  <img src="/assets/crown.png" className="w-8 h-8 mb-1 drop-shadow-md" alt="Raja" />
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 text-center text-sm">
+                <div className="flex flex-col items-center p-2 sm:p-3 rounded-lg bg-[#1A0B2E]">
+                  <img src="/assets/crown.png" className="w-8 h-8 sm:w-10 sm:h-10 mb-1 drop-shadow-md" alt="Raja" />
                   <span className="text-yellow-500 font-bold">Raja</span>
-                  <span className="text-white">+10,000</span>
+                  <span className="text-white font-medium">+10,000</span>
                 </div>
-                <div className="flex flex-col items-center p-2 rounded-lg bg-[#1A0B2E]">
-                  <img src="/assets/queen.png" className="w-8 h-8 mb-1 drop-shadow-md" alt="Rani" />
+                <div className="flex flex-col items-center p-2 sm:p-3 rounded-lg bg-[#1A0B2E]">
+                  <img src="/assets/queen.png" className="w-8 h-8 sm:w-10 sm:h-10 mb-1 drop-shadow-md" alt="Rani" />
                   <span className="text-pink-400 font-bold">Rani</span>
-                  <span className="text-white">+5,000</span>
+                  <span className="text-white font-medium">+5,000</span>
                 </div>
-                <div className="flex flex-col flex-grow items-center justify-center space-y-2 col-span-1">
+                <div className="flex flex-col items-center justify-center space-y-2 col-span-2 sm:col-span-1 p-2 sm:p-0">
                   {/* Police wins */}
-                  <div className="flex w-full justify-between items-center bg-blue-900/30 px-2 py-1 rounded text-xs border border-blue-500/30">
-                    <span className="text-blue-400 flex items-center gap-1"><img src="/assets/police.png" className="w-4 h-4" alt="Police" /> +100</span>
-                    <span className="text-gray-500 flex items-center gap-1"><img src="/assets/robber.png" className="w-4 h-4 opacity-50 grayscale" alt="Thief" /> 0</span>
+                  <div className="flex w-full justify-between items-center bg-blue-900/30 px-3 py-2 sm:px-2 sm:py-1 rounded text-xs border border-blue-500/30">
+                    <span className="text-blue-400 flex items-center gap-1 font-medium"><img src="/assets/police.png" className="w-4 h-4 sm:w-5 sm:h-5" alt="Police" /> +100</span>
+                    <span className="text-gray-500 flex items-center gap-1 font-medium"><img src="/assets/robber.png" className="w-4 h-4 sm:w-5 sm:h-5 opacity-50 grayscale" alt="Thief" /> 0</span>
                   </div>
                   {/* Thief wins */}
-                  <div className="flex w-full justify-between items-center bg-green-900/30 px-2 py-1 rounded text-xs border border-green-500/30">
-                    <span className="text-gray-500 flex items-center gap-1"><img src="/assets/police.png" className="w-4 h-4 opacity-50 grayscale" alt="Police" /> 0</span>
-                    <span className="text-green-400 flex items-center gap-1"><img src="/assets/robber.png" className="w-4 h-4" alt="Thief" /> +100</span>
+                  <div className="flex w-full justify-between items-center bg-green-900/30 px-3 py-2 sm:px-2 sm:py-1 rounded text-xs border border-green-500/30">
+                    <span className="text-gray-500 flex items-center gap-1 font-medium"><img src="/assets/police.png" className="w-4 h-4 sm:w-5 sm:h-5 opacity-50 grayscale" alt="Police" /> 0</span>
+                    <span className="text-green-400 flex items-center gap-1 font-medium"><img src="/assets/robber.png" className="w-4 h-4 sm:w-5 sm:h-5" alt="Thief" /> +100</span>
                   </div>
                 </div>
               </div>
