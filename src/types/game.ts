@@ -14,6 +14,7 @@ export interface Room {
   currentRound: number;
   gameState: 'waiting' | 'role-assignment' | 'police-reveal' | 'guessing' | 'results' | 'finished';
   players: Player[];
+  guessingEndTime?: number;
 }
 
 export interface ChatMessage {

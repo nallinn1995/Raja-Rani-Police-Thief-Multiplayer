@@ -186,7 +186,7 @@ useEffect(() => {
       setAllRoles(data.players);
     };
 
-    const onPoliceRevealed = (data: { policeName: string; policeId: string }) => {
+    const onPoliceRevealed = (data: { policeName: string; policeId: string; guessingEndTime?: number }) => {
       // Only show this toast as part of an active game session.
       if (appState !== "playing" || !room || room.gameState !== "police-reveal") {
         return;
@@ -195,7 +195,7 @@ useEffect(() => {
       console.log(data);
       toast(`${data.policeName} : I am Police and going to catch the thief Now 😎`);
       setPoliceId(data.policeId);
-      setRoom((prev) => (prev ? { ...prev, gameState: "guessing" } : null));
+      setRoom((prev) => (prev ? { ...prev, gameState: "guessing", guessingEndTime: data.guessingEndTime } : null));
     };
 
     const onRoundResult = (data: RoundResultType) => {
@@ -495,6 +495,15 @@ useEffect(() => {
     }
   }, [room, currentPlayerId]);
 
+  const handleNextRound = useCallback(() => {
+    if (socket && room) {
+      socket.emit("next-round", {
+        roomCode: room.id,
+        playerId: currentPlayerId,
+      });
+    }
+  }, [room, currentPlayerId]);
+
   const handlePlayAgain = () => {
     sessionStorage.removeItem("roomCode");
     sessionStorage.removeItem("playerId");
@@ -772,7 +781,13 @@ useEffect(() => {
             ) : null;
 
           case "result":
-            return roundResult ? <RoundResult result={roundResult} /> : null;
+            return roundResult ? (
+              <RoundResult
+                result={roundResult}
+                isHost={room?.players.find((p) => p.id === currentPlayerId)?.isHost}
+                onNextRound={handleNextRound}
+              />
+            ) : null;
 
           case "leaderboard":
             return (

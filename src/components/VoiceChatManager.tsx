@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Mic, MicOff, Volume2, VolumeX } from "lucide-react";
+import { Mic, MicOff } from "lucide-react";
+import { SpeakerWaveIcon, SpeakerXMarkIcon } from "@heroicons/react/24/solid";
 import { Socket } from "socket.io-client";
 import { Room } from "../types/game";
 
@@ -303,7 +304,7 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
         }`}
         title={isSpeakerMuted ? "Unmute Speaker" : "Mute Speaker"}
       >
-        {isSpeakerMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
+        {isSpeakerMuted ? <SpeakerXMarkIcon className="w-6 h-6" /> : <SpeakerWaveIcon className="w-6 h-6" />}
       </button>
       <button
         onClick={toggleMute}

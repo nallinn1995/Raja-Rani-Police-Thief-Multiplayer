@@ -250,6 +250,7 @@ io.on("connection", (socket) => {
         totalRounds: room.totalRounds,
         currentRound: room.currentRound,
         gameState: room.gameState,
+        guessingEndTime: room.guessingEndTime,
         players: room.players.map((p) => ({
           id: p.id,
           name: p.name,
@@ -273,6 +274,7 @@ io.on("connection", (socket) => {
           id: p.id,
           name: p.name,
           role: p.role,
+          isHost: p.isHost,
         })),
       });
     }
@@ -304,6 +306,46 @@ io.on("connection", (socket) => {
       if (player && player.role === "Police") {
         room.gameState = "guessing";
         room.policeId = playerId;
+        room.guessingEndTime = Date.now() + 30000;
+
+        if (room.guessTimeout) clearTimeout(room.guessTimeout);
+
+        room.guessTimeout = setTimeout(() => {
+          const r = rooms.get(roomCode.toUpperCase());
+          if (r && r.gameState === "guessing") {
+            const thief = r.players.find((p) => p.role === "Thief");
+            const isCorrect = false;
+
+            r.players.find((p) => p.role === "Thief").score += 100;
+            r.players.find((p) => p.role === "Police").score += 0;
+            r.players.find((p) => p.role === "Raja").score += 10000;
+            r.players.find((p) => p.role === "Rani").score += 5000;
+
+            r.gameState = "results";
+            r.currentGuess = { guessedThiefId: null, isCorrect };
+
+            io.to(roomCode).emit("round-result", {
+              isCorrect,
+              thief: { id: thief.id, name: thief.name },
+              guessedPlayer: { id: "timeout", name: "Nobody (Time out)" },
+              players: r.players.map((p) => ({
+                id: p.id,
+                name: p.name,
+                role: p.role,
+                score: p.score,
+                isHost: p.isHost,
+              })),
+              currentRound: r.currentRound,
+              totalRounds: r.totalRounds,
+            });
+
+            if (r.currentRound >= r.totalRounds) {
+              setTimeout(() => {
+                endGame(roomCode);
+              }, 5000);
+            }
+          }
+        }, 30000);
 
         // Send all roles to police player
         socket.emit("all-roles", {
@@ -311,12 +353,14 @@ io.on("connection", (socket) => {
             id: p.id,
             name: p.name,
             role: p.role,
+            isHost: p.isHost,
           })),
         });
 
         io.to(roomCode).emit("police-revealed", {
           policeId: playerId,
           policeName: player.name,
+          guessingEndTime: room.guessingEndTime,
         });
       }
     }
@@ -325,20 +369,25 @@ io.on("connection", (socket) => {
   socket.on("make-guess", ({ roomCode, playerId, guessedThiefId }) => {
     const room = rooms.get(roomCode.toUpperCase());
     if (room && room.gameState === "guessing" && room.policeId === playerId) {
+      if (room.guessTimeout) {
+        clearTimeout(room.guessTimeout);
+        room.guessTimeout = null;
+      }
+
       const thief = room.players.find((p) => p.role === "Thief");
       const isCorrect = thief.id === guessedThiefId;
 
       // Calculate scores
       if (isCorrect) {
-        room.players.find((p) => p.role === "Police").score += 300;
-        room.players.find((p) => p.role === "Raja").score += 500;
-        room.players.find((p) => p.role === "Rani").score += 1000;
+        room.players.find((p) => p.role === "Police").score += 100;
+        room.players.find((p) => p.role === "Raja").score += 10000;
+        room.players.find((p) => p.role === "Rani").score += 5000;
         room.players.find((p) => p.role === "Thief").score += 0;
       } else {
-        room.players.find((p) => p.role === "Thief").score += 300;
+        room.players.find((p) => p.role === "Thief").score += 100;
         room.players.find((p) => p.role === "Police").score += 0;
-        room.players.find((p) => p.role === "Raja").score += 500;
-        room.players.find((p) => p.role === "Rani").score += 1000;
+        room.players.find((p) => p.role === "Raja").score += 10000;
+        room.players.find((p) => p.role === "Rani").score += 5000;
         // room.players.forEach((p) => {
         //   if (p.role !== "Thief") p.score += 1;
         // });
@@ -356,19 +405,30 @@ io.on("connection", (socket) => {
           name: p.name,
           role: p.role,
           score: p.score,
+          isHost: p.isHost,
         })),
         currentRound: room.currentRound,
         totalRounds: room.totalRounds,
       });
 
-      // Auto-advance to next round or end game
-      setTimeout(() => {
-        if (room.currentRound >= room.totalRounds) {
+      // Auto-advance only if it reaches total rounds
+      if (room.currentRound >= room.totalRounds) {
+        setTimeout(() => {
           endGame(roomCode);
-        } else {
+        }, 5000);
+      }
+    }
+  });
+
+  socket.on("next-round", ({ roomCode, playerId }) => {
+    const room = rooms.get(roomCode.toUpperCase());
+    if (room && room.gameState === "results") {
+      const player = room.players.find((p) => p.id === playerId);
+      if (player && player.isHost) {
+        if (room.currentRound < room.totalRounds) {
           startNextRound(roomCode);
         }
-      }, 5000);
+      }
     }
   });
 
@@ -487,6 +547,7 @@ function startNextRound(roomCode) {
       id: p.id,
       name: p.name,
       score: p.score,
+      isHost: p.isHost,
     })),
   });
 
@@ -499,6 +560,7 @@ function startNextRound(roomCode) {
           id: p.id,
           name: p.name,
           role: p.id === player.id ? p.role : null,
+          isHost: p.isHost,
         })),
       });
     }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Shield, Eye, MessageCircle } from "lucide-react";
+import { Shield, Eye, MessageCircle, Heart } from "lucide-react";
 import { Player, ChatMessage } from "../types/game";
 import { Chat } from "./Chat";
 
@@ -10,6 +10,7 @@ interface GameBoardProps {
     currentRound: number;
     totalRounds: number;
     gameState: string;
+    guessingEndTime?: number;
     players: Player[];
   };
   currentPlayerId: string;
@@ -38,6 +39,47 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   const [unreadMsgs, setUnreadMsgs] = useState(0);
   const [lastReadMessageCount, setLastReadMessageCount] = useState(0);
   const [currentPlayerName, setCurrentPlayerName] = useState("");
+  const [timeLeft, setTimeLeft] = useState<number>(30);
+  const heartbeatAudioRef = React.useRef<HTMLAudioElement>(null);
+  const policeSirenAudioRef = React.useRef<HTMLAudioElement>(null);
+
+  useEffect(() => {
+    if (room.gameState === "guessing" && room.guessingEndTime) {
+      const interval = setInterval(() => {
+        const remaining = Math.max(0, Math.ceil((room.guessingEndTime! - Date.now()) / 1000));
+        setTimeLeft(remaining);
+      }, 500);
+
+      if (heartbeatAudioRef.current) {
+        heartbeatAudioRef.current.play().catch((e) => console.log("Audio autoplay prevented", e));
+      }
+      if (policeSirenAudioRef.current) {
+        policeSirenAudioRef.current.volume = 0.3; // softer than heartbeat
+        policeSirenAudioRef.current.play().catch((e) => console.log("Audio autoplay prevented", e));
+      }
+
+      return () => {
+        clearInterval(interval);
+        if (heartbeatAudioRef.current) {
+          heartbeatAudioRef.current.pause();
+          heartbeatAudioRef.current.currentTime = 0;
+        }
+        if (policeSirenAudioRef.current) {
+          policeSirenAudioRef.current.pause();
+          policeSirenAudioRef.current.currentTime = 0;
+        }
+      };
+    } else {
+      if (heartbeatAudioRef.current) {
+        heartbeatAudioRef.current.pause();
+        heartbeatAudioRef.current.currentTime = 0;
+      }
+      if (policeSirenAudioRef.current) {
+        policeSirenAudioRef.current.pause();
+        policeSirenAudioRef.current.currentTime = 0;
+      }
+    }
+  }, [room.gameState, room.guessingEndTime]);
 
   useEffect(() => {
     if (!showChat) {
@@ -51,43 +93,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     setLastReadMessageCount(messages.length);
   };
 
-  const [roleColors, setRoleColors] = useState<Record<string, string>>({
-    Raja: "from-yellow-400 to-yellow-600",
-    Rani: "from-pink-400 to-pink-600",
-    Police: "from-blue-400 to-blue-600",
-    Thief: "from-red-400 to-red-600",
-  });
 
-  useEffect(() => {
-    const colors = [
-      "from-yellow-400 to-yellow-600",
-      "from-pink-400 to-pink-600",
-      "from-blue-400 to-blue-600",
-      "from-red-400 to-red-600",
-    ];
-    const roles = ["Raja", "Rani", "Police", "Thief"];
-
-    // Make a simple PRNG based on room.id and room.currentRound
-    let seed = Array.from(room.id).reduce((acc, char) => acc + char.charCodeAt(0), 0) + room.currentRound;
-    const random = () => {
-      const x = Math.sin(seed++) * 10000;
-      return x - Math.floor(x);
-    };
-
-    // Shuffle the color array using Fisher-Yates with the seeded random
-    const shuffledColors = [...colors];
-    for (let i = shuffledColors.length - 1; i > 0; i--) {
-      const j = Math.floor(random() * (i + 1));
-      [shuffledColors[i], shuffledColors[j]] = [shuffledColors[j], shuffledColors[i]];
-    }
-
-    const newRoleColors: Record<string, string> = {};
-    for (let i = 0; i < roles.length; i++) {
-      newRoleColors[roles[i]] = shuffledColors[i];
-    }
-
-    setRoleColors(newRoleColors);
-  }, [room.currentRound, room.id]);
 
 
   useEffect(() => {
@@ -134,29 +140,62 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-purple-100 p-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="relative min-h-screen bg-[#11052C] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#3A1054] via-[#11052C] to-[#0A0217] p-4 overflow-y-auto overflow-x-hidden text-white font-sans sm:flex sm:flex-col sm:items-center sm:justify-center">
+      {/* Background Particles/Stars */}
+      <div className="absolute inset-0 pointer-events-none opacity-30">
+        {[...Array(20)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute rounded-full bg-white animate-pulse"
+            style={{
+              width: Math.random() * 3 + 1 + 'px',
+              height: Math.random() * 3 + 1 + 'px',
+              top: Math.random() * 100 + '%',
+              left: Math.random() * 100 + '%',
+              animationDuration: Math.random() * 3 + 2 + 's',
+              animationDelay: Math.random() * 2 + 's',
+              opacity: Math.random() * 0.7 + 0.3,
+            }}
+          />
+        ))}
+      </div>
+
+      {room.gameState === "guessing" && (
+        <div className="pointer-events-none fixed inset-0 z-40 animate-red-glow opacity-50"></div>
+      )}
+      <div className="relative z-10 w-full max-w-4xl mx-auto">
         {/* Header */}
-        <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
+        <div className="bg-[#1D0C3A]/95 backdrop-blur-xl rounded-[calc(2rem-2px)] shadow-[0_0_40px_rgba(147,51,234,0.3)] border border-[#3A1C61] p-6 mb-6">
           <div className="flex justify-between items-center mb-4">
-            <h1 className="text-2xl font-bold text-gray-800">Hi {currentPlayerName}, Welcome  to {room.name} Room</h1>
-<button
-              onClick={handleShowChat}
-              className="p-2 text-purple-600 hover:text-purple-700 transition-colors relative"
-            >
-              <MessageCircle className="w-6 h-6" />
-              {unreadMsgs > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center">
-                  {unreadMsgs > 9 ? "9+" : unreadMsgs}
-                </span>
+            <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#fff6d6] via-[#ffd700] to-[#b8860b] title-font tracking-wide">Hi {currentPlayerName}, Welcome to {room.name}</h1>
+
+            <div className="flex items-center space-x-4">
+              {room.gameState === "guessing" && (
+                <div className={`flex items-center space-x-2 bg-red-50 px-4 py-2 rounded-full border ${timeLeft <= 10 ? 'border-red-400' : 'border-red-200'} shadow-sm`}>
+                  <Heart className={`w-5 h-5 text-red-500 ${timeLeft <= 10 ? 'animate-ping' : 'animate-pulse'}`} />
+                  <span className={`font-bold ${timeLeft <= 10 ? 'text-red-600 animate-pulse' : 'text-red-500'}`}>
+                    {timeLeft}s
+                  </span>
+                </div>
               )}
-            </button>
+              <button
+                onClick={handleShowChat}
+                className="p-2 text-fuchsia-400 hover:text-white transition-colors relative bg-[#11052C] border border-[#3A1C61] rounded-full drop-shadow-md"
+              >
+                <MessageCircle className="w-6 h-6" />
+                {unreadMsgs > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center border border-[#1D0C3A]">
+                    {unreadMsgs > 9 ? "9+" : unreadMsgs}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
-          <div className="flex justify-between text-sm text-gray-600">
+          <div className="flex justify-between text-sm text-gray-400 font-sans tracking-wide">
             <span>
-              Round {room.currentRound} of {room.totalRounds}
+              Round <strong className="text-yellow-400">{room.currentRound}</strong> of <strong className="text-yellow-400">{room.totalRounds}</strong>
             </span>
-            <span>Game State: {room.gameState}</span>
+            <span>State: <strong className="text-fuchsia-400 capitalize">{room.gameState}</strong></span>
           </div>
         </div>
 
@@ -179,28 +218,23 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                 <div className={`card ${isFlipped ? "flipped" : ""}`}>
                   {/* Card Back */}
                   <div className="card-face card-back">
-                    <div className="bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl h-full flex flex-col items-center justify-center text-white shadow-lg">
-                      <Eye className="w-8 h-8 mb-2" />
-                      <span className="text-sm font-medium">{player.name}</span>
+                    <div className="bg-[#11052C] border border-[#5A2C81] rounded-xl h-full flex flex-col items-center justify-center text-white shadow-[0_0_15px_rgba(147,51,234,0.3)]">
+                      <Eye className="w-8 h-8 mb-2 text-gray-500" />
+                      <span className="text-sm font-medium text-gray-400">{player.name}</span>
                     </div>
                   </div>
 
                   {/* Card Front */}
                   <div className="card-face card-front">
                     <div
-                      className={`bg-gradient-to-br ${
-                        playerRole
-                          ? roleColors[playerRole as keyof typeof roleColors]
-                          : "from-gray-400 to-gray-600"
-                      } rounded-xl h-full flex flex-col items-center justify-center text-white shadow-lg ${
-                        canClick ? "hover:shadow-2xl hover:brightness-110" : ""
+                      className={`bg-[#0A0217] border border-[#5A2C81] rounded-xl h-full flex flex-col items-center justify-center text-white shadow-[0_0_20px_rgba(250,204,21,0.2)] ${
+                        canClick ? "hover:shadow-[0_0_30px_rgba(147,51,234,0.4)] border-fuchsia-500" : ""
                       }`}
                     >
-                      {/* {playerRole && getRoleIcon(playerRole)} */}
-                      <span className="text-lg font-bold mt-2">
+                      <span className={`text-2xl font-black title-font tracking-wide mt-2 ${playerRole === 'Raja' ? 'text-yellow-400' : playerRole === 'Rani' ? 'text-pink-400' : playerRole === 'Police' ? 'text-blue-400' : 'text-green-400'}`}>
                         {showRole(playerRole || '')}
                       </span>
-                      <span className="text-sm mt-1">{player.name}</span>
+                      <span className="text-sm mt-2 text-gray-300 font-sans">{player.name}</span>
                     </div>
                   </div>
                 </div>
@@ -210,31 +244,34 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         </div>
 
         {/* Game Actions */}
-        <div className="bg-white rounded-2xl shadow-xl p-6">
+        <div className="bg-[#1D0C3A]/95 backdrop-blur-xl rounded-[calc(2rem-2px)] shadow-[0_0_40px_rgba(147,51,234,0.3)] border border-[#3A1C61] p-6 mb-6">
           {canRevealPolice && (
             <div className="text-center">
-              <div className="mb-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
-                <Shield className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                <h3 className="text-lg font-semibold text-blue-800 mb-2">
+              <div className="mb-4 p-4 bg-[#11052C] rounded-xl border border-blue-900/50 shadow-inner">
+                <Shield className="w-8 h-8 text-blue-400 mx-auto mb-2 drop-shadow-md" />
+                <h3 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-blue-500 mb-2 tracking-wide">
                   You are the Police!
                 </h3>
-                <p className="text-blue-700 text-sm">
+                <p className="text-blue-200/70 text-sm font-sans tracking-wide">
                   Click below to reveal yourself and start finding the thief
                 </p>
               </div>
               <button
                 onClick={onPoliceReveal}
-                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg"
+                className="w-full relative group mt-2 max-w-sm mx-auto block"
               >
-                I am Police
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-xl blur opacity-60 group-hover:opacity-100 transition duration-200"></div>
+                <div className="relative w-full bg-[#11052C] border border-[#3B82F6]/50 text-white font-bold py-4 px-8 rounded-xl transition-all duration-300 transform group-hover:scale-105 shadow-xl tracking-wider">
+                  I am Police
+                </div>
               </button>
             </div>
           )}
 
-          {room.gameState === "guessing" && !canMakeGuess && (
-            <div className="text-center p-4 bg-yellow-50 rounded-xl border border-yellow-200">
-              <Shield className="w-8 h-8 text-yellow-600 mx-auto mb-2" />
-              <p className="text-yellow-800">
+          {room.gameState === "guessing" && (
+            <div className="text-center p-4 bg-[#11052C] rounded-xl border border-yellow-900/50 shadow-inner">
+              <Shield className="w-8 h-8 text-yellow-500 mx-auto mb-2 drop-shadow-md" />
+              <p className="text-yellow-300 font-medium tracking-wide">
                 {policeId === currentPlayerId
                   ? "Click on a player card to make your guess!"
                   : `Waiting for ${
@@ -245,17 +282,17 @@ export const GameBoard: React.FC<GameBoardProps> = ({
           )}
 
           {room.gameState === "role-assignment" && (
-            <div className="text-center p-4 bg-gray-50 rounded-xl border border-gray-200">
+            <div className="text-center p-4 bg-[#11052C] rounded-xl border border-[#3A1C61] shadow-inner">
               <div className="animate-pulse">
-                <p className="text-gray-700">Assigning roles...</p>
+                <p className="text-gray-300 tracking-wide font-medium">Assigning roles...</p>
               </div>
             </div>
           )}
 
           {room.gameState === "waiting" && (
-            <div className="text-center p-4 bg-purple-50 rounded-xl border border-purple-200">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-2"></div>
-              <p className="text-purple-700">Waiting for game to start...</p>
+            <div className="text-center p-4 bg-[#11052C] rounded-xl border border-fuchsia-900/50 shadow-inner flex flex-col items-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-fuchsia-400 mx-auto mb-3"></div>
+              <p className="text-fuchsia-300 tracking-wide font-medium">Waiting for game to start...</p>
             </div>
           )}
         </div>
@@ -269,6 +306,18 @@ export const GameBoard: React.FC<GameBoardProps> = ({
           onClose={() => setShowChat(false)}
         />
       )}
+
+      {/* Heartbeat and Siren audio */}
+      <audio
+        ref={heartbeatAudioRef}
+        loop
+        src="https://upload.wikimedia.org/wikipedia/commons/6/6b/Heartbeat.ogg"
+      />
+      <audio
+        ref={policeSirenAudioRef}
+        loop
+        src="https://actions.google.com/sounds/v1/alarms/police_siren.ogg"
+      />
     </div>
   );
 };
