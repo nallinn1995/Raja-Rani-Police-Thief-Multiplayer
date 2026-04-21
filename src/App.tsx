@@ -89,9 +89,23 @@ function App() {
   );
 
   useEffect(() => {
-    const saved = sessionStorage.getItem("appState");
-    if (saved) {
-      setAppState(saved as AppState);
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomParam = urlParams.get("room");
+
+    if (roomParam) {
+      // User clicked an invite link. Clear any previous session so they can join the new room cleanly.
+      sessionStorage.removeItem("roomCode");
+      sessionStorage.removeItem("playerId");
+      currentRoomRef.current = null;
+      currentPlayerRef.current = null;
+      
+      setAppState("join");
+      sessionStorage.setItem("appState", "join");
+    } else {
+      const saved = sessionStorage.getItem("appState");
+      if (saved) {
+        setAppState(saved as AppState);
+      }
     }
   }, []);
 

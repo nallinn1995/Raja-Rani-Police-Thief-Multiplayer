@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 
 interface JoinRoomProps {
@@ -8,10 +8,21 @@ interface JoinRoomProps {
 }
 
 export const JoinRoom: React.FC<JoinRoomProps> = ({ onBack, onRoomJoined, joinRoom }) => {
-  const [roomCode, setRoomCode] = useState('');
+  const [roomCode, setRoomCode] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('room') || '';
+  });
   const [playerName, setPlayerName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Clear the URL parameter so it doesn't persist on refresh
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('room')) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -40,7 +40,8 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
   };
 
   const shareRoom = () => {
-    const message = `Join my Raja Rani Police Thief game!%0A%0ARoom: ${room.name}%0ACode: ${room.id}%0A%0AClick here to join: ${window.location.origin}`;
+    const inviteLink = `${window.location.origin}/?room=${room.id}`;
+    const message = `Join my Raja Rani Police Thief game!%0A%0ARoom: ${room.name}%0ACode: ${room.id}%0A%0AClick here to join: ${inviteLink}`;
     window.open(`https://wa.me/?text=${message}`, '_blank');
   };
 
