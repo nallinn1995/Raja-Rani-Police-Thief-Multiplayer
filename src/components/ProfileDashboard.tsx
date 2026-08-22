@@ -399,7 +399,7 @@ export const ProfileDashboard: React.FC<ProfileDashboardProps> = ({ user, onBack
 
       {/* Left Sidebar */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-72 bg-[#12072B]/95 backdrop-blur-2xl border-r border-[#3A1C61]/80 flex flex-col justify-between transition-transform duration-300 ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        className={`fixed lg:static inset-y-0 left-0 z-50 w-72 bg-[#12072B]/95 backdrop-blur-2xl border-r border-[#3A1C61]/80 flex flex-col justify-between transition-transform duration-300 overflow-y-auto max-h-screen scrollbar-none ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
           }`}
       >
         <div className="p-6">

@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import useEmblaCarousel from 'embla-carousel-react';
 import {
   Trophy,
   Award,
@@ -435,7 +436,11 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({ userAchievem
   const [sortBy, setSortBy] = useState<'rarity' | 'title' | 'reward'>('rarity');
   const [activeCardIndex, setActiveCardIndex] = useState(0);
 
-  const carouselRef = useRef<HTMLDivElement>(null);
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    loop: false,
+    align: 'center',
+    containScroll: 'trimSnaps',
+  });
 
   // Extract user metrics dynamically from userStats & userAchievements API response
   const overallStats = userStats?.overallStats || {};
@@ -626,37 +631,37 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({ userAchievem
     return a.title.localeCompare(b.title);
   });
 
-  // Carousel navigation handlers for mobile view
-  const handleCarouselScroll = () => {
-    if (!carouselRef.current) return;
-    const container = carouselRef.current;
-    const firstChild = container.children[0] as HTMLElement;
-    if (!firstChild) return;
-    const cardWidth = firstChild.offsetWidth + 12; // width + gap (gap-3 = 12px)
-    if (cardWidth <= 0) return;
-    const index = Math.round(container.scrollLeft / cardWidth);
-    setActiveCardIndex(Math.min(Math.max(0, index), Math.max(0, sortedAchievements.length - 1)));
-  };
+  // Embla Carousel navigation and event handlers for mobile view
+  const onSelect = useCallback(() => {
+    if (!emblaApi) return;
+    setActiveCardIndex(emblaApi.selectedScrollSnap());
+  }, [emblaApi]);
 
-  const scrollToCard = (index: number) => {
-    if (!carouselRef.current) return;
-    const container = carouselRef.current;
-    const child = container.children[index] as HTMLElement;
-    if (child) {
-      child.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-      setActiveCardIndex(index);
+  useEffect(() => {
+    if (!emblaApi) return;
+    onSelect();
+    emblaApi.on('select', onSelect);
+    emblaApi.on('reInit', onSelect);
+  }, [emblaApi, onSelect]);
+
+  useEffect(() => {
+    if (emblaApi) {
+      emblaApi.scrollTo(0);
     }
-  };
+    setActiveCardIndex(0);
+  }, [activeStatusFilter, activeCategoryFilter, searchQuery, sortBy, emblaApi]);
 
-  const handlePrevCard = () => {
-    const newIdx = Math.max(0, activeCardIndex - 1);
-    scrollToCard(newIdx);
-  };
+  const handlePrevCard = useCallback(() => {
+    if (emblaApi) emblaApi.scrollPrev();
+  }, [emblaApi]);
 
-  const handleNextCard = () => {
-    const newIdx = Math.min(sortedAchievements.length - 1, activeCardIndex + 1);
-    scrollToCard(newIdx);
-  };
+  const handleNextCard = useCallback(() => {
+    if (emblaApi) emblaApi.scrollNext();
+  }, [emblaApi]);
+
+  const scrollToCard = useCallback((index: number) => {
+    if (emblaApi) emblaApi.scrollTo(index);
+  }, [emblaApi]);
 
   const getTierStyles = (tier: AchievementItem['tier'], isUnlocked: boolean) => {
     switch (tier) {
@@ -1044,7 +1049,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({ userAchievem
         </div>
       )}
 
-      {/* MOBILE VIEW: CAROUSEL WITH PREV / NEXT NAV & DOTS */}
+      {/* MOBILE VIEW: EMBLA CAROUSEL (ONE CARD AT A TIME) WITH PREV / NEXT NAV & DOTS */}
       {sortedAchievements.length > 0 && (
         <div className="space-y-3 sm:hidden">
           {/* Carousel Control Bar */}
@@ -1080,27 +1085,25 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({ userAchievem
             </div>
           </div>
 
-          {/* Swipeable Carousel Track */}
-          <div
-            ref={carouselRef}
-            onScroll={handleCarouselScroll}
-            className="flex overflow-x-auto snap-x snap-mandatory scrollbar-none gap-3 py-1 -mx-4 px-4 scroll-smooth"
-          >
-            {sortedAchievements.map((ach) => (
-              <div key={`mob-${ach.id}`} className="w-[84vw] shrink-0 snap-center">
-                {renderCard(ach)}
-              </div>
-            ))}
+          {/* Embla Carousel Viewport: Displays Exactly 1 Card at a Time */}
+          <div className="embla overflow-hidden rounded-3xl" ref={emblaRef}>
+            <div className="embla__container flex">
+              {sortedAchievements.map((ach) => (
+                <div key={`mob-${ach.id}`} className="embla__slide flex-[0_0_100%] min-w-0 px-1">
+                  {renderCard(ach)}
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Carousel Dot Indicators */}
           {sortedAchievements.length > 1 && (
-            <div className="flex items-center justify-center gap-1.5 pt-1">
+            <div className="flex items-center justify-center gap-1.5 pt-1 overflow-x-auto scrollbar-none max-w-full px-2 py-1">
               {sortedAchievements.map((ach, idx) => (
                 <button
                   key={`dot-${ach.id}`}
                   onClick={() => scrollToCard(idx)}
-                  className={`transition-all duration-300 rounded-full cursor-pointer ${
+                  className={`transition-all duration-300 rounded-full cursor-pointer shrink-0 ${
                     idx === activeCardIndex
                       ? 'w-6 h-2 bg-gradient-to-r from-cyan-400 to-purple-500'
                       : 'w-2 h-2 bg-purple-900/60 border border-purple-500/30'
