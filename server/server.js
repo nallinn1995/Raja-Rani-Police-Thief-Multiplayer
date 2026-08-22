@@ -8,6 +8,15 @@ import { body, validationResult } from "express-validator";
 import { fileURLToPath } from "url";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
+import dns from "dns";
+
+// Fix Windows/ISP DNS SRV resolution issue for MongoDB Atlas (mongodb+srv://)
+dns.setDefaultResultOrder("ipv4first");
+try {
+  dns.setServers(["8.8.8.8", "1.1.1.1"]);
+} catch (e) {
+  // Fallback if environment restricts setServers
+}
 import User from "./models/User.js";
 import PlayerStats from "./models/PlayerStats.js";
 import { getProfileDataById, recordMatchResults } from "./controllers/statsController.js";
@@ -61,10 +70,10 @@ import {
   getBearerToken,
 } from "./security.js";
 
-dotenv.config();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.join(__dirname, "../.env") });
 
 const app = express();
 const server = createServer(app);
@@ -74,10 +83,13 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, "../dist")));
 
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/raja_rani_db";
+const safeUri = MONGODB_URI.replace(/:([^@]+)@/, ":****@");
+console.log(`🔌 Attempting MongoDB connection to: ${safeUri}`);
+
 mongoose
-  .connect(MONGODB_URI)
+  .connect(MONGODB_URI, { serverSelectionTimeoutMS: 5000 })
   .then(() => console.log("✅ Connected to MongoDB"))
-  .catch((err) => console.warn("⚠️ MongoDB connection warning:", err.message));
+  .catch((err) => console.error("❌ MongoDB connection error:", err.message));
 
 // Example API endpoint
 app.get("/api/hello", (req, res) => {
