@@ -1,0 +1,108 @@
+Created At: 2026-07-28T03:43:05Z
+Completed At: 2026-07-28T03:43:05Z
+File Path: `file:///c:/Users/admin/Downloads/project-bolt-sb1-jq5rsrzx/project/src/App.tsx`
+Total Lines: 976
+Total Bytes: 33599
+Showing lines 1 to 100
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1: import { useState, useEffect, useRef, useCallback } from "react";
+2: import { Volume2, VolumeX, ChevronRight, SlidersHorizontal } from "lucide-react";
+3: import { Bounce, ToastContainer, toast } from "react-toastify";
+4: 
+5: import io from "socket.io-client";
+6: import { apiService } from "./services/apiService";
+7: import { HomePage } from "./components/HomePage";
+8: import { CreateRoom } from "./components/CreateRoom";
+9: import { JoinRoom } from "./components/JoinRoom";
+10: import { WaitingRoom } from "./components/WaitingRoom";
+11: import { GameBoard } from "./components/GameBoard";
+12: import { RoundResult } from "./components/RoundResult";
+13: import { Leaderboard } from "./components/Leaderboard";
+14: import { Welcome } from "./components/Welcome";
+15: import {
+16:   Room,
+17:   Player,
+18:   ChatMessage,
+19:   RoundResult as RoundResultType,
+20:   GameMode,
+21: } from "./types/game";
+22: import { VoiceChatManager } from "./components/VoiceChatManager";
+23: import { AuthOverlay } from "./components/auth/AuthOverlay";
+24: import { authService, User } from "./services/authService";
+25: import { UserProfile } from "./components/UserProfile";
+26: 
+27: const SOCKET_URL = import.meta.env.VITE_SERVER_URL;
+28: 
+29: const socket = io(SOCKET_URL, {
+30:   transports: ["websocket"],
+31:   reconnection: true,
+32:   reconnectionAttempts: Infinity,
+33:   reconnectionDelay: 2000,
+34: });
+35: 
+36: type AppState =
+37:   | "welcome"
+38:   | "home"
+39:   | "create"
+40:   | "join"
+41:   | "waiting"
+42:   | "playing"
+43:   | "result"
+44:   | "leaderboard"
+45:   | "dashboard";
+46: 
+47: import ProfileDashboard from "./components/ProfileDashboard";
+48: 
+49: function App() {
+50:   //const socket = useSocket();
+51:   const [appState, setAppState] = useState<AppState>("welcome");
+52:   const [currentUser, setCurrentUser] = useState<User | null>(null);
+53:   // 🔄 Reconnect UI state
+54:   const [isReconnecting, setIsReconnecting] = useState(false);
+55:   const [room, setRoom] = useState<Room | null>(null);
+56:   const [currentPlayerId, setCurrentPlayerId] = useState<string>("");
+57:   const [reconnectRemaining, setReconnectRemaining] = useState<number>(0); // seconds left
+58: 
+59:   const [myRole, setMyRole] = useState<string>("");
+60:   const [policeId, setPoliceId] = useState<string>("");
+61:   const [allRoles, setAllRoles] = useState<Player[]>([]);
+62:   const [roundResult, setRoundResult] = useState<RoundResultType | null>(null);
+63:   const [leaderboard, setLeaderboard] = useState<Player[]>([]);
+64:   const [finishedGameMode, setFinishedGameMode] = useState<GameMode | null>(null);
+65:   const [messages, setMessages] = useState<ChatMessage[]>([]);
+66:   const [error, setError] = useState<string>("");
+67: 
+68:   const [showAuthModal, setShowAuthModal] = useState(false);
+69:   const [pendingAction, setPendingAction] = useState<"home" | "join" | null>(null);
+70: 
+71:   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+72:   const [isAudioDockCollapsed, setIsAudioDockCollapsed] = useState(false);
+73:   const audioRef = useRef<HTMLAudioElement>(null);
+74:   const isReconnectingRef = useRef(false);
+75:   const RECONNECT_TIMEOUT_MS = 30000; // 30 seconds default (you can change)
+76: 
+77: 
+78:   // refs for timers so we can clear them
+79:   const reconnectTimeoutRef = useRef<number | null>(null);
+80:   const reconnectIntervalRef = useRef<number | null>(null);
+81:   const reconnectDeadlineRef = useRef<number | null>(null);
+82: 
+83: 
+84: 
+85:   const toggleMusic = () => {
+86:     if (audioRef.current) {
+87:       if (isMusicPlaying) {
+88:         audioRef.current.pause();
+89:       } else {
+90:         audioRef.current.play();
+91:       }
+92:       setIsMusicPlaying(!isMusicPlaying);
+93:     }
+94:   };
+95: 
+96:   // 🧠 Remember the last joined room + player for reconnects
+97:   const currentRoomRef = useRef<string | null>(
+98:     sessionStorage.getItem("roomCode") || null
+99:   );
+100:   const currentPlayerRef = useRef<string | null>(
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

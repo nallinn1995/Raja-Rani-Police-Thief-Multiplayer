@@ -1,0 +1,27 @@
+The USER performed the following action:
+Show the contents of file c:\Users\admin\Downloads\project-bolt-sb1-jq5rsrzx\project\server\server.js from lines 1 to 19
+File Path: `file:///c:/Users/admin/Downloads/project-bolt-sb1-jq5rsrzx/project/server/server.js`
+Total Lines: 859
+Total Bytes: 25315
+Showing lines 1 to 19
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1: import express from "express";
+2: import path from "path";
+3: import { createServer } from "http";
+4: import { Server as SocketIoServer } from "socket.io";
+5: import cors from "cors";
+6: import { v4 as uuidv4 } from "uuid";
+7: import { body, validationResult } from "express-validator";
+8: import { fileURLToPath } from "url";
+9: const __filename = fileURLToPath(import.meta.url);
+10: const __dirname = path.dirname(__filename);
+11: 
+12: import dotenv from "dotenv";
+13: dotenv.config({ path: path.join(__dirname, "../.env") });
+14: 
+15: import mongoose from "mongoose";
+16: import User from "./models/User.js";
+17: import PlayerStats from "./models/PlayerStats.js";
+18: import MatchHistory from "./models/MatchHistory.js";
+19: import Achievement from "./models/Achievement.js";
+

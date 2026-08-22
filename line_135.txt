@@ -1,0 +1,185 @@
+Created At: 2026-07-28T03:59:09Z
+Completed At: 2026-07-28T03:59:09Z
+File Path: `file:///c:/Users/admin/Downloads/project-bolt-sb1-jq5rsrzx/project/src/App.tsx`
+Total Lines: 976
+Total Bytes: 33623
+Showing lines 800 to 976
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+800: 
+801:       <div>
+802:         <ToastContainer
+803:           position="top-center"
+804:           transition={Bounce}
+805:           theme="dark"
+806:         />
+807:       </div>
+808: 
+809:       {showAuthModal && (
+810:         <AuthOverlay
+811:           onSuccess={handleAuthSuccess}
+812:           onCancel={handleAuthCancel}
+813:         />
+814:       )}
+815:       {/* 🔄 Reconnect overlay */}
+816:       {isReconnecting && (
+817:         <div className="fixed inset-0 z-50 flex items-center justify-center">
+818:           <div className="absolute inset-0 bg-black/50" />
+819:           <div className="relative z-10 w-full max-w-sm bg-white/90 backdrop-blur-md rounded-2xl p-6 text-center shadow-xl">
+820:             <div className="loader mx-auto mb-4" />
+821:             <p className="font-semibold mb-2">Reconnecting to room...</p>
+822:             <p className="text-sm text-gray-600 mb-4">
+823:               Attempting to restore your session. Time left:{" "}
+824:               <strong>{reconnectRemaining}s</strong>
+825:             </p>
+826:             <div className="flex gap-3 justify-center">
+827:               <button
+828:                 onClick={() => {
+829:                   // Manual immediate retry
+830:                   try {
+831:                     socket.connect();
+832:                   } catch (e) {
+833:                     console.error(e);
+834:                   }
+835:                 }}
+836:                 className="px-4 py-2 rounded-lg bg-blue-600 text-white font-medium"
+837:               >
+838:                 Try reconnect now
+839:               </button>
+840: 
+841:               <button
+842:                 onClick={() => {
+843:                   // allow quick fallback to home
+844:                   sessionStorage.removeItem("roomCode");
+845:                   sessionStorage.removeItem("playerId");
+846:                   sessionStorage.setItem("appState", "home");
+847:                   handlePlayAgain();
+848:                 }}
+849:                 className="px-4 py-2 rounded-lg bg-gray-200 text-gray-800"
+850:               >
+851:                 Leave Room
+852:               </button>
+853:             </div>
+854:           </div>
+855:         </div>
+856:       )}
+857: 
+858:       {/* 🎵 Background music runs across all states */}
+859:       {/* Background Music */}
+860:       <audio
+861:         ref={audioRef}
+862:         loop
+863:         src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
+864:       />
+865: 
+866:       {(() => {
+867:         switch (appState) {
+868:           case "welcome":
+869:             return (
+870:               <Welcome
+871:                 startGame={handleStartGame}
+872:               />
+873:             );
+874: 
+875:           case "home":
+876:             return (
+877:               <HomePage
+878:                 onCreateRoom={() => {
+879:                   sessionStorage.setItem("appState", "create");
+880:                   setAppState("create");
+881:                 }}
+882:                 onJoinRoom={() => {
+883:                   setAppState("join");
+884:                   sessionStorage.setItem("appState", "join");
+885:                 }}
+886:                 onBack={handleBackToHome}
+887:               />
+888:             );
+889: 
+890:           case "create":
+891:             return (
+892:               <CreateRoom
+893:                 onBack={() => {
+894:                   sessionStorage.setItem("appState", "home");
+895:                   setAppState("home");
+896:                 }}
+897:                 onRoomCreated={handleRoomCreated}
+898:                 createRoom={handleCreateRoom}
+899:               />
+900:             );
+901: 
+902:           case "join":
+903:             return (
+904:               <JoinRoom
+905:                 onBack={() => {
+906:                   setAppState("home");
+907:                   sessionStorage.setItem("appState", "home");
+908:                 }}
+909:                 onRoomJoined={handleRoomJoined}
+910:                 joinRoom={handleJoinRoom}
+911:               />
+912:             );
+913: 
+914:           case "waiting":
+915:             return room ? (
+916:               <WaitingRoom
+917:                 room={room}
+918:                 currentPlayerId={currentPlayerId}
+919:                 messages={messages}
+920:                 onSendMessage={handleSendMessage}
+921:               />
+922:             ) : null;
+923: 
+924:           case "playing":
+925:             return room ? (
+926:               <GameBoard
+927:                 room={room}
+928:                 currentPlayerId={currentPlayerId}
+929:                 myRole={myRole}
+930:                 policeId={policeId}
+931:                 allRoles={allRoles}
+932:                 messages={messages}
+933:                 onPoliceReveal={handlePoliceReveal}
+934:                 onMakeGuess={handleMakeGuess}
+935:                 onSendMessage={handleSendMessage}
+936:               />
+937:             ) : null;
+938: 
+939:           case "result":
+940:             return roundResult ? (
+941:               <RoundResult
+942:                 result={roundResult}
+943:                 isHost={room?.players.find((p) => p.id === currentPlayerId)?.isHost}
+944:                 onNextRound={handleNextRound}
+945:                 gameMode={roundResult.gameMode}
+946:               />
+947:             ) : null;
+948: 
+949:           case "leaderboard":
+950:             return (
+951:               <Leaderboard
+952:                 leaderboard={leaderboard}
+953:                 gameMode={finishedGameMode}
+954:                 onPlayAgain={handlePlayAgain}
+955:                 onBackToHome={handleBackToHome}
+956:               />
+957:             );
+958: 
+959:           case "dashboard":
+960:             return (
+961:               <ProfileDashboard
+962:                 user={currentUser as any}
+963:                 onBack={() => { setAppState('home'); sessionStorage.setItem('appState', 'home'); }}
+964:               />
+965:             );
+966: 
+967:           default:
+968:             return null;
+969:         }
+970:       })()}
+971:     </>
+972:   );
+973: }
+974: 
+975: export default App;
+976: 
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

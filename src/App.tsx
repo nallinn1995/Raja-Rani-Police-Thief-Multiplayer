@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Volume2, VolumeX } from "lucide-react";
 import { Bounce, ToastContainer, toast } from "react-toastify";
 
 import io from "socket.io-client";
@@ -12,6 +11,7 @@ import { GameBoard } from "./components/GameBoard";
 import { RoundResult } from "./components/RoundResult";
 import { Leaderboard } from "./components/Leaderboard";
 import { Welcome } from "./components/Welcome";
+import { AppHeader } from "./components/AppHeader";
 import {
   Room,
   Player,
@@ -19,6 +19,11 @@ import {
   RoundResult as RoundResultType,
 } from "./types/game";
 import { VoiceChatManager } from "./components/VoiceChatManager";
+import { authService, User as UserType } from "./services/authService";
+import { profileService } from "./services/profileService";
+import { AuthOverlay } from "./components/auth/AuthOverlay";
+import { GameInfo } from "./components/GameInfo";
+import { ProfileDashboard } from "./components/ProfileDashboard";
 
 const SOCKET_URL = import.meta.env.VITE_SERVER_URL;
 
@@ -37,11 +42,37 @@ type AppState =
   | "waiting"
   | "playing"
   | "result"
-  | "leaderboard";
+  | "leaderboard"
+  | "game-info"
+  | "dashboard";
 
 function App() {
   //const socket = useSocket();
   const [appState, setAppState] = useState<AppState>("welcome");
+  const [currentUser, setCurrentUser] = useState<UserType | null>(authService.getCurrentUser());
+
+  useEffect(() => {
+    if (currentUser && !currentUser.isGuest) {
+      const targetUserId = currentUser.id || currentUser._id || currentUser.username;
+      if (targetUserId) {
+        profileService.getProfile(targetUserId)
+          .then((res) => {
+            if (res?.user?.avatar && res.user.avatar !== currentUser.avatar) {
+              const updated = {
+                ...currentUser,
+                username: res.user.username || currentUser.username,
+                avatar: res.user.avatar,
+                description: res.user.description || currentUser.description || '',
+              };
+              authService.setCurrentUser(updated);
+              setCurrentUser(updated);
+            }
+          })
+          .catch(() => {});
+      }
+    }
+  }, [currentUser?.id, currentUser?._id]);
+  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   // 🔄 Reconnect UI state
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [room, setRoom] = useState<Room | null>(null);
@@ -49,6 +80,8 @@ function App() {
   const [reconnectRemaining, setReconnectRemaining] = useState<number>(0); // seconds left
 
   const [myRole, setMyRole] = useState<string>("");
+  const [cardsState, setCardsState] = useState<{ id: string; selectedBy: string | null }[]>([]);
+  const [myPrivateRole, setMyPrivateRole] = useState<{ cardId: string; role: string } | null>(null);
   const [policeId, setPoliceId] = useState<string>("");
   const [allRoles, setAllRoles] = useState<Player[]>([]);
   const [roundResult, setRoundResult] = useState<RoundResultType | null>(null);
@@ -120,12 +153,14 @@ useEffect(() => {
       // Auto rejoin if previously saved session exists
       const savedRoom = currentRoomRef.current;
       const savedPlayer = currentPlayerRef.current;
+      const savedToken = sessionStorage.getItem("playerToken");
       console.log("🔁 Auto-rejoin check:", savedRoom, savedPlayer);
       if (savedRoom && savedPlayer) {
         console.log("🔁 Auto rejoining room after connect:", savedRoom);
         socket.emit("join-room", {
           roomCode: savedRoom,
           playerId: savedPlayer,
+          playerToken: savedToken,
         });
       }
     };
@@ -135,6 +170,9 @@ useEffect(() => {
       setRoom(data.room);
       setCurrentPlayerId(data.playerId);
       setPoliceId(data.policeId || "");
+      if (data.room.cardsState) {
+        setCardsState(data.room.cardsState);
+      }
 
       const currentPlayer = data.room.players.find(
         (p: Player) => p.id === data.playerId
@@ -148,6 +186,7 @@ useEffect(() => {
       const gameStateToAppState: Record<string, AppState> = {
         "waiting": "waiting",
         "role-assignment": "playing",
+        "classic-card-selection": "playing",
         "police-reveal": "playing",
         "guessing": "playing",
         "results": "result",
@@ -179,10 +218,38 @@ useEffect(() => {
 
     const onGameStarted = (data: Room | null) => {
       setRoom((prev) =>
-        prev ? { ...prev, ...data, gameState: "role-assignment" } : null
+        prev ? { ...prev, ...data, gameState: "classic-card-selection" } : null
       );
+      setMyRole("");
+      setPoliceId("");
+      setAllRoles([]);
+      setRoundResult(null);
+      setMyPrivateRole(null);
       setAppState("playing");
       sessionStorage.setItem("appState", "playing");
+    };
+
+    const onStartCardSelection = (data: { cardsState: { id: string; selectedBy: string | null }[] }) => {
+      setCardsState(data.cardsState || []);
+      setMyPrivateRole(null);
+      setMyRole("");
+      setPoliceId("");
+      setAllRoles([]);
+      setRoundResult(null);
+      setRoom((prev) => (prev ? { ...prev, gameState: "classic-card-selection" } : null));
+    };
+
+    const onPlayerCardSelected = (data: { playerId: string; cardId: string; cardsState: { id: string; selectedBy: string | null }[] }) => {
+      setCardsState(data.cardsState || []);
+      if (data.playerId !== currentPlayerRef.current) {
+        const selectingPlayerName = room?.players.find((p: Player) => p.id === data.playerId)?.name || "A player";
+        toast.info(`🔒 ${selectingPlayerName} selected a card!`, { autoClose: 3000 });
+      }
+    };
+
+    const onRoleRevealedPrivate = (data: { cardId: string; role: string }) => {
+      setMyPrivateRole(data);
+      setMyRole(data.role);
     };
 
     const onRoleAssigned = (data: { role: string; players: Player[] }) => {
@@ -219,6 +286,8 @@ useEffect(() => {
           ? {
               ...prev,
               gameState: "results",
+              winCondition: data.winCondition || prev.winCondition,
+              targetScore: data.targetScore || prev.targetScore,
               players: data.players.map((p: Player) => ({
                 ...p,
                 role: undefined,
@@ -336,6 +405,9 @@ useEffect(() => {
     socket.on("room-state", onRoomState);
     socket.on("player-joined", onPlayerJoined);
     socket.on("game-started", onGameStarted);
+    socket.on("classic:startCardSelection", onStartCardSelection);
+    socket.on("classic:playerCardSelected", onPlayerCardSelected);
+    socket.on("classic:roleRevealedPrivate", onRoleRevealedPrivate);
     socket.on("role-assigned", onRoleAssigned);
     socket.on("police-reveal-phase", onPoliceRevealPhase);
     socket.on("all-roles", onAllRoles);
@@ -356,6 +428,9 @@ useEffect(() => {
       socket.off("room-state", onRoomState);
       socket.off("player-joined", onPlayerJoined);
       socket.off("game-started", onGameStarted);
+      socket.off("classic:startCardSelection", onStartCardSelection);
+      socket.off("classic:playerCardSelected", onPlayerCardSelected);
+      socket.off("classic:roleRevealedPrivate", onRoleRevealedPrivate);
       socket.off("role-assigned", onRoleAssigned);
       socket.off("police-reveal-phase", onPoliceRevealPhase);
       socket.off("all-roles", onAllRoles);
@@ -454,30 +529,58 @@ useEffect(() => {
   const handleCreateRoom = async (
     roomName: string,
     playerName: string,
-    totalRounds: number
+    totalRounds: number,
+    options?: {
+      gameMode?: string;
+      winCondition?: string;
+      targetScore?: number;
+      policeTurnsPerPlayer?: number;
+    },
+    userId?: string
   ) => {
-    return await apiService.createRoom(roomName, playerName, totalRounds);
+    return await apiService.createRoom(
+      roomName,
+      playerName,
+      totalRounds,
+      options,
+      userId
+    );
   };
 
-  const handleJoinRoom = async (roomCode: string, playerName: string) => {
-    return await apiService.joinRoom(roomCode, playerName);
+  const handleJoinRoom = async (
+    roomCode: string,
+    playerName: string,
+    userId?: string
+  ) => {
+    return await apiService.joinRoom(roomCode, playerName, userId);
   };
-  const handleRoomCreated = (roomCode: string, playerId: string) => {
+
+  const handleRoomCreated = (
+    roomCode: string,
+    playerId: string,
+    playerToken?: string
+  ) => {
     currentRoomRef.current = roomCode;
     currentPlayerRef.current = playerId;
     sessionStorage.setItem("roomCode", roomCode);
     sessionStorage.setItem("playerId", playerId);
     setCurrentPlayerId(playerId);
-    socket.emit("join-room", { roomCode, playerId });
+    const token = playerToken || sessionStorage.getItem("playerToken");
+    socket.emit("join-room", { roomCode, playerId, playerToken: token });
   };
 
-  const handleRoomJoined = (roomCode: string, playerId: string) => {
+  const handleRoomJoined = (
+    roomCode: string,
+    playerId: string,
+    playerToken?: string
+  ) => {
     currentRoomRef.current = roomCode;
     currentPlayerRef.current = playerId;
     sessionStorage.setItem("roomCode", roomCode);
     sessionStorage.setItem("playerId", playerId);
     setCurrentPlayerId(playerId);
-    socket.emit("join-room", { roomCode, playerId });
+    const token = playerToken || sessionStorage.getItem("playerToken");
+    socket.emit("join-room", { roomCode, playerId, playerToken: token });
   };
 
   const handlePoliceReveal = useCallback(() => {
@@ -616,12 +719,12 @@ useEffect(() => {
 
   // FIX #10: Show a loading/restoring screen instead of a blank page when
   // appState was saved mid-game (e.g. "playing") but room hasn't loaded yet after page refresh
-  const isInGameState =
-    appState !== "welcome" &&
-    appState !== "home" &&
-    appState !== "create" &&
-    appState !== "join";
-  if (isInGameState && !room) {
+  const isRoomRequiredState =
+    appState === "waiting" ||
+    appState === "playing" ||
+    appState === "result" ||
+    appState === "leaderboard";
+  if (isRoomRequiredState && !room) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 to-purple-100 flex items-center justify-center">
         <div className="text-center">
@@ -648,15 +751,8 @@ useEffect(() => {
           theme="dark"
         />
       </div>
-      {room && currentPlayerId && (
-        <VoiceChatManager
-          socket={socket as any}
-          room={room}
-          currentPlayerId={currentPlayerId}
-        />
-      )}
       {/* 🔄 Reconnect overlay */}
-       {isReconnecting && (
+      {isReconnecting && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50" />
           <div className="relative z-10 w-full max-w-sm bg-white/90 backdrop-blur-md rounded-2xl p-6 text-center shadow-xl">
@@ -669,7 +765,6 @@ useEffect(() => {
             <div className="flex gap-3 justify-center">
               <button
                 onClick={() => {
-                  // Manual immediate retry
                   try {
                     socket.connect();
                   } catch (e) {
@@ -683,7 +778,6 @@ useEffect(() => {
 
               <button
                 onClick={() => {
-                  // allow quick fallback to home
                   sessionStorage.removeItem("roomCode");
                   sessionStorage.removeItem("playerId");
                   sessionStorage.setItem("appState", "home");
@@ -698,19 +792,14 @@ useEffect(() => {
         </div>
       )}
 
-      {/* 🎵 Background music runs across all states */}
-      {/* Music Toggle Button */}
-      <button
-        onClick={toggleMusic}
-        className="fixed bottom-6 right-6 z-50 bg-gradient-to-br from-purple-500 to-pink-500 text-white p-4 rounded-full shadow-2xl hover:shadow-[0_10px_40px_rgba(168,85,247,0.6)] hover:scale-110 active:scale-95 transition-all duration-300"
-        aria-label="Toggle music"
-      >
-        {isMusicPlaying ? (
-          <Volume2 className="w-6 h-6 animate-pulse" />
-        ) : (
-          <VolumeX className="w-6 h-6" />
-        )}
-      </button>
+      {/* 🎤 Voice Chat & Music Audio Manager */}
+      <VoiceChatManager
+        socket={socket as any}
+        room={room}
+        currentPlayerId={currentPlayerId}
+        isMusicPlaying={isMusicPlaying}
+        toggleMusic={toggleMusic}
+      />
 
       {/* Background Music */}
       <audio
@@ -719,14 +808,55 @@ useEffect(() => {
         src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
       />
 
+      {/* Sticky App Header after login for all screens */}
+      {appState !== "welcome" && currentUser && (
+        <AppHeader
+          currentUser={currentUser}
+          onOpenGameInfo={() => {
+            sessionStorage.setItem("appState", "game-info");
+            setAppState("game-info");
+          }}
+          onGoHome={() => {
+            sessionStorage.setItem("appState", "home");
+            setAppState("home");
+          }}
+          onLogout={() => {
+            authService.logout();
+            setCurrentUser(null);
+            sessionStorage.setItem("appState", "welcome");
+            setAppState("welcome");
+            toast.info("Logged out successfully");
+          }}
+          onOpenDashboard={() => {
+            sessionStorage.setItem("appState", "dashboard");
+            setAppState("dashboard");
+          }}
+        />
+      )}
+
       {(() => {
         switch (appState) {
           case "welcome":
             return (
               <Welcome
+                currentUser={currentUser}
+                onOpenAuth={() => setShowAuthModal(true)}
+                onOpenGameInfo={() => {
+                  sessionStorage.setItem("appState", "game-info");
+                  setAppState("game-info");
+                }}
                 startGame={() => {
                   sessionStorage.setItem("appState", "home");
                   setAppState("home");
+                }}
+                onLogout={() => {
+                  authService.logout();
+                  setCurrentUser(null);
+                  toast.info("Logged out successfully");
+                }}
+                onOpenDashboard={() => {
+                  sessionStorage.setItem("appState", "dashboard");
+                  setAppState("dashboard");
                 }}
               />
             );
@@ -734,6 +864,10 @@ useEffect(() => {
           case "home":
             return (
               <HomePage
+                onBack={() => {
+                  sessionStorage.setItem("appState", "welcome");
+                  setAppState("welcome");
+                }}
                 onCreateRoom={() => {
                   sessionStorage.setItem("appState", "create");
                   setAppState("create");
@@ -741,6 +875,10 @@ useEffect(() => {
                 onJoinRoom={() => {
                   setAppState("join");
                   sessionStorage.setItem("appState", "join");
+                }}
+                onOpenGameInfo={() => {
+                  sessionStorage.setItem("appState", "game-info");
+                  setAppState("game-info");
                 }}
               />
             );
@@ -782,15 +920,19 @@ useEffect(() => {
           case "playing":
             return room ? (
               <GameBoard
+                socket={socket}
                 room={room}
                 currentPlayerId={currentPlayerId}
                 myRole={myRole}
                 policeId={policeId}
                 allRoles={allRoles}
                 messages={messages}
+                cardsState={cardsState}
+                myPrivateRole={myPrivateRole}
                 onPoliceReveal={handlePoliceReveal}
                 onMakeGuess={handleMakeGuess}
                 onSendMessage={handleSendMessage}
+                onLeaveRoom={handlePlayAgain}
               />
             ) : null;
 
@@ -812,10 +954,46 @@ useEffect(() => {
               />
             );
 
+          case "game-info":
+            return (
+              <GameInfo
+                onBack={() => {
+                  sessionStorage.setItem("appState", "welcome");
+                  setAppState("welcome");
+                }}
+                onStartGame={() => {
+                  sessionStorage.setItem("appState", "home");
+                  setAppState("home");
+                }}
+              />
+            );
+
+          case "dashboard":
+            return currentUser ? (
+              <ProfileDashboard
+                user={currentUser}
+                onUpdateUser={(updatedUser) => setCurrentUser(updatedUser)}
+                onBack={() => {
+                  sessionStorage.setItem("appState", "welcome");
+                  setAppState("welcome");
+                }}
+              />
+            ) : null;
+
           default:
             return null;
         }
       })()}
+
+      {showAuthModal && (
+        <AuthOverlay
+          onSuccess={(user) => {
+            setCurrentUser(user);
+            setShowAuthModal(false);
+          }}
+          onCancel={() => setShowAuthModal(false)}
+        />
+      )}
     </>
   );
 }

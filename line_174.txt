@@ -1,0 +1,24 @@
+Created At: 2026-07-28T04:00:07Z
+Completed At: 2026-07-28T04:00:07Z
+File Path: `file:///c:/Users/admin/Downloads/project-bolt-sb1-jq5rsrzx/project/src/App.tsx`
+Total Lines: 976
+Total Bytes: 33623
+Showing lines 800 to 815
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+800: 
+801:       <div>
+802:         <ToastContainer
+803:           position="top-center"
+804:           transition={Bounce}
+805:           theme="dark"
+806:         />
+807:       </div>
+808: 
+809:       {showAuthModal && (
+810:         <AuthOverlay
+811:           onSuccess={handleAuthSuccess}
+812:           onCancel={handleAuthCancel}
+813:         />
+814:       )}
+815:       {/* 🔄 Reconnect overlay */}
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

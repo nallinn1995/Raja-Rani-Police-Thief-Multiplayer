@@ -1,0 +1,158 @@
+Created At: 2026-07-28T03:42:53Z
+Completed At: 2026-07-28T03:42:54Z
+File Path: `file:///c:/Users/admin/Downloads/project-bolt-sb1-jq5rsrzx/project/server/server.js`
+Total Lines: 880
+Total Bytes: 25921
+Showing lines 1 to 150
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1: import express from "express";
+2: import path from "path";
+3: import { createServer } from "http";
+4: import { Server as SocketIoServer } from "socket.io";
+5: import cors from "cors";
+6: import { v4 as uuidv4 } from "uuid";
+7: import { body, validationResult } from "express-validator";
+8: import { fileURLToPath } from "url";
+9: const __filename = fileURLToPath(import.meta.url);
+10: const __dirname = path.dirname(__filename);
+11: 
+12: import dotenv from "dotenv";
+13: dotenv.config({ path: path.join(__dirname, "../.env") });
+14: 
+15: import mongoose from "mongoose";
+16: import User from "./models/User.js";
+17: import PlayerStats from "./models/PlayerStats.js";
+18: import MatchHistory from "./models/MatchHistory.js";
+19: import Achievement from "./models/Achievement.js";
+20: import { recordMatchResults } from "./controllers/statsController.js";
+21: 
+22: const app = express();
+23: const server = createServer(app);
+24: const allowedOrigins = [
+25:   "http://localhost:5173",
+26:   "https://waiver-itself-apply-views.trycloudflare.com",
+27: ];
+28: 
+29: // app.use(
+30: //   cors({
+31: //     origin: process.env.CLIENT_URL || "http://localhost:5173",
+32: //     methods: ["GET", "POST", "OPTIONS"],
+33: //     credentials: true,
+34: //   }),
+35: // );
+36: app.use(
+37:   cors({
+38:     origin: function (origin, callback) {
+39:       // Allow requests like Postman or curl
+40:       if (!origin) return callback(null, true);
+41: 
+42:       if (allowedOrigins.includes(origin)) {
+43:         return callback(null, true);
+44:       }
+45: 
+46:       return callback(new Error("Not allowed by CORS"));
+47:     },
+48:     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+49:     credentials: true,
+50:   })
+51: );
+52: app.use(express.json());
+53: 
+54: app.use(express.static(path.join(__dirname, "../dist")));
+55: 
+56: // Example API endpoint
+57: app.get("/api/hello", (req, res) => {
+58:   res.json({ message: "Hello from Express backend!" });
+59: });
+60: 
+61: // Setup MongoDB connection
+62: const MONGODB_URI = process.env.MONGODB_URI;
+63: if (MONGODB_URI) {
+64:   mongoose
+65:     .connect(MONGODB_URI)
+66:     .then(() => console.log("✅ MongoDB Connected Successfully"))
+67:     .catch((err) => console.error("🚨 MongoDB Connection Error:", err));
+68: } else {
+69:   console.log("⚠️ MONGODB_URI not provided. Skipping MongoDB connection.");
+70: }
+71: 
+72: // Auth Routes
+73: app.post("/api/auth/signup", async (req, res) => {
+74:   try {
+75:     const { username } = req.body;
+76:     if (!username) {
+77:       return res.status(400).json({ error: "Username is required" });
+78:     }
+79: 
+80:     // Check if username already exists
+81:     const existingUser = await User.findOne({
+82:       username: new RegExp(`^${username}$`, "i"),
+83:     });
+84:     if (existingUser) {
+85:       return res.status(400).json({
+86:         error: "Username already taken. Please choose another or sign in.",
+87:       });
+88:     }
+89: 
+90:     const newUser = new User({ username });
+91:     await newUser.save();
+92: 
+93:     res.json({
+94:       success: true,
+95:       user: {
+96:         id: newUser._id,
+97:         username: newUser.username,
+98:         isGuest: false,
+99:         createdAt: newUser.createdAt,
+100:       },
+101:     });
+102:   } catch (error) {
+103:     console.error("Signup error:", error);
+104:     if (error.code === 11000 && error.keyPattern && error.keyPattern.username) {
+105:       return res
+106:         .status(400)
+107:         .json({ error: "Username already taken. Please choose another." });
+108:     }
+109:     res.status(500).json({ error: "Failed to create account" });
+110:   }
+111: });
+112: 
+113: app.post("/api/auth/signin", async (req, res) => {
+114:   try {
+115:     const { username } = req.body;
+116:     if (!username) {
+117:       return res.status(400).json({ error: "Username is required" });
+118:     }
+119: 
+120:     const user = await User.findOne({
+121:       username: new RegExp(`^${username}$`, "i"),
+122:     });
+123:     if (!user) {
+124:       return res
+125:         .status(404)
+126:         .json({ error: "User does not exist. Please sign up." });
+127:     }
+128: 
+129:     res.json({
+130:       success: true,
+131:       user: {
+132:         id: user._id,
+133:         username: user.username,
+134:         isGuest: false,
+135:         createdAt: user.createdAt,
+136:       },
+137:     });
+138:   } catch (error) {
+139:     console.error("Signin error:", error);
+140:     res.status(500).json({ error: "Failed to sign in" });
+141:   }
+142: });
+143: 
+144: const io = new SocketIoServer(server, {
+145:   cors: {
+146:     origin: process.env.CLIENT_URL || "http://localhost:5173",
+147:     methods: ["GET", "POST"],
+148:     credentials: true,
+149:   },
+150: });
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

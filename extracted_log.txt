@@ -1,0 +1,552 @@
+=== c:\Users\admin\Downloads\project-bolt-sb1-jq5rsrzx\project\.env ===
+VITE_API_BASE_URL=
+VITE_SERVER_URL=
+MONGODB_URI=mongodb://localhost:27017/rajarani
+
+
+=== c:\Users\admin\Downloads\project-bolt-sb1-jq5rsrzx\project\.env.development ===
+VITE_API_BASE_URL=
+
+
+=== c:\Users\admin\Downloads\project-bolt-sb1-jq5rsrzx\project\vite.config.ts ===
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [react()],
+  optimizeDeps: {
+    exclude: ['lucide-react'],
+  },
+  server: {
+    host: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
+      '/socket.io': {
+        target: 'http://localhost:3001',
+        ws: true,
+        changeOrigin: true,
+      },
+    },
+  },
+});
+
+
+=== c:\Users\admin\Downloads\project-bolt-sb1-jq5rsrzx\project\server\server.js ===
+
+
+=== c:\Users\admin\Downloads\project-bolt-sb1-jq5rsrzx\project\src\App.tsx ===
+const SOCKET_URL = import.meta.env.VITE_SERVER_URL || undefined;
+
+const socket = io(SOCKET_URL, {
+  transports: ["polling", "websocket"],
+  reconnection: true,
+  reconnectionAttempts: Infinity,
+  reconnectionDelay: 2000,
+});
+
+=== c:\Users\admin\Downloads\project-bolt-sb1-jq5rsrzx\project\src\services\socketService.ts ===
+  private serverUrl = import.meta.env.VITE_SERVER_URL || undefined;
+
+  public connect(): Socket {
+    if (!this.socket) {
+      this.socket = io(this.serverUrl, {
+        transports: ["polling", "websocket"],
+        autoConnect: true,
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 2000,
+        reconnectionDelayMax: 1000,
+      });
+
+=== c:\Users\admin\Downloads\project-bolt-sb1-jq5rsrzx\project\src\components\ProfileDashboard.tsx ===
+import {
+  ArrowLeft,
+  Trophy,
+  Clock,
+  Target,
+  Swords,
+  User as UserIcon,
+  Gamepad2,
+  Frown,
+  RotateCw,
+  Flame,
+  Crown,
+  LayoutDashboard,
+  BarChart3,
+  Theater,
+  History,
+  Award,
+  Users,
+  Shield,
+  ChevronRight,
+  Menu,
+  X,
+  Calendar
+} from 'lucide-react';
+
+=== c:\Users\admin\Downloads\project-bolt-sb1-jq5rsrzx\project\src\components\ProfileDashboard.tsx ===
+
+
+=== c:\Users\admin\Downloads\project-bolt-sb1-jq5rsrzx\project\src\components\UserProfile.tsx ===
+import { LogOut, ChevronDown, User as UserIcon } from 'lucide-react';
+
+=== c:\Users\admin\Downloads\project-bolt-sb1-jq5rsrzx\project\src\services\configService.ts ===
+export type ConnectionMode = "tunnel" | "localhost";
+
+const MODE_KEY = "app_connection_mode";
+
+class ConfigService {
+  private mode: ConnectionMode;
+  private listeners: Array<(mode: ConnectionMode) => void> = [];
+
+  constructor() {
+    const saved = typeof window !== "undefined" ? (localStorage.getItem(MODE_KEY) as ConnectionMode) : null;
+    if (saved === "localhost" || saved === "tunnel") {
+      this.mode = saved;
+    } else {
+      // Default to tunnel (auto relative mode, which works through Vite proxy & Cloudflare tunnels)
+      this.mode = "tunnel";
+    }
+  }
+
+  public getMode(): ConnectionMode {
+    return this.mode;
+  }
+
+  public setMode(mode: ConnectionMode): void {
+    if (this.mode !== mode) {
+      this.mode = mode;
+      if (typeof window !== "undefined") {
+        localStorage.setItem(MODE_KEY, mode);
+      }
+      this.listeners.forEach((cb) => cb(mode));
+    }
+  }
+
+  public subscribe(cb: (mode: ConnectionMode) => void): () => void {
+    this.listeners.push(cb);
+    return () => {
+      this.listeners = this.listeners.filter((l) => l !== cb);
+    };
+  }
+
+  public getApiBaseUrl(): string {
+    if (this.mode === "localhost") {
+      return "http://localhost:3001";
+    }
+    return import.meta.env.VITE_API_BASE_URL || "";
+  }
+
+  public getSocketUrl(): string | undefined {
+    if (this.mode === "localhost") {
+      return "http://localhost:3001";
+    }
+    return import.meta.env.VITE_SERVER_URL || undefined;
+  }
+}
+
+export const configService = new ConfigService();
+
+
+=== c:\Users\admin\Downloads\project-bolt-sb1-jq5rsrzx\project\src\services\apiService.ts ===
+import { GameMode } from "../types/game";
+import { configService } from "./configService";
+
+export const apiService = {
+  async createRoom(options: {
+    roomName: string;
+    playerName: string;
+    userId?: string;
+    gameMode: GameMode;
+    endCondition: {
+      type: "rounds" | "score";
+      value: number;
+    };
+  }) {
+    const apiBase = configService.getApiBaseUrl();
+    const response = await fetch(`${apiBase}/api/rooms`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(options),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      if (error.errors) {
+        const messages = error.errors.map((e: any) => e.msg).join(", ");
+        throw new Error(messages || "Failed to create room");
+      }
+      throw new Error(error.error || "Failed to create room");
+    }
+
+    return response.json();
+  },
+
+  async joinRoom(roomCode: string, playerName: string, userId?: string) {
+    const apiBase = configService.getApiBaseUrl();
+    const body: any = { playerName };
+    if (userId) body.userId = userId;
+    const response = await fetch(`${apiBase}/api/rooms/${roomCode}/join`, {
+
+=== c:\Users\admin\Downloads\project-bolt-sb1-jq5rsrzx\project\src\services\authService.ts ===
+import { configService } from "./configService";
+
+export interface User {
+  id?: string;
+  username: string;
+  isGuest: boolean;
+  createdAt: string;
+}
+
+export const authService = {
+  async signIn(username: string): Promise<User> {
+    const apiBase = configService.getApiBaseUrl();
+    const response = await fetch(`${apiBase}/api/auth/signin`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to sign in");
+    }
+
+    const data = await response.json();
+    this.setCurrentUser(data.user);
+    return data.user;
+  },
+
+  async signUp(username: string): Promise<User> {
+    const apiBase = configService.getApiBaseUrl();
+    const response = await fetch(`${apiBase}/api/auth/signup`, {
+
+=== c:\Users\admin\Downloads\project-bolt-sb1-jq5rsrzx\project\src\services\profileService.ts ===
+import { configService } from "./configService";
+
+export const profileService = {
+  async getProfile(userId: string) {
+    console.debug(`[profileService] Fetching profile for user ID ${userId}`);
+    const apiBase = configService.getApiBaseUrl();
+    const resp = await fetch(
+      `${apiBase}/api/profile/user/${encodeURIComponent(userId)}`,
+    );
+
+=== c:\Users\admin\Downloads\project-bolt-sb1-jq5rsrzx\project\src\services\socketService.ts ===
+import { io, Socket } from "socket.io-client";
+import { configService } from "./configService";
+
+class SocketService {
+  private socket: Socket | null = null;
+
+  public connect(): Socket {
+    if (!this.socket) {
+      const serverUrl = configService.getSocketUrl();
+      this.socket = io(serverUrl, {
+        transports: ["polling", "websocket"],
+        autoConnect: true,
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 2000,
+        reconnectionDelayMax: 1000,
+      });
+
+=== c:\Users\admin\Downloads\project-bolt-sb1-jq5rsrzx\project\src\components\ConnectionModeToggle.tsx ===
+import React, { useState, useEffect } from "react";
+import { Globe, Server, RefreshCw } from "lucide-react";
+import { configService, ConnectionMode } from "../services/configService";
+import { toast } from "react-toastify";
+
+export const ConnectionModeToggle: React.FC = () => {
+  const [mode, setMode] = useState<ConnectionMode>(configService.getMode());
+
+  useEffect(() => {
+    const unsubscribe = configService.subscribe((newMode) => {
+      setMode(newMode);
+    });
+    return unsubscribe;
+  }, []);
+
+  const toggleMode = () => {
+    const nextMode: ConnectionMode = mode === "tunnel" ? "localhost" : "tunnel";
+    configService.setMode(nextMode);
+    setMode(nextMode);
+
+    if (nextMode === "localhost") {
+      toast.info("Switched to Localhost Mode (Direct http://localhost:3001). Reloading...", { autoClose: 1500 });
+    } else {
+      toast.info("Switched to Cloudflare / Auto Proxy Mode (Relative / Tunnel). Reloading...", { autoClose: 1500 });
+    }
+
+    setTimeout(() => {
+      window.location.reload();
+    }, 800);
+  };
+
+  return (
+    <div className="fixed top-3 right-4 z-[9999] flex items-center gap-2">
+      <button
+        onClick={toggleMode}
+        title="Click to toggle connection mode between Cloudflare Tunnel and Localhost 3001"
+        className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg backdrop-blur-md transition-all duration-300 border ${
+          mode === "tunnel"
+            ? "bg-purple-900/80 text-purple-200 border-purple-500/50 hover:bg-purple-800/90 shadow-purple-900/30"
+            : "bg-emerald-900/80 text-emerald-200 border-emerald-500/50 hover:bg-emerald-800/90 shadow-emerald-900/30"
+        }`}
+      >
+        {mode === "tunnel" ? (
+          <>
+            <Globe className="w-3.5 h-3.5 text-purple-400 animate-pulse" />
+            <span>Cloudflare / Tunnel Mode</span>
+          </>
+        ) : (
+          <>
+            <Server className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+            <span>Localhost (3001) Mode</span>
+          </>
+        )}
+        <RefreshCw className="w-3 h-3 ml-1 opacity-70 group-hover:rotate-180 transition-transform duration-500" />
+      </button>
+    </div>
+  );
+};
+
+
+=== c:\Users\admin\Downloads\project-bolt-sb1-jq5rsrzx\project\src\App.tsx ===
+
+
+=== c:\Users\admin\Downloads\project-bolt-sb1-jq5rsrzx\project\.env ===
+VITE_API_BASE_URL=http://localhost:3001
+VITE_SERVER_URL=http://localhost:3001
+MONGODB_URI=mongodb://localhost:27017/rajarani
+
+
+=== c:\Users\admin\Downloads\project-bolt-sb1-jq5rsrzx\project\src\services\configService.ts ===
+export type ConnectionMode = "tunnel" | "localhost";
+
+const MODE_KEY = "app_connection_mode";
+
+class ConfigService {
+  private mode: ConnectionMode;
+  private listeners: Array<(mode: ConnectionMode) => void> = [];
+
+  constructor() {
+    const saved = typeof window !== "undefined" ? (localStorage.getItem(MODE_KEY) as ConnectionMode) : null;
+    if (saved === "localhost" || saved === "tunnel") {
+      this.mode = saved;
+    } else {
+      // Default to tunnel (auto relative mode, which works through Vite proxy & Cloudflare tunnels)
+      this.mode = "tunnel";
+    }
+  }
+
+  public getMode(): ConnectionMode {
+    return this.mode;
+  }
+
+  public setMode(mode: ConnectionMode): void {
+    if (this.mode !== mode) {
+      this.mode = mode;
+      if (typeof window !== "undefined") {
+        localStorage.setItem(MODE_KEY, mode);
+      }
+      this.listeners.forEach((cb) => cb(mode));
+    }
+  }
+
+  public subscribe(cb: (mode: ConnectionMode) => void): () => void {
+    this.listeners.push(cb);
+    return () => {
+      this.listeners = this.listeners.filter((l) => l !== cb);
+    };
+  }
+
+  public getApiBaseUrl(): string {
+    if (this.mode === "localhost") {
+      return "http://localhost:3001";
+    }
+    return import.meta.env.VITE_API_BASE_URL || "";
+  }
+
+  public getSocketUrl(): string | undefined {
+    if (this.mode === "localhost") {
+      return "http://localhost:3001";
+    }
+    return import.meta.env.VITE_SERVER_URL || undefined;
+  }
+}
+
+export const configService = new ConfigService();
+
+
+=== c:\Users\admin\Downloads\project-bolt-sb1-jq5rsrzx\project\src\components\ConnectionModeToggle.tsx ===
+import React, { useState, useEffect } from "react";
+import { Globe, Server, RefreshCw } from "lucide-react";
+import { configService, ConnectionMode } from "../services/configService";
+import { toast } from "react-toastify";
+
+export const ConnectionModeToggle: React.FC = () => {
+  const [mode, setMode] = useState<ConnectionMode>(configService.getMode());
+
+  useEffect(() => {
+    const unsubscribe = configService.subscribe((newMode) => {
+      setMode(newMode);
+    });
+    return unsubscribe;
+  }, []);
+
+  const toggleMode = () => {
+    const nextMode: ConnectionMode = mode === "tunnel" ? "localhost" : "tunnel";
+    configService.setMode(nextMode);
+    setMode(nextMode);
+
+    if (nextMode === "localhost") {
+      toast.info("Switched to Localhost Mode (Direct http://localhost:3001). Reloading...", { autoClose: 1500 });
+    } else {
+      toast.info("Switched to Cloudflare / Auto Proxy Mode (Relative / Tunnel). Reloading...", { autoClose: 1500 });
+    }
+
+    setTimeout(() => {
+      window.location.reload();
+    }, 800);
+  };
+
+  return (
+    <div className="fixed top-3 right-4 z-[9999] flex items-center gap-2">
+      <button
+        onClick={toggleMode}
+        title="Click to toggle connection mode between Cloudflare Tunnel and Localhost 3001"
+        className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg backdrop-blur-md transition-all duration-300 border ${
+          mode === "tunnel"
+            ? "bg-purple-900/80 text-purple-200 border-purple-500/50 hover:bg-purple-800/90 shadow-purple-900/30"
+            : "bg-emerald-900/80 text-emerald-200 border-emerald-500/50 hover:bg-emerald-800/90 shadow-emerald-900/30"
+        }`}
+      >
+        {mode === "tunnel" ? (
+          <>
+            <Globe className="w-3.5 h-3.5 text-purple-400 animate-pulse" />
+            <span>Cloudflare / Tunnel Mode</span>
+          </>
+        ) : (
+          <>
+            <Server className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+            <span>Localhost (3001) Mode</span>
+          </>
+        )}
+        <RefreshCw className="w-3 h-3 ml-1 opacity-70 group-hover:rotate-180 transition-transform duration-500" />
+      </button>
+    </div>
+  );
+};
+
+
+=== c:\Users\admin\Downloads\project-bolt-sb1-jq5rsrzx\project\src\services\apiService.ts ===
+import { configService } from "./configService";
+
+export const apiService = {
+  async createRoom(roomName: string, playerName: string, totalRounds: number) {
+    const apiBase = configService.getApiBaseUrl();
+    const response = await fetch(`${apiBase}/api/rooms`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ roomName, playerName, totalRounds }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to create room");
+    }
+
+    return response.json();
+  },
+
+  async joinRoom(roomCode: string, playerName: string) {
+    const apiBase = configService.getApiBaseUrl();
+    const response = await fetch(`${apiBase}/api/rooms/${roomCode}/join`, {
+
+=== c:\Users\admin\Downloads\project-bolt-sb1-jq5rsrzx\project\src\services\socketService.ts ===
+import { io, Socket } from "socket.io-client";
+import { configService } from "./configService";
+
+class SocketService {
+  private socket: Socket | null = null;
+
+  public connect(): Socket {
+    if (!this.socket) {
+      const serverUrl = configService.getSocketUrl();
+      this.socket = io(serverUrl, {
+        transports: ["polling", "websocket"],
+        autoConnect: true,
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 2000,
+        reconnectionDelayMax: 1000,
+      });
+
+=== c:\Users\admin\Downloads\project-bolt-sb1-jq5rsrzx\project\vite.config.ts ===
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [react()],
+  optimizeDeps: {
+    exclude: ['lucide-react'],
+  },
+  server: {
+    host: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
+      '/socket.io': {
+        target: 'http://localhost:3001',
+        ws: true,
+        changeOrigin: true,
+      },
+    },
+  },
+});
+
+=== c:\Users\admin\Downloads\project-bolt-sb1-jq5rsrzx\project\.env ===
+VITE_API_BASE_URL=
+VITE_SERVER_URL=
+MONGODB_URI=mongodb://localhost:27017/rajarani
+
+
+=== c:\Users\admin\Downloads\project-bolt-sb1-jq5rsrzx\project\.env.development ===
+VITE_API_BASE_URL=
+
+
+=== c:\Users\admin\Downloads\project-bolt-sb1-jq5rsrzx\project\server\server.js ===
+const io = new SocketIoServer(server, {
+  cors: {
+    origin: true,
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
+
+app.use(
+  cors({
+    origin: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true,
+  })
+);
+app.use(express.json());
+
+=== c:\Users\admin\Downloads\project-bolt-sb1-jq5rsrzx\project\src\App.tsx ===
+
+

@@ -1,13 +1,34 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
+import { authService } from "./authService";
 
 export const apiService = {
-  async createRoom(roomName: string, playerName: string, totalRounds: number) {
-    const response = await fetch(`${API_BASE_URL}/api/rooms`, {
+  async createRoom(
+    roomName: string,
+    playerName: string,
+    totalRounds: number,
+    options?: {
+      gameMode?: string;
+      winCondition?: string;
+      targetScore?: number;
+      policeTurnsPerPlayer?: number;
+    },
+    userId?: string
+  ) {
+    const response = await authService.authFetch(`${API_BASE_URL}/api/rooms`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ roomName, playerName, totalRounds }),
+      body: JSON.stringify({
+        roomName,
+        playerName,
+        totalRounds,
+        userId,
+        gameMode: options?.gameMode,
+        winCondition: options?.winCondition,
+        targetScore: options?.targetScore,
+        policeTurnsPerPlayer: options?.policeTurnsPerPlayer,
+      }),
     });
 
     if (!response.ok) {
@@ -15,16 +36,18 @@ export const apiService = {
       throw new Error(error.error || "Failed to create room");
     }
 
-    return response.json();
+    const data = await response.json();
+    sessionStorage.setItem("playerToken", data.playerToken);
+    return data;
   },
 
-  async joinRoom(roomCode: string, playerName: string) {
-    const response = await fetch(`${API_BASE_URL}/api/rooms/${roomCode}/join`, {
+  async joinRoom(roomCode: string, playerName: string, userId?: string) {
+    const response = await authService.authFetch(`${API_BASE_URL}/api/rooms/${roomCode}/join`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ playerName }),
+      body: JSON.stringify({ playerName, userId }),
     });
 
     if (!response.ok) {
@@ -32,6 +55,8 @@ export const apiService = {
       throw new Error(error.error || "Failed to join room");
     }
 
-    return response.json();
+    const data = await response.json();
+    sessionStorage.setItem("playerToken", data.playerToken);
+    return data;
   },
 };

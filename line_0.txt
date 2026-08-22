@@ -1,0 +1,22 @@
+<USER_REQUEST>
+Join my Raja Rani Police Thief game!
+
+Room: CSK
+Code: 8R0T6B
+
+Click here to join: https://waiver-itself-apply-views.trycloudflare.com/?room=8R0T6B
+
+i shared this to my frinds but I am getting this screen unable to login or signup. I created tunnel url for testing. what is the problem and analyze and resolve it
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-28T09:12:48+05:30.
+
+The user's current state is as follows:
+Active Document: c:\Users\admin\Downloads\project-bolt-sb1-jq5rsrzx\project\server\server.js (LANGUAGE_JAVASCRIPT)
+Cursor is on line: 26
+Other open documents:
+- c:\Users\admin\Downloads\project-bolt-sb1-jq5rsrzx\project\server\server.js (LANGUAGE_JAVASCRIPT)
+- c:\Users\admin\Downloads\project-bolt-sb1-jq5rsrzx\project\src\components\UserProfile.tsx (LANGUAGE_TSX)
+Running terminal commands:
+- npm run dev (in c:\Users\admin\Downloads\project-bolt-sb1-jq5rsrzx\project, running for 10m12s)
+</ADDITIONAL_METADATA>

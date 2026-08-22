@@ -10,6 +10,9 @@ interface WaitingRoomProps {
     id: string;
     name: string;
     totalRounds: number;
+    gameMode?: string;
+    winCondition?: string;
+    targetScore?: number;
     players: Player[];
   };
   currentPlayerId: string;
@@ -52,8 +55,15 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
     // Could add a toast notification here
   };
 
+  const maxPlayers = (room as any).gameMode === 'MODERN_MODE' ? 6 : 4;
+
   return (
-    <div className="min-h-screen bg-[#11052C] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#3A1054] via-[#11052C] to-[#0A0217] flex flex-col items-center justify-center p-4 relative overflow-y-auto overflow-x-hidden text-white font-sans">
+    <div
+      className="min-h-screen bg-cover bg-center bg-no-repeat flex flex-col items-center justify-center p-4 relative overflow-y-auto overflow-x-hidden text-white font-sans"
+      style={{ backgroundImage: "url('/assets/images/background.png')" }}
+    >
+      {/* Dark Royal Vignette & Shadow Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0A021A]/70 via-transparent to-[#0A021A]/85 pointer-events-none" />
       {/* Background Particles/Stars */}
       <div className="absolute inset-0 pointer-events-none opacity-40">
         {[...Array(20)].map((_, i) => (
@@ -86,14 +96,20 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
             </code>
              <Copy className="w-6 h-6 cursor-pointer text-fuchsia-400 hover:text-fuchsia-300 transition-colors drop-shadow-md" onClick={copyRoomCode} />
           </div>
-          <p className="text-gray-400 font-sans tracking-wider">Rounds: <span className="text-yellow-400 font-bold">{room.totalRounds}</span></p>
+          <p className="text-gray-400 font-sans tracking-wider">
+            {room.winCondition === 'target_score' ? (
+              <>Target Score: <span className="text-yellow-400 font-bold">{(room.targetScore || 5000).toLocaleString()} pts</span></>
+            ) : (
+              <>Rounds: <span className="text-yellow-400 font-bold">{room.totalRounds}</span></>
+            )}
+          </p>
         </div>
 
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-gray-200 flex items-center tracking-wide">
               <Users className="w-5 h-5 mr-2 text-fuchsia-400" />
-              Players ({room.players.length}/4)
+              Players ({room.players.length}/{maxPlayers})
             </h2>
             <button
               onClick={handleShowChat}
@@ -135,7 +151,7 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
             ))}
             
             {/* Empty slots */}
-            {[...Array(4 - room.players.length)].map((_, index) => (
+            {Math.max(0, maxPlayers - room.players.length) > 0 && [...Array(maxPlayers - room.players.length)].map((_, index) => (
               <div key={index} className="flex items-center justify-center p-4 border-2 border-dashed border-[#3A1C61] bg-[#11052C]/50 rounded-xl">
                 <span className="text-gray-500 font-medium tracking-wide">Waiting for player...</span>
               </div>
@@ -154,11 +170,11 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
           </div>
         </button>
 
-        {room.players.length < 4 && (
+        {room.players.length < maxPlayers && (
           <div className="mt-6 text-center">
             <div className="inline-flex items-center space-x-3 text-fuchsia-300 drop-shadow-sm">
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-fuchsia-400"></div>
-              <span className="font-medium tracking-wide">Waiting for players to join...</span>
+              <span className="font-medium tracking-wide">Waiting for {maxPlayers} Players... ({room.players.length}/{maxPlayers})</span>
             </div>
           </div>
         )}
