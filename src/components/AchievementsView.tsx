@@ -44,7 +44,7 @@ export const AchievementBadgeIcon: React.FC<{
   tier: string;
   isUnlocked: boolean;
   size?: string;
-}> = ({ code, tier, isUnlocked, size = 'w-16 h-16 sm:w-20 sm:h-20' }) => {
+}> = ({ code, tier, isUnlocked, size = 'w-14 h-14 sm:w-20 sm:h-20' }) => {
   const getBadgeGradient = () => {
     if (!isUnlocked) return 'from-slate-800/90 to-slate-950 border-slate-700/60 text-slate-500';
     switch (tier) {
@@ -66,130 +66,130 @@ export const AchievementBadgeIcon: React.FC<{
       case 'MASTER_DETECTIVE_ACH':
         return (
           <div className="relative flex items-center justify-center">
-            <Shield className="w-8 h-8 sm:w-10 sm:h-10 text-amber-400 filter drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
-            <Search className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-200 absolute inset-0 m-auto filter drop-shadow-md" />
+            <Shield className="w-7 h-7 sm:w-10 sm:h-10 text-amber-400 filter drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
+            <Search className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-yellow-200 absolute inset-0 m-auto filter drop-shadow-md" />
           </div>
         );
       case 'ULTIMATE_DETECTIVE':
         return (
           <div className="relative flex items-center justify-center">
-            <Crown className="w-8 h-8 sm:w-10 sm:h-10 text-yellow-300 filter drop-shadow-[0_0_10px_rgba(234,179,8,0.9)] fill-amber-400/40" />
-            <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-200 absolute -top-1 -right-1 animate-pulse" />
+            <Crown className="w-7 h-7 sm:w-10 sm:h-10 text-yellow-300 filter drop-shadow-[0_0_10px_rgba(234,179,8,0.9)] fill-amber-400/40" />
+            <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-amber-200 absolute -top-1 -right-1 animate-pulse" />
           </div>
         );
       case 'SHARP_SHOOTER':
         return (
           <div className="relative flex items-center justify-center">
-            <Target className="w-8 h-8 sm:w-10 sm:h-10 text-purple-400 filter drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
-            <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-fuchsia-300 absolute inset-0 m-auto" />
+            <Target className="w-7 h-7 sm:w-10 sm:h-10 text-purple-400 filter drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
+            <Zap className="w-3 h-3 sm:w-4 sm:h-4 text-fuchsia-300 absolute inset-0 m-auto" />
           </div>
         );
       case 'GHOST_THIEF':
         return (
           <div className="relative flex items-center justify-center">
-            <Flame className="w-8 h-8 sm:w-10 sm:h-10 text-fuchsia-400 filter drop-shadow-[0_0_8px_rgba(217,70,239,0.8)] fill-fuchsia-500/30" />
-            <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-200 absolute bottom-1" />
+            <Flame className="w-7 h-7 sm:w-10 sm:h-10 text-fuchsia-400 filter drop-shadow-[0_0_8px_rgba(217,70,239,0.8)] fill-fuchsia-500/30" />
+            <Lock className="w-3 h-3 sm:w-4 sm:h-4 text-purple-200 absolute bottom-1" />
           </div>
         );
       case 'SPEED_DETECTIVE':
         return (
           <div className="relative flex items-center justify-center">
-            <Zap className="w-8 h-8 sm:w-10 sm:h-10 text-indigo-400 filter drop-shadow-[0_0_10px_rgba(129,140,248,0.8)] fill-indigo-400" />
-            <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white absolute -top-1 -left-1" />
+            <Zap className="w-7 h-7 sm:w-10 sm:h-10 text-indigo-400 filter drop-shadow-[0_0_10px_rgba(129,140,248,0.8)] fill-indigo-400" />
+            <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-white absolute -top-1 -left-1" />
           </div>
         );
       case 'GHOST_HUNTER':
         return (
           <div className="relative flex items-center justify-center">
-            <Clock className="w-8 h-8 sm:w-10 sm:h-10 text-cyan-400 filter drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
-            <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-200 absolute inset-0 m-auto" />
+            <Clock className="w-7 h-7 sm:w-10 sm:h-10 text-cyan-400 filter drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+            <Zap className="w-3 h-3 sm:w-4 sm:h-4 text-blue-200 absolute inset-0 m-auto" />
           </div>
         );
       case 'SHADOW_ESCAPE':
         return (
           <div className="relative flex items-center justify-center">
-            <Shield className="w-8 h-8 sm:w-10 sm:h-10 text-cyan-300 filter drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
-            <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-teal-200 absolute inset-0 m-auto" />
+            <Shield className="w-7 h-7 sm:w-10 sm:h-10 text-cyan-300 filter drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+            <Crown className="w-3 h-3 sm:w-4 sm:h-4 text-teal-200 absolute inset-0 m-auto" />
           </div>
         );
       case 'OBSERVATION_KING':
         return (
           <div className="relative flex items-center justify-center">
-            <Search className="w-8 h-8 sm:w-10 sm:h-10 text-cyan-400 filter drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
-            <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-300 absolute inset-0 m-auto fill-yellow-300" />
+            <Search className="w-7 h-7 sm:w-10 sm:h-10 text-cyan-400 filter drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+            <Star className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-300 absolute inset-0 m-auto fill-yellow-300" />
           </div>
         );
       case 'FIRST_STEPS':
       case 'FIRST_GAME':
         return (
           <div className="relative flex items-center justify-center">
-            <Award className="w-8 h-8 sm:w-10 sm:h-10 text-emerald-400 filter drop-shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-            <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-teal-200 absolute inset-0 m-auto fill-teal-200" />
+            <Award className="w-7 h-7 sm:w-10 sm:h-10 text-emerald-400 filter drop-shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+            <Star className="w-3 h-3 sm:w-4 sm:h-4 text-teal-200 absolute inset-0 m-auto fill-teal-200" />
           </div>
         );
       case 'VICTORIOUS':
       case 'FIRST_WIN':
         return (
           <div className="relative flex items-center justify-center">
-            <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-emerald-400 filter drop-shadow-[0_0_10px_rgba(16,185,129,0.9)] fill-emerald-500/30" />
-            <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-300 absolute -top-1 inset-x-0 mx-auto" />
+            <Trophy className="w-7 h-7 sm:w-10 sm:h-10 text-emerald-400 filter drop-shadow-[0_0_10px_rgba(16,185,129,0.9)] fill-emerald-500/30" />
+            <Crown className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-300 absolute -top-1 inset-x-0 mx-auto" />
           </div>
         );
       case 'ROYAL_SOVEREIGN':
         return (
           <div className="relative flex items-center justify-center">
-            <Crown className="w-8 h-8 sm:w-10 sm:h-10 text-amber-400 filter drop-shadow-[0_0_10px_rgba(245,158,11,0.9)] fill-amber-400" />
-            <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-200 absolute bottom-0" />
+            <Crown className="w-7 h-7 sm:w-10 sm:h-10 text-amber-400 filter drop-shadow-[0_0_10px_rgba(245,158,11,0.9)] fill-amber-400" />
+            <Trophy className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-200 absolute bottom-0" />
           </div>
         );
       case 'ROYAL_GENIUS':
         return (
           <div className="relative flex items-center justify-center">
-            <Crown className="w-8 h-8 sm:w-10 sm:h-10 text-yellow-400 filter drop-shadow-[0_0_8px_rgba(234,179,8,0.8)] fill-amber-400/40" />
-            <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-200 absolute -top-1 -right-1" />
+            <Crown className="w-7 h-7 sm:w-10 sm:h-10 text-yellow-400 filter drop-shadow-[0_0_8px_rgba(234,179,8,0.8)] fill-amber-400/40" />
+            <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-200 absolute -top-1 -right-1" />
           </div>
         );
       case 'QUEENS_INTUITION':
         return (
           <div className="relative flex items-center justify-center">
-            <Crown className="w-8 h-8 sm:w-10 sm:h-10 text-pink-400 filter drop-shadow-[0_0_8px_rgba(244,114,182,0.8)] fill-pink-500/30" />
-            <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-pink-200 absolute inset-0 m-auto fill-pink-200" />
+            <Crown className="w-7 h-7 sm:w-10 sm:h-10 text-pink-400 filter drop-shadow-[0_0_8px_rgba(244,114,182,0.8)] fill-pink-500/30" />
+            <Star className="w-3 h-3 sm:w-4 sm:h-4 text-pink-200 absolute inset-0 m-auto fill-pink-200" />
           </div>
         );
       case 'ESCAPE_ARTIST':
         return (
           <div className="relative flex items-center justify-center">
-            <Flame className="w-8 h-8 sm:w-10 sm:h-10 text-emerald-400 filter drop-shadow-[0_0_8px_rgba(52,211,153,0.8)] fill-emerald-500/30" />
-            <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-200 absolute bottom-1" />
+            <Flame className="w-7 h-7 sm:w-10 sm:h-10 text-emerald-400 filter drop-shadow-[0_0_8px_rgba(52,211,153,0.8)] fill-emerald-500/30" />
+            <Lock className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-200 absolute bottom-1" />
           </div>
         );
       case 'TRUSTED_WITNESS':
         return (
           <div className="relative flex items-center justify-center">
-            <Shield className="w-8 h-8 sm:w-10 sm:h-10 text-amber-300 filter drop-shadow-[0_0_8px_rgba(252,211,77,0.8)]" />
-            <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-200 absolute inset-0 m-auto" />
+            <Shield className="w-7 h-7 sm:w-10 sm:h-10 text-amber-300 filter drop-shadow-[0_0_8px_rgba(252,211,77,0.8)]" />
+            <Award className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-200 absolute inset-0 m-auto" />
           </div>
         );
       case 'ROYAL_GUARDIAN':
         return (
           <div className="relative flex items-center justify-center">
-            <Shield className="w-8 h-8 sm:w-10 sm:h-10 text-purple-400 filter drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] fill-purple-500/30" />
-            <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-300 absolute inset-0 m-auto" />
+            <Shield className="w-7 h-7 sm:w-10 sm:h-10 text-purple-400 filter drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] fill-purple-500/30" />
+            <Crown className="w-3 h-3 sm:w-4 sm:h-4 text-amber-300 absolute inset-0 m-auto" />
           </div>
         );
       case 'KINGDOM_SAVIOR':
         return (
           <div className="relative flex items-center justify-center">
-            <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-yellow-300 filter drop-shadow-[0_0_10px_rgba(234,179,8,0.9)] fill-amber-400" />
-            <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-100 absolute -top-1 inset-x-0 mx-auto" />
+            <Trophy className="w-7 h-7 sm:w-10 sm:h-10 text-yellow-300 filter drop-shadow-[0_0_10px_rgba(234,179,8,0.9)] fill-amber-400" />
+            <Crown className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-100 absolute -top-1 inset-x-0 mx-auto" />
           </div>
         );
       case 'RAJAS_BOUNTY':
       default:
         return (
           <div className="relative flex items-center justify-center">
-            <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-amber-400 filter drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
-            <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-300 absolute inset-0 m-auto fill-yellow-300" />
+            <Trophy className="w-7 h-7 sm:w-10 sm:h-10 text-amber-400 filter drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
+            <Star className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-300 absolute inset-0 m-auto fill-yellow-300" />
           </div>
         );
     }
@@ -439,7 +439,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({ userAchievem
   // Embla Carousel Hook for Mobile View (1 card at a time)
   const [emblaRef, emblaApi] = useEmblaCarousel({
     loop: false,
-    align: 'center',
+    align: 'start',
     containScroll: 'trimSnaps',
   });
 
@@ -727,11 +727,11 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({ userAchievem
     return (
       <div
         key={ach.id}
-        className={`relative rounded-2xl sm:rounded-3xl p-4 sm:p-5 border-2 ${styles.cardBg} ${styles.border} ${styles.shadow} flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 group h-full w-full max-w-full min-w-0`}
+        className={`relative rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 border-2 ${styles.cardBg} ${styles.border} ${styles.shadow} flex flex-col justify-between transition-all duration-300 group h-full w-full max-w-full min-w-0 box-border overflow-hidden`}
       >
         {/* Top Tier Badge & Lock / Unlock Status */}
-        <div className="flex items-center justify-between mb-2 sm:mb-3">
-          <span className={`text-[9px] sm:text-[10px] font-black uppercase tracking-widest px-2 sm:px-2.5 py-0.5 rounded-full ${styles.badgeBg}`}>
+        <div className="flex items-center justify-between mb-2">
+          <span className={`text-[9px] sm:text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${styles.badgeBg}`}>
             {ach.tier}
           </span>
 
@@ -747,22 +747,22 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({ userAchievem
         </div>
 
         {/* Glowing Achievement Badge Icon */}
-        <div className="flex flex-col items-center text-center my-1 sm:my-2">
-          <div className="mb-2 sm:mb-3">
-            <AchievementBadgeIcon code={ach.code} tier={ach.tier} isUnlocked={ach.isUnlocked} size="w-16 h-16 sm:w-20 sm:h-20" />
+        <div className="flex flex-col items-center text-center my-1">
+          <div className="mb-2">
+            <AchievementBadgeIcon code={ach.code} tier={ach.tier} isUnlocked={ach.isUnlocked} size="w-14 h-14 sm:w-20 sm:h-20" />
           </div>
 
-          <h4 className={`text-sm sm:text-base font-black tracking-wide ${styles.titleColor}`}>
+          <h4 className={`text-sm sm:text-base font-black tracking-wide ${styles.titleColor} truncate max-w-full`}>
             {ach.title}
           </h4>
 
-          <p className="text-[11px] sm:text-xs text-purple-200/80 mt-1 leading-relaxed line-clamp-2 min-h-[32px] sm:min-h-[36px]">
+          <p className="text-[11px] sm:text-xs text-purple-200/80 mt-1 leading-snug line-clamp-2 min-h-[30px] sm:min-h-[36px]">
             {ach.description}
           </p>
         </div>
 
         {/* Rewards & Progress Section */}
-        <div className="mt-3 sm:mt-4 pt-2.5 sm:pt-3 border-t border-[#3A1C61]/80 space-y-2">
+        <div className="mt-2 sm:mt-4 pt-2 sm:pt-3 border-t border-[#3A1C61]/80 space-y-1.5">
           {ach.isUnlocked ? (
             <div className="flex flex-col items-center justify-center space-y-1">
               <div className="flex items-center space-x-2 text-xs font-bold">
@@ -808,76 +808,84 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({ userAchievem
   };
 
   return (
-    <div className="w-full max-w-full min-w-0 overflow-hidden space-y-4 sm:space-y-6">
-      {/* Top 4 Summary Cards Header - FULLY RESPONSIVE */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 w-full min-w-0">
-        {/* Achievements Unlocked Card */}
-        <div className="bg-[#180B35]/95 border border-[#3A1C61] p-3 sm:p-5 rounded-2xl sm:rounded-3xl shadow-xl relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center space-y-1.5 sm:space-y-0 sm:space-x-4 w-full min-w-0">
-          <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
-            <Trophy className="w-4 h-4 sm:w-6 sm:h-6" />
+    <div className="w-full max-w-full min-w-0 overflow-hidden space-y-4 sm:space-y-6 box-border">
+      {/* 1. TOP 4 SUMMARY CARDS: 2 COLUMNS GRID ON MOBILE AS REQUESTED */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 w-full max-w-full min-w-0 box-border">
+        {/* Unlocked Card */}
+        <div className="bg-[#180B35]/95 border border-[#3A1C61] p-2.5 sm:p-4 rounded-2xl shadow-xl flex flex-col justify-between space-y-1.5 w-full max-w-full min-w-0 box-border">
+          <div className="flex items-center justify-between w-full">
+            <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
+              <Trophy className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+            </div>
+            <span className="text-[9px] sm:text-[11px] font-bold text-purple-300 uppercase tracking-wider">Unlocked</span>
           </div>
-          <div className="flex-1 w-full min-w-0">
-            <p className="text-[9px] sm:text-[11px] font-bold text-purple-300 uppercase tracking-wider truncate">Unlocked</p>
-            <p className="text-base sm:text-2xl font-black text-white mt-0.5">
-              {unlockedCount} <span className="text-purple-400 text-xs sm:text-base font-normal">/ {totalCount}</span>
+          <div className="w-full min-w-0">
+            <p className="text-sm sm:text-2xl font-black text-white">
+              {unlockedCount} <span className="text-purple-400 text-[10px] sm:text-base font-normal">/ {totalCount}</span>
             </p>
-            <div className="w-full bg-[#0E0422] h-1 sm:h-1.5 rounded-full mt-1 sm:mt-2 overflow-hidden border border-[#3A1C61]">
+            <div className="w-full bg-[#0E0422] h-1 sm:h-1.5 rounded-full mt-1 overflow-hidden border border-[#3A1C61]">
               <div
                 className="bg-gradient-to-r from-amber-400 to-yellow-300 h-full rounded-full transition-all duration-500"
                 style={{ width: `${completionPercentage}%` }}
               />
             </div>
-            <p className="text-[9px] sm:text-[10px] text-purple-300 font-semibold mt-1 truncate">{completionPercentage}% Done</p>
+            <p className="text-[8px] sm:text-[10px] text-purple-300 font-semibold mt-1 truncate">{completionPercentage}% Done</p>
           </div>
         </div>
 
-        {/* Total XP Earned Card */}
-        <div className="bg-[#180B35]/95 border border-[#3A1C61] p-3 sm:p-5 rounded-2xl sm:rounded-3xl shadow-xl relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center space-y-1.5 sm:space-y-0 sm:space-x-4 w-full min-w-0">
-          <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0 shadow-[0_0_15px_rgba(34,211,238,0.3)]">
-            <Star className="w-4 h-4 sm:w-6 sm:h-6 fill-cyan-400" />
+        {/* Total XP Card */}
+        <div className="bg-[#180B35]/95 border border-[#3A1C61] p-2.5 sm:p-4 rounded-2xl shadow-xl flex flex-col justify-between space-y-1.5 w-full max-w-full min-w-0 box-border">
+          <div className="flex items-center justify-between w-full">
+            <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0">
+              <Star className="w-3.5 h-3.5 sm:w-5 sm:h-5 fill-cyan-400" />
+            </div>
+            <span className="text-[9px] sm:text-[11px] font-bold text-purple-300 uppercase tracking-wider">Total XP</span>
           </div>
-          <div className="flex-1 w-full min-w-0">
-            <p className="text-[9px] sm:text-[11px] font-bold text-purple-300 uppercase tracking-wider truncate">Total XP</p>
-            <p className="text-base sm:text-2xl font-black text-cyan-300 mt-0.5 truncate">{totalXpEarned.toLocaleString()} XP</p>
-            <div className="w-full bg-[#0E0422] h-1 sm:h-1.5 rounded-full mt-1 sm:mt-2 overflow-hidden border border-[#3A1C61]">
+          <div className="w-full min-w-0">
+            <p className="text-sm sm:text-2xl font-black text-cyan-300 truncate">{totalXpEarned.toLocaleString()} XP</p>
+            <div className="w-full bg-[#0E0422] h-1 sm:h-1.5 rounded-full mt-1 overflow-hidden border border-[#3A1C61]">
               <div
                 className="bg-gradient-to-r from-cyan-400 to-blue-500 h-full rounded-full transition-all duration-500"
                 style={{ width: `${Math.min(100, (totalXpEarned / 1000) * 100)}%` }}
               />
             </div>
-            <p className="text-[9px] sm:text-[10px] text-cyan-200/80 font-semibold mt-1 truncate">Lvl {userStats?.playerLevel || 1} Detective</p>
+            <p className="text-[8px] sm:text-[10px] text-cyan-200/80 font-semibold mt-1 truncate">Lvl {userStats?.playerLevel || 1} Detective</p>
           </div>
         </div>
 
         {/* Categories Card */}
-        <div className="bg-[#180B35]/95 border border-[#3A1C61] p-3 sm:p-5 rounded-2xl sm:rounded-3xl shadow-xl relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center space-y-1.5 sm:space-y-0 sm:space-x-4 w-full min-w-0">
-          <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-300 shrink-0 shadow-[0_0_15px_rgba(168,85,247,0.3)]">
-            <Target className="w-4 h-4 sm:w-6 sm:h-6" />
+        <div className="bg-[#180B35]/95 border border-[#3A1C61] p-2.5 sm:p-4 rounded-2xl shadow-xl flex flex-col justify-between space-y-1.5 w-full max-w-full min-w-0 box-border">
+          <div className="flex items-center justify-between w-full">
+            <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-300 shrink-0">
+              <Target className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+            </div>
+            <span className="text-[9px] sm:text-[11px] font-bold text-purple-300 uppercase tracking-wider">Categories</span>
           </div>
-          <div className="min-w-0">
-            <p className="text-[9px] sm:text-[11px] font-bold text-purple-300 uppercase tracking-wider truncate">Categories</p>
-            <p className="text-base sm:text-2xl font-black text-white mt-0.5">5</p>
-            <p className="text-[8px] sm:text-[11px] text-purple-300 mt-0.5 sm:mt-1 italic truncate">Classic, Modern...</p>
+          <div className="w-full min-w-0">
+            <p className="text-sm sm:text-2xl font-black text-white">5</p>
+            <p className="text-[8px] sm:text-[10px] text-purple-300 mt-1 italic truncate">Classic, Modern...</p>
           </div>
         </div>
 
         {/* Longest Streak Card */}
-        <div className="bg-[#180B35]/95 border border-[#3A1C61] p-3 sm:p-5 rounded-2xl sm:rounded-3xl shadow-xl relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center space-y-1.5 sm:space-y-0 sm:space-x-4 w-full min-w-0">
-          <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 shrink-0 shadow-[0_0_15px_rgba(244,63,94,0.3)]">
-            <Flame className="w-4 h-4 sm:w-6 sm:h-6 fill-rose-500" />
+        <div className="bg-[#180B35]/95 border border-[#3A1C61] p-2.5 sm:p-4 rounded-2xl shadow-xl flex flex-col justify-between space-y-1.5 w-full max-w-full min-w-0 box-border">
+          <div className="flex items-center justify-between w-full">
+            <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 shrink-0">
+              <Flame className="w-3.5 h-3.5 sm:w-5 sm:h-5 fill-rose-500" />
+            </div>
+            <span className="text-[9px] sm:text-[11px] font-bold text-purple-300 uppercase tracking-wider">Streak</span>
           </div>
-          <div className="min-w-0">
-            <p className="text-[9px] sm:text-[11px] font-bold text-purple-300 uppercase tracking-wider truncate">Streak</p>
-            <p className="text-base sm:text-2xl font-black text-amber-400 mt-0.5">{longestStreak} {longestStreak === 1 ? 'Win' : 'Wins'}</p>
-            <p className="text-[8px] sm:text-[11px] text-purple-300 mt-0.5 sm:mt-1 italic truncate">Keep it going!</p>
+          <div className="w-full min-w-0">
+            <p className="text-sm sm:text-2xl font-black text-amber-400">{longestStreak} {longestStreak === 1 ? 'Win' : 'Wins'}</p>
+            <p className="text-[8px] sm:text-[10px] text-purple-300 mt-1 italic truncate">Keep it going!</p>
           </div>
         </div>
       </div>
 
-      {/* Status & Category Filter Pills + Search & Sort Toolbar - FULLY RESPONSIVE */}
-      <div className="bg-[#180B35]/90 border border-[#3A1C61] p-3 sm:p-4 rounded-2xl sm:rounded-3xl shadow-xl space-y-3 sm:space-y-4 w-full max-w-full min-w-0 overflow-hidden">
-        {/* Horizontal Scrollable Filter Chips */}
-        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none pb-1 -mx-1 px-1 w-full max-w-full touch-pan-x">
+      {/* 2. FILTER PILLS & TOOLBAR SECTION: FIT TO SCREEN WITH VISIBLE SCROLLBAR */}
+      <div className="bg-[#180B35]/90 border border-[#3A1C61] p-3 sm:p-4 rounded-2xl sm:rounded-3xl shadow-xl space-y-3 w-full max-w-full min-w-0 overflow-hidden box-border">
+        {/* Horizontal Scrollable Filter Chips with Styled Scrollbar */}
+        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-thin scrollbar-thumb-purple-600 scrollbar-track-[#11052C] pb-2 w-full max-w-full touch-pan-x box-border">
           {(['All', 'Unlocked', 'Locked'] as const).map((status) => (
             <button
               key={status}
@@ -885,7 +893,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({ userAchievem
                 setActiveStatusFilter(status);
                 setActiveCardIndex(0);
               }}
-              className={`px-3 sm:px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-md shrink-0 cursor-pointer ${
+              className={`px-3 py-1 rounded-full text-xs font-bold transition-all shadow-md shrink-0 cursor-pointer ${
                 activeStatusFilter === status
                   ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-purple-500/30'
                   : 'bg-[#11052C] border border-[#3A1C61] text-purple-300 hover:text-white hover:border-purple-400'
@@ -895,7 +903,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({ userAchievem
             </button>
           ))}
 
-          <div className="w-px h-5 bg-[#3A1C61] mx-0.5 shrink-0" />
+          <div className="w-px h-4 bg-[#3A1C61] mx-0.5 shrink-0" />
 
           {[
             { id: 'Classic Mode', label: '👑 Classic Mode' },
@@ -909,7 +917,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({ userAchievem
                 setActiveCategoryFilter(activeCategoryFilter === cat.id ? 'All' : cat.id);
                 setActiveCardIndex(0);
               }}
-              className={`px-3 sm:px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
+              className={`px-3 py-1 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
                 activeCategoryFilter === cat.id
                   ? 'bg-cyan-500 text-slate-950 shadow-cyan-400/30'
                   : 'bg-[#11052C] border border-[#3A1C61] text-purple-300 hover:text-white hover:border-cyan-500'
@@ -920,10 +928,10 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({ userAchievem
           ))}
         </div>
 
-        {/* Search Box & Sort Selector - MOBILE FLEX */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-2.5 w-full min-w-0">
-          <div className="relative flex-1 w-full min-w-0">
-            <Search className="w-4 h-4 text-purple-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+        {/* Search & Sort Controls */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 w-full max-w-full min-w-0 box-border">
+          <div className="relative flex-1 w-full max-w-full min-w-0 box-border">
+            <Search className="w-3.5 h-3.5 text-purple-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
@@ -932,16 +940,16 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({ userAchievem
                 setActiveCardIndex(0);
               }}
               placeholder="Search achievements..."
-              className="w-full bg-[#11052C] border border-[#3A1C61] focus:border-cyan-400 text-white text-xs pl-9 pr-4 py-2 rounded-xl focus:outline-none transition-all placeholder:text-purple-400/60"
+              className="w-full bg-[#11052C] border border-[#3A1C61] focus:border-cyan-400 text-white text-xs pl-8 pr-3 py-1.5 rounded-xl focus:outline-none transition-all placeholder:text-purple-400/60 box-border"
             />
           </div>
 
-          <div className="flex items-center justify-between sm:justify-end gap-2 text-xs bg-[#11052C] sm:bg-transparent p-2 sm:p-0 rounded-xl border border-[#3A1C61] sm:border-none w-full sm:w-auto">
+          <div className="flex items-center justify-between sm:justify-end gap-2 text-xs bg-[#11052C] sm:bg-transparent p-1.5 sm:p-0 rounded-xl border border-[#3A1C61] sm:border-none w-full sm:w-auto box-border">
             <span className="text-purple-300 font-semibold shrink-0">Sort by:</span>
             <select
               value={sortBy}
               onChange={(e: any) => setSortBy(e.target.value)}
-              className="bg-[#180B35] sm:bg-[#11052C] border border-[#3A1C61] text-purple-200 text-xs rounded-lg px-2.5 py-1 focus:outline-none focus:border-cyan-400 cursor-pointer"
+              className="bg-[#180B35] sm:bg-[#11052C] border border-[#3A1C61] text-purple-200 text-xs rounded-lg px-2 py-1 focus:outline-none focus:border-cyan-400 cursor-pointer"
             >
               <option value="rarity">Rarity (Common to Legendary)</option>
               <option value="title">Title (A-Z)</option>
@@ -951,20 +959,20 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({ userAchievem
         </div>
       </div>
 
-      {/* Achievement Tier Progress Breakdown - RESPONSIVE */}
-      <div className="space-y-3 w-full max-w-full min-w-0 overflow-hidden">
+      {/* 3. ACHIEVEMENT PROGRESS TIER BREAKDOWN: VISIBLE HORIZONTAL SCROLLBAR */}
+      <div className="space-y-2.5 w-full max-w-full min-w-0 overflow-hidden box-border">
         <h3 className="text-xs sm:text-base font-black text-white tracking-wide">Achievement Progress</h3>
 
-        {/* Tier Cards Row: Horizontal Scroll on Mobile, 5-Col Grid on Desktop */}
-        <div className="flex sm:grid sm:grid-cols-5 overflow-x-auto scrollbar-none gap-2 sm:gap-3 pb-1 -mx-1 px-1 w-full max-w-full touch-pan-x">
+        {/* Tier Cards Row with Visible Scrollbar */}
+        <div className="flex sm:grid sm:grid-cols-5 overflow-x-auto scrollbar-thin scrollbar-thumb-purple-600 scrollbar-track-[#11052C] gap-2 sm:gap-3 pb-2 w-full max-w-full touch-pan-x box-border">
           {/* Legendary Tier */}
-          <div className="w-[130px] sm:w-auto shrink-0 bg-[#180B35] border border-amber-500/40 p-2.5 sm:p-3 rounded-2xl flex flex-col justify-between space-y-1.5 sm:space-y-2">
+          <div className="w-[125px] sm:w-auto shrink-0 bg-[#180B35] border border-amber-500/40 p-2 sm:p-3 rounded-2xl flex flex-col justify-between space-y-1.5 box-border">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-amber-400 flex items-center gap-1">
+              <span className="text-[11px] font-black text-amber-400 flex items-center gap-1">
                 <Crown className="w-3.5 h-3.5 text-amber-400" />
                 <span>Legendary</span>
               </span>
-              <span className="text-[11px] font-bold text-amber-200">{legendaryUnlocked} / {legendaryCount.length}</span>
+              <span className="text-[10px] font-bold text-amber-200">{legendaryUnlocked} / {legendaryCount.length}</span>
             </div>
             <div className="w-full bg-[#0E0422] h-1.5 rounded-full overflow-hidden">
               <div
@@ -975,13 +983,13 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({ userAchievem
           </div>
 
           {/* Epic Tier */}
-          <div className="w-[130px] sm:w-auto shrink-0 bg-[#180B35] border border-purple-500/40 p-2.5 sm:p-3 rounded-2xl flex flex-col justify-between space-y-1.5 sm:space-y-2">
+          <div className="w-[125px] sm:w-auto shrink-0 bg-[#180B35] border border-purple-500/40 p-2 sm:p-3 rounded-2xl flex flex-col justify-between space-y-1.5 box-border">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-purple-300 flex items-center gap-1">
+              <span className="text-[11px] font-black text-purple-300 flex items-center gap-1">
                 <Sparkles className="w-3.5 h-3.5 text-purple-400" />
                 <span>Epic</span>
               </span>
-              <span className="text-[11px] font-bold text-purple-200">{epicUnlocked} / {epicCount.length}</span>
+              <span className="text-[10px] font-bold text-purple-200">{epicUnlocked} / {epicCount.length}</span>
             </div>
             <div className="w-full bg-[#0E0422] h-1.5 rounded-full overflow-hidden">
               <div
@@ -992,13 +1000,13 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({ userAchievem
           </div>
 
           {/* Rare Tier */}
-          <div className="w-[130px] sm:w-auto shrink-0 bg-[#180B35] border border-cyan-500/40 p-2.5 sm:p-3 rounded-2xl flex flex-col justify-between space-y-1.5 sm:space-y-2">
+          <div className="w-[125px] sm:w-auto shrink-0 bg-[#180B35] border border-cyan-500/40 p-2 sm:p-3 rounded-2xl flex flex-col justify-between space-y-1.5 box-border">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-cyan-300 flex items-center gap-1">
+              <span className="text-[11px] font-black text-cyan-300 flex items-center gap-1">
                 <Zap className="w-3.5 h-3.5 text-cyan-400" />
                 <span>Rare</span>
               </span>
-              <span className="text-[11px] font-bold text-cyan-200">{rareUnlocked} / {rareCount.length}</span>
+              <span className="text-[10px] font-bold text-cyan-200">{rareUnlocked} / {rareCount.length}</span>
             </div>
             <div className="w-full bg-[#0E0422] h-1.5 rounded-full overflow-hidden">
               <div
@@ -1009,13 +1017,13 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({ userAchievem
           </div>
 
           {/* Common Tier */}
-          <div className="w-[130px] sm:w-auto shrink-0 bg-[#180B35] border border-emerald-500/40 p-2.5 sm:p-3 rounded-2xl flex flex-col justify-between space-y-1.5 sm:space-y-2">
+          <div className="w-[125px] sm:w-auto shrink-0 bg-[#180B35] border border-emerald-500/40 p-2 sm:p-3 rounded-2xl flex flex-col justify-between space-y-1.5 box-border">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-emerald-300 flex items-center gap-1">
+              <span className="text-[11px] font-black text-emerald-300 flex items-center gap-1">
                 <Award className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Common</span>
               </span>
-              <span className="text-[11px] font-bold text-emerald-200">{commonUnlocked} / {commonCount.length}</span>
+              <span className="text-[10px] font-bold text-emerald-200">{commonUnlocked} / {commonCount.length}</span>
             </div>
             <div className="w-full bg-[#0E0422] h-1.5 rounded-full overflow-hidden">
               <div
@@ -1026,13 +1034,13 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({ userAchievem
           </div>
 
           {/* Secret Tier */}
-          <div className="w-[130px] sm:w-auto shrink-0 bg-[#180B35] border border-slate-700/60 p-2.5 sm:p-3 rounded-2xl flex flex-col justify-between space-y-1.5 sm:space-y-2 opacity-70">
+          <div className="w-[125px] sm:w-auto shrink-0 bg-[#180B35] border border-slate-700/60 p-2 sm:p-3 rounded-2xl flex flex-col justify-between space-y-1.5 box-border opacity-70">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-slate-400 flex items-center gap-1">
+              <span className="text-[11px] font-black text-slate-400 flex items-center gap-1">
                 <Lock className="w-3.5 h-3.5 text-slate-400" />
                 <span>Secret</span>
               </span>
-              <span className="text-[11px] font-bold text-slate-400">0 / 8</span>
+              <span className="text-[10px] font-bold text-slate-400">0 / 8</span>
             </div>
             <div className="w-full bg-[#0E0422] h-1.5 rounded-full overflow-hidden">
               <div className="bg-slate-600 h-full w-0" />
@@ -1043,18 +1051,18 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({ userAchievem
 
       {/* Empty State */}
       {sortedAchievements.length === 0 && (
-        <div className="bg-[#180B35]/90 border border-[#3A1C61] p-6 sm:p-8 rounded-3xl text-center space-y-3 w-full">
+        <div className="bg-[#180B35]/90 border border-[#3A1C61] p-6 sm:p-8 rounded-3xl text-center space-y-3 w-full max-w-full box-border">
           <Lock className="w-8 h-8 sm:w-10 sm:h-10 text-purple-400/50 mx-auto" />
           <h4 className="text-sm sm:text-base font-bold text-white">No achievements found</h4>
           <p className="text-xs text-purple-300">Try adjusting your status filter or search term.</p>
         </div>
       )}
 
-      {/* MOBILE VIEW: EMBLA CAROUSEL (ONE CARD AT A TIME ON MOBILE) WITH PREV / NEXT NAV & DOTS */}
+      {/* 4. EMBLA CAROUSEL CARDS VIEW: FIT 100% TO MOBILE SCREEN WIDTH WITHOUT CROPPING */}
       {sortedAchievements.length > 0 && (
-        <div className="space-y-3 sm:hidden w-full max-w-full min-w-0 overflow-hidden">
+        <div className="space-y-3 sm:hidden w-full max-w-full min-w-0 overflow-hidden box-border">
           {/* Carousel Control Bar */}
-          <div className="flex items-center justify-between bg-[#180B35]/90 border border-[#3A1C61] px-3.5 py-2.5 rounded-2xl shadow-lg w-full">
+          <div className="flex items-center justify-between bg-[#180B35]/90 border border-[#3A1C61] px-3.5 py-2.5 rounded-2xl shadow-lg w-full max-w-full box-border">
             <div className="flex items-center space-x-2">
               <span className="text-xs font-bold text-purple-300 uppercase tracking-wider">
                 Card <span className="text-white font-black">{activeCardIndex + 1}</span> of {sortedAchievements.length}
@@ -1086,11 +1094,11 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({ userAchievem
             </div>
           </div>
 
-          {/* Embla Carousel Viewport: Displays Exactly 1 Card at a Time */}
-          <div className="embla overflow-hidden rounded-2xl sm:rounded-3xl w-full max-w-full min-w-0" ref={emblaRef}>
-            <div className="embla__container flex touch-pan-y w-full">
+          {/* Embla Carousel Viewport: Fits 100% of Screen Width */}
+          <div className="embla overflow-hidden rounded-2xl sm:rounded-3xl w-full max-w-full min-w-0 box-border" ref={emblaRef}>
+            <div className="embla__container flex touch-pan-y w-full max-w-full">
               {sortedAchievements.map((ach) => (
-                <div key={`mob-${ach.id}`} className="embla__slide flex-[0_0_100%] min-w-0 w-full px-0.5">
+                <div key={`mob-${ach.id}`} className="embla__slide flex-[0_0_100%] min-w-0 w-full max-w-full px-0.5 box-border">
                   {renderCard(ach)}
                 </div>
               ))}
@@ -1119,7 +1127,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({ userAchievem
 
       {/* DESKTOP VIEW: 5-COLUMN GRID LAYOUT */}
       {sortedAchievements.length > 0 && (
-        <div className="hidden sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 w-full">
+        <div className="hidden sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 w-full max-w-full box-border">
           {sortedAchievements.map((ach) => (
             <div key={`desk-${ach.id}`} className="h-full w-full">
               {renderCard(ach)}
