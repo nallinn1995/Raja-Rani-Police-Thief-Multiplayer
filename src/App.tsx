@@ -131,7 +131,8 @@ function App() {
       if (isMusicPlaying) {
         audioRef.current.pause();
       } else {
-        audioRef.current.play();
+        audioRef.current.volume = 0.4;
+        audioRef.current.play().catch((err) => console.log("Audio play error:", err));
       }
       setIsMusicPlaying(!isMusicPlaying);
     }
@@ -836,12 +837,15 @@ useEffect(() => {
         toggleMusic={toggleMusic}
       />
 
-      {/* Background Music */}
+      {/* Royal Kingdom Cinematic Background Music */}
       <audio
         ref={audioRef}
         loop
-        src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
-      />
+        preload="auto"
+      >
+        <source src="/assets/audio/royal_kingdom_bgm.mp3" type="audio/mpeg" />
+        <source src="/assets/audio/royal_kingdom_bgm.ogg" type="audio/ogg" />
+      </audio>
 
       {/* Sticky App Header after login for all screens */}
       {appState !== "welcome" && currentUser && (
