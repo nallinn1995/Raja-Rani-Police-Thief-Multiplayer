@@ -192,11 +192,18 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
       const pc = new RTCPeerConnection(RTC_CONFIG);
       peersRef.current.set(partnerId, pc);
 
-      // Attach existing local audio tracks
+      // Add audio transceiver upfront so WebRTC connection is negotiated for bidirectional audio
+      const transceiver = pc.addTransceiver("audio", {
+        direction: "sendrecv",
+        streams: localStreamRef.current ? [localStreamRef.current] : [],
+      });
+
       if (localStreamRef.current) {
-        localStreamRef.current.getAudioTracks().forEach((track) => {
-          pc.addTrack(track, localStreamRef.current!);
-        });
+        const audioTrack = localStreamRef.current.getAudioTracks()[0];
+        if (audioTrack) {
+          audioTrack.enabled = !isMutedRef.current;
+          transceiver.sender.replaceTrack(audioTrack).catch(() => {});
+        }
       }
 
       // Handle receiving remote audio track
@@ -281,23 +288,33 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
       localStreamRef.current = stream;
       setAudioError("");
 
-      // Ensure track enabled state matches current isMuted state
-      stream.getAudioTracks().forEach((track) => {
-        track.enabled = !isMutedRef.current;
-      });
+      const audioTrack = stream.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !isMutedRef.current;
 
-      // Add track to all existing peer connections
-      peersRef.current.forEach((pc) => {
-        if (pc.signalingState !== "closed") {
-          const senders = pc.getSenders();
-          const hasAudio = senders.some((s) => s.track && s.track.kind === "audio");
-          if (!hasAudio) {
-            stream.getAudioTracks().forEach((track) => {
-              pc.addTrack(track, stream);
-            });
+        // Replace track on all existing transceivers immediately
+        peersRef.current.forEach((pc) => {
+          if (pc.signalingState !== "closed") {
+            const transceivers = pc.getTransceivers();
+            const audioTransceiver =
+              transceivers.find(
+                (t) => t.receiver.track.kind === "audio" || (t.sender.track && t.sender.track.kind === "audio")
+              ) || transceivers[0];
+
+            if (audioTransceiver && audioTransceiver.sender) {
+              audioTransceiver.sender.replaceTrack(audioTrack).catch((e) => {
+                console.warn("[VoiceChat] replaceTrack error:", e);
+              });
+            } else {
+              try {
+                pc.addTrack(audioTrack, stream);
+              } catch (e) {
+                console.warn("[VoiceChat] addTrack error:", e);
+              }
+            }
           }
-        }
-      });
+        });
+      }
 
       return stream;
     } catch (err: any) {
@@ -668,58 +685,65 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
                   {outputMode === "speaker" && <Speaker className="w-5 h-5" />}
                 </button>
 
-                {/* Output Routing Popover Menu */}
+                {/* Solid, Non-Transparent, 100% Mobile Responsive Output Routing Popover */}
                 {isOutputMenuOpen && (
-                  <div className="absolute bottom-16 right-0 w-72 bg-[#17062D]/98 backdrop-blur-2xl border-2 border-[#7C3AED]/80 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] p-3 text-white z-[80] animate-in fade-in zoom-in-95 duration-200">
-                    <div className="flex items-center justify-between pb-2 mb-2 border-b border-purple-800/60">
-                      <div className="flex items-center gap-1.5 text-xs font-bold font-serif uppercase tracking-wider text-[#FBE278]">
-                        <Radio className="w-4 h-4 text-[#FBE278] animate-pulse" />
-                        <span>AUDIO OUTPUT</span>
+                  <>
+                    <div
+                      className="fixed inset-0 z-[85]"
+                      onClick={() => setIsOutputMenuOpen(false)}
+                    />
+                    <div className="fixed bottom-24 right-3 sm:right-6 w-[calc(100vw-1.5rem)] max-w-xs sm:w-80 bg-[#120324] border-2 border-[#8B5CF6] rounded-2xl shadow-[0_25px_70px_rgba(0,0,0,0.98)] p-3.5 text-white z-[90] animate-in fade-in zoom-in-95 duration-150">
+                      <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-purple-800/80">
+                        <div className="flex items-center gap-2 text-xs font-black font-serif uppercase tracking-wider text-[#FBE278]">
+                          <Radio className="w-4 h-4 text-[#FBE278] animate-pulse" />
+                          <span>AUDIO OUTPUT</span>
+                        </div>
+                        <span className="text-[10px] text-purple-200 bg-[#28084A] border border-purple-700/60 px-2.5 py-0.5 rounded-full font-mono font-bold">
+                          {outputMode.toUpperCase()}
+                        </span>
                       </div>
-                      <span className="text-[10px] text-purple-300 bg-purple-900/60 px-2 py-0.5 rounded-full font-mono font-semibold">
-                        {outputMode.toUpperCase()}
-                      </span>
-                    </div>
 
-                    <div className="space-y-1.5">
-                      {OUTPUT_OPTIONS.map((opt) => {
-                        const isSelected = outputMode === opt.id;
-                        const Icon = opt.icon;
-                        return (
-                          <button
-                            key={opt.id}
-                            onClick={() => changeOutputMode(opt.id)}
-                            className={`w-full flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer text-left ${
-                              isSelected
-                                ? `${opt.activeBorder} shadow-md`
-                                : "bg-[#250A47]/60 border-purple-900/40 text-gray-300 hover:bg-[#320D5E]/80 hover:text-white"
-                            }`}
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <div
-                                className={`w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br ${opt.gradient} text-white shadow-sm`}
-                              >
-                                <Icon className="w-4 h-4" />
-                              </div>
-                              <div className="truncate">
-                                <div className="text-xs font-bold flex items-center gap-1.5">
-                                  <span>{opt.label}</span>
-                                  {isSelected && (
-                                    <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full uppercase ${opt.badgeColor}`}>
-                                      Active
-                                    </span>
-                                  )}
+                      <div className="space-y-2">
+                        {OUTPUT_OPTIONS.map((opt) => {
+                          const isSelected = outputMode === opt.id;
+                          const Icon = opt.icon;
+                          return (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              onClick={() => changeOutputMode(opt.id)}
+                              className={`w-full flex items-center justify-between p-2.5 rounded-xl border-2 transition-all cursor-pointer text-left ${
+                                isSelected
+                                  ? "bg-[#2D0A54] border-[#FBE278] shadow-[0_0_15px_rgba(251,226,120,0.35)] text-white"
+                                  : "bg-[#1D0638] border-purple-900/60 text-gray-300 hover:bg-[#28084A] hover:text-white"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div
+                                  className={`w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br ${opt.gradient} text-white shadow-sm shrink-0`}
+                                >
+                                  <Icon className="w-4 h-4" />
                                 </div>
-                                <div className="text-[10px] text-gray-400 truncate">{opt.sublabel}</div>
+                                <div className="truncate">
+                                  <div className="text-xs font-bold flex items-center gap-1.5">
+                                    <span>{opt.label}</span>
+                                    {isSelected && (
+                                      <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full uppercase ${opt.badgeColor}`}>
+                                        Active
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-[10px] text-gray-400 truncate">{opt.sublabel}</div>
+                                </div>
                               </div>
-                            </div>
 
-                            {isSelected && <Check className="w-4 h-4 text-[#FBE278] shrink-0" />}
-                          </button>
-                        );
-                      })}
+                              {isSelected && <Check className="w-4 h-4 text-[#FBE278] shrink-0" />}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  </>
                 )}
               </div>
 
