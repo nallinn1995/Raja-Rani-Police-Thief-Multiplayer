@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { Mic, MicOff, Volume2, VolumeX, SlidersHorizontal } from "lucide-react";
+import { Mic, MicOff, Volume2, VolumeX, SlidersHorizontal, Headphones, Bluetooth, Speaker, Check, Radio } from "lucide-react";
 import { SpeakerWaveIcon, SpeakerXMarkIcon } from "@heroicons/react/24/solid";
 import { Socket } from "socket.io-client";
 import { Room, Player } from "../types/game";
@@ -11,6 +11,8 @@ interface VoiceChatManagerProps {
   isMusicPlaying: boolean;
   toggleMusic: () => void;
 }
+
+type AudioOutputMode = "speaker" | "headset" | "bluetooth";
 
 const RTC_CONFIG: RTCConfiguration = {
   iceServers: [
@@ -31,16 +33,94 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
   toggleMusic,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const [isSpeakerMuted, setIsSpeakerMuted] = useState(false);
   const [audioError, setAudioError] = useState("");
+
+  // Teams-style Audio Output mode: Speaker | Headset | Bluetooth
+  const [outputMode, setOutputMode] = useState<AudioOutputMode>("speaker");
+  const [isOutputMenuOpen, setIsOutputMenuOpen] = useState(false);
+  const [availableDevices, setAvailableDevices] = useState<MediaDeviceInfo[]>([]);
 
   const localStreamRef = useRef<MediaStream | null>(null);
   const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const pendingCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
   const audioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
   const isSpeakerMutedRef = useRef(false);
-  const isMutedRef = useRef(false);
+  const isMutedRef = useRef(true);
+
+  // Enumerate audio output devices
+  useEffect(() => {
+    const updateAudioDevices = async () => {
+      if (!navigator.mediaDevices?.enumerateDevices) return;
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const outputs = devices.filter((d) => d.kind === "audiooutput");
+        setAvailableDevices(outputs);
+      } catch (err) {
+        console.warn("[VoiceChat] Failed to enumerate audio devices:", err);
+      }
+    };
+
+    updateAudioDevices();
+    if (navigator.mediaDevices && typeof navigator.mediaDevices.addEventListener === "function") {
+      navigator.mediaDevices.addEventListener("devicechange", updateAudioDevices);
+    }
+    return () => {
+      if (navigator.mediaDevices && typeof navigator.mediaDevices.removeEventListener === "function") {
+        navigator.mediaDevices.removeEventListener("devicechange", updateAudioDevices);
+      }
+    };
+  }, []);
+
+  // Apply selected audio output device to all peer audio elements and background music
+  const changeOutputMode = async (mode: AudioOutputMode) => {
+    setOutputMode(mode);
+    setIsOutputMenuOpen(false);
+
+    // Find best matching hardware deviceId if available
+    let targetDeviceId = "";
+    if (mode === "bluetooth") {
+      const match = availableDevices.find((d) =>
+        /bluetooth|airpods|buds|wireless|hands-free|bth/i.test(d.label)
+      );
+      if (match) targetDeviceId = match.deviceId;
+    } else if (mode === "headset") {
+      const match = availableDevices.find(
+        (d) =>
+          /headset|headphones|earphone|usb/i.test(d.label) &&
+          !/bluetooth|airpods|buds/i.test(d.label)
+      );
+      if (match) targetDeviceId = match.deviceId;
+    } else {
+      const match = availableDevices.find((d) =>
+        /speaker|default|internal|built-in/i.test(d.label)
+      );
+      if (match) targetDeviceId = match.deviceId || "default";
+      else targetDeviceId = "default";
+    }
+
+    // Call setSinkId on all remote player audio elements
+    audioElementsRef.current.forEach(async (audio) => {
+      if (audio && typeof (audio as any).setSinkId === "function" && targetDeviceId) {
+        try {
+          await (audio as any).setSinkId(targetDeviceId);
+        } catch (e) {
+          console.warn("[VoiceChat] setSinkId error for peer audio:", e);
+        }
+      }
+    });
+
+    // Also route background music audio element
+    const bgmAudio = document.querySelector("audio") as HTMLAudioElement | null;
+    if (bgmAudio && typeof (bgmAudio as any).setSinkId === "function" && targetDeviceId) {
+      try {
+        await (bgmAudio as any).setSinkId(targetDeviceId);
+      } catch (e) {
+        console.warn("[VoiceChat] setSinkId error for bgm audio:", e);
+      }
+    }
+  };
 
   // Auto-open audio controls popover upon entering a room
   useEffect(() => {
@@ -185,80 +265,60 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
     [socket, room, currentPlayerId]
   );
 
-  // Acquire local microphone stream
-  useEffect(() => {
-    if (!socket || !room || !currentPlayerId) return;
+  // Acquire local microphone stream on demand (when player explicitly un-mutes)
+  const requestMicrophoneStream = async (): Promise<MediaStream | null> => {
+    if (localStreamRef.current) return localStreamRef.current;
 
-    let isCancelled = false;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
 
-    const initMicrophone = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-          },
-        });
+      localStreamRef.current = stream;
+      setAudioError("");
 
-        if (isCancelled) {
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
+      // Ensure track enabled state matches current isMuted state
+      stream.getAudioTracks().forEach((track) => {
+        track.enabled = !isMutedRef.current;
+      });
 
-        localStreamRef.current = stream;
-        setAudioError("");
-
-        // Ensure track enabled state matches current isMuted state
-        stream.getAudioTracks().forEach((track) => {
-          track.enabled = !isMutedRef.current;
-        });
-
-        // Add track to all existing peer connections
-        peersRef.current.forEach((pc) => {
-          if (pc.signalingState !== "closed") {
-            const senders = pc.getSenders();
-            const hasAudio = senders.some((s) => s.track && s.track.kind === "audio");
-            if (!hasAudio) {
-              stream.getAudioTracks().forEach((track) => {
-                pc.addTrack(track, stream);
-              });
-            }
-          }
-        });
-
-        // Deterministically initiate connection to other players in room (smaller playerId initiates)
-        room.players.forEach((p: Player) => {
-          if (p.id !== currentPlayerId && !peersRef.current.has(p.id)) {
-            const shouldInitiate = currentPlayerId < p.id;
-            if (shouldInitiate) {
-              createPeerConnection(p.id, true);
-            }
-          }
-        });
-      } catch (err: any) {
-        console.error("[VoiceChat] Failed to get user media:", err);
-        setAudioError(err?.message?.includes("Permission") ? "Mic access blocked" : "Mic not found");
-      }
-    };
-
-    if (!localStreamRef.current) {
-      initMicrophone();
-    } else {
-      // Connect to any new players
-      room.players.forEach((p: Player) => {
-        if (p.id !== currentPlayerId && !peersRef.current.has(p.id)) {
-          const shouldInitiate = currentPlayerId < p.id;
-          if (shouldInitiate) {
-            createPeerConnection(p.id, true);
+      // Add track to all existing peer connections
+      peersRef.current.forEach((pc) => {
+        if (pc.signalingState !== "closed") {
+          const senders = pc.getSenders();
+          const hasAudio = senders.some((s) => s.track && s.track.kind === "audio");
+          if (!hasAudio) {
+            stream.getAudioTracks().forEach((track) => {
+              pc.addTrack(track, stream);
+            });
           }
         }
       });
-    }
 
-    return () => {
-      isCancelled = true;
-    };
+      return stream;
+    } catch (err: any) {
+      console.error("[VoiceChat] Failed to get user media:", err);
+      setAudioError(err?.message?.includes("Permission") ? "Mic access blocked" : "Mic not found");
+      return null;
+    }
+  };
+
+  // Connect to peers in room (allows receiving speaker audio even before local mic is enabled)
+  useEffect(() => {
+    if (!socket || !room || !currentPlayerId) return;
+
+    room.players.forEach((p: Player) => {
+      if (p.id !== currentPlayerId && !peersRef.current.has(p.id)) {
+        const shouldInitiate = currentPlayerId < p.id;
+        if (shouldInitiate) {
+          createPeerConnection(p.id, true);
+        }
+      }
+    });
   }, [socket, room?.players, currentPlayerId, createPeerConnection]);
 
   // Clean up departed players
@@ -407,7 +467,7 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
     let audioCtx: AudioContext | null = null;
     let analyser: AnalyserNode | null = null;
     let source: MediaStreamAudioSourceNode | null = null;
-    let animId: number;
+    let animTimer: any = null;
     let wasSpeaking = false;
     let silenceTimeout: NodeJS.Timeout | null = null;
 
@@ -463,7 +523,7 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
             }
           }
 
-          animId = requestAnimationFrame(checkSpeaking);
+          animTimer = setTimeout(checkSpeaking, 100);
         };
 
         checkSpeaking();
@@ -473,7 +533,7 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
     }
 
     return () => {
-      if (animId) cancelAnimationFrame(animId);
+      if (animTimer) clearTimeout(animTimer);
       if (silenceTimeout) clearTimeout(silenceTimeout);
       if (audioCtx && audioCtx.state !== "closed") {
         audioCtx.close().catch(() => {});
@@ -481,8 +541,18 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
     };
   }, [localStreamRef.current, socket, room?.id, currentPlayerId]);
 
-  const toggleMute = () => {
+  const toggleMute = async () => {
     const newMutedState = !isMuted;
+
+    // If player is un-muting and microphone stream is not yet acquired, request it on this click
+    if (!newMutedState && !localStreamRef.current) {
+      const stream = await requestMicrophoneStream();
+      if (!stream) {
+        // If permission was denied by the user, keep muted
+        return;
+      }
+    }
+
     setIsMuted(newMutedState);
     isMutedRef.current = newMutedState;
 
@@ -509,6 +579,36 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
       audio.muted = newSpeakerState;
     });
   };
+
+  const OUTPUT_OPTIONS = [
+    {
+      id: "speaker" as const,
+      label: "Speaker",
+      sublabel: "Built-in / Device Speaker",
+      icon: Speaker,
+      gradient: "from-amber-400 to-amber-600",
+      activeBorder: "border-amber-400 bg-amber-950/40 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.4)]",
+      badgeColor: "bg-amber-400 text-amber-950",
+    },
+    {
+      id: "headset" as const,
+      label: "Headset",
+      sublabel: "Wired / USB Headphones",
+      icon: Headphones,
+      gradient: "from-cyan-400 to-blue-600",
+      activeBorder: "border-cyan-400 bg-cyan-950/40 text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.4)]",
+      badgeColor: "bg-cyan-400 text-cyan-950",
+    },
+    {
+      id: "bluetooth" as const,
+      label: "Bluetooth",
+      sublabel: "AirPods / Wireless Earbuds",
+      icon: Bluetooth,
+      gradient: "from-purple-400 to-fuchsia-600",
+      activeBorder: "border-purple-400 bg-purple-950/40 text-purple-300 shadow-[0_0_20px_rgba(168,85,247,0.4)]",
+      badgeColor: "bg-purple-400 text-purple-950",
+    },
+  ];
 
   const hasRoomVoice = Boolean(room && socket && currentPlayerId);
 
@@ -540,6 +640,79 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
             )}
           </button>
 
+          {/* Teams-Style Audio Output Mode Button (Speaker | Headset | Bluetooth) */}
+          <div className="relative">
+            <button
+              onClick={() => setIsOutputMenuOpen((prev) => !prev)}
+              className={`p-3 rounded-full shadow-lg transition-all transform hover:scale-110 active:scale-95 border-2 flex items-center justify-center ${
+                outputMode === "bluetooth"
+                  ? "bg-gradient-to-br from-purple-500 to-indigo-600 text-white border-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.6)]"
+                  : outputMode === "headset"
+                  ? "bg-gradient-to-br from-cyan-500 to-blue-600 text-white border-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.6)]"
+                  : "bg-gradient-to-br from-amber-500 to-orange-600 text-white border-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.6)]"
+              }`}
+              title={`Audio Output: ${outputMode.toUpperCase()} (Click to select Speaker, Headset, or Bluetooth)`}
+            >
+              {outputMode === "bluetooth" && <Bluetooth className="w-5 h-5 animate-pulse" />}
+              {outputMode === "headset" && <Headphones className="w-5 h-5" />}
+              {outputMode === "speaker" && <Speaker className="w-5 h-5" />}
+            </button>
+
+            {/* Teams-Style Output Routing Popover Menu */}
+            {isOutputMenuOpen && (
+              <div className="absolute bottom-16 right-0 w-72 bg-[#17062D]/98 backdrop-blur-2xl border-2 border-[#7C3AED]/80 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] p-3 text-white z-[80] animate-in fade-in zoom-in-95 duration-200">
+                <div className="flex items-center justify-between pb-2 mb-2 border-b border-purple-800/60">
+                  <div className="flex items-center gap-1.5 text-xs font-bold font-serif uppercase tracking-wider text-[#FBE278]">
+                    <Radio className="w-4 h-4 text-[#FBE278] animate-pulse" />
+                    <span>AUDIO OUTPUT (TEAMS)</span>
+                  </div>
+                  <span className="text-[10px] text-purple-300 bg-purple-900/60 px-2 py-0.5 rounded-full font-mono font-semibold">
+                    {outputMode.toUpperCase()}
+                  </span>
+                </div>
+
+                <div className="space-y-1.5">
+                  {OUTPUT_OPTIONS.map((opt) => {
+                    const isSelected = outputMode === opt.id;
+                    const Icon = opt.icon;
+                    return (
+                      <button
+                        key={opt.id}
+                        onClick={() => changeOutputMode(opt.id)}
+                        className={`w-full flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer text-left ${
+                          isSelected
+                            ? `${opt.activeBorder} shadow-md`
+                            : "bg-[#250A47]/60 border-purple-900/40 text-gray-300 hover:bg-[#320D5E]/80 hover:text-white"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br ${opt.gradient} text-white shadow-sm`}
+                          >
+                            <Icon className="w-4 h-4" />
+                          </div>
+                          <div className="truncate">
+                            <div className="text-xs font-bold flex items-center gap-1.5">
+                              <span>{opt.label}</span>
+                              {isSelected && (
+                                <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full uppercase ${opt.badgeColor}`}>
+                                  Active
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-gray-400 truncate">{opt.sublabel}</div>
+                          </div>
+                        </div>
+
+                        {isSelected && <Check className="w-4 h-4 text-[#FBE278] shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Room Mic & Speaker Controls */}
           {hasRoomVoice && (
             <>
@@ -556,7 +729,7 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
                 {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5 animate-pulse" />}
               </button>
 
-              {/* Speaker Button */}
+              {/* Speaker Mute Button */}
               <button
                 onClick={toggleSpeaker}
                 className={`p-3 rounded-full shadow-lg transition-all transform hover:scale-110 active:scale-95 border-2 border-white/60 flex items-center justify-center ${

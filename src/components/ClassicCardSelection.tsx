@@ -127,7 +127,7 @@ export const ClassicCardSelection: React.FC<ClassicCardSelectionProps> = ({
   const [use3D, setUse3D] = useState<boolean>(true);
 
   return (
-    <div className="relative w-full max-w-5xl mx-auto min-h-[80vh] flex flex-col items-center justify-between p-3 sm:p-6 text-white select-none">
+    <div className="relative w-full max-w-5xl mx-auto flex flex-col items-center justify-between p-2 sm:p-6 text-white select-none">
       {onLeaveRoom && (
         <button
           onClick={() => {
@@ -174,7 +174,7 @@ export const ClassicCardSelection: React.FC<ClassicCardSelectionProps> = ({
       </div>
 
       {/* 3D BABYLON CARD SCENE OR 2D FALLBACK GRID */}
-      <div className="w-full my-6 flex justify-center items-center">
+      <div className="w-full my-3 sm:my-6 flex justify-center items-center">
         {use3D ? (
           <BabylonRoleCardScene
             cardsState={cardsState}

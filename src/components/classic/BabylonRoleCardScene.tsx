@@ -73,19 +73,17 @@ const DEFAULT_CARDS: CardState[] = [
 /**
  * Calculates responsive card positions based on viewport width.
  * Mobile view (<640px): 2x2 grid layout (2 cards top, 2 cards bottom) to avoid edge clipping.
- * Desktop view (>=640px): 1x4 horizontal row.
+ * Desktop view (>=640px): 1x4 horizontal row with perfectly balanced proportions.
  */
 const getCardTargetPosition = (idx: number, isMobile: boolean): { x: number; y: number; z: number } => {
   if (isMobile) {
-    // 2x2 Grid Layout for Mobile:
-    // Top Row: Card 0 (-1.15, 1.45), Card 1 (1.15, 1.45)
-    // Bottom Row: Card 2 (-1.15, -1.45), Card 3 (1.15, -1.45)
-    const x = idx % 2 === 0 ? -1.15 : 1.15;
-    const y = idx < 2 ? 1.45 : -1.45;
+    // 2x2 Grid Layout for Mobile (<640px):
+    const x = idx % 2 === 0 ? -1.0 : 1.0;
+    const y = idx < 2 ? 1.35 : -1.35;
     return { x, y, z: 0 };
   } else {
-    // 1x4 Horizontal Row for Desktop:
-    const desktopPositions = [-2.8, -0.93, 0.93, 2.8];
+    // 1x4 Horizontal Row for Desktop (>=640px):
+    const desktopPositions = [-2.35, -0.78, 0.78, 2.35];
     return { x: desktopPositions[idx] ?? 0, y: 0, z: 0 };
   }
 };
@@ -354,10 +352,13 @@ export const BabylonRoleCardScene: React.FC<BabylonRoleCardSceneProps> = ({
     let engine: Engine;
     try {
       engine = new Engine(canvasRef.current, true, {
-        preserveDrawingBuffer: true,
-        stencil: true,
+        preserveDrawingBuffer: false,
+        stencil: false,
+        powerPreference: "high-performance",
         disableWebGL2Support: false,
       });
+      // Cap hardware scaling on high-DPI mobile screens to prevent GPU overheating
+      engine.setHardwareScalingLevel(window.devicePixelRatio > 1.5 ? 1.35 : 1.0);
       engineRef.current = engine;
     } catch (err) {
       console.warn("Babylon.js WebGL initialization failed, falling back to 2D UI:", err);
@@ -380,20 +381,24 @@ export const BabylonRoleCardScene: React.FC<BabylonRoleCardSceneProps> = ({
       if (!width || !height) return;
 
       const aspect = width / height;
+      const isMobile = window.innerWidth < 640;
 
-      // Adjust camera radius and target based on container aspect ratio so all 4 cards fit cleanly without cropping
-      if (window.innerWidth < 640 || aspect < 0.9) {
-        camera.radius = 7.8;
-        camera.target = new Vector3(0, 0, 0);
-      } else if (aspect < 1.3) {
-        camera.radius = 7.0;
-        camera.target = new Vector3(0, 0, 0);
-      } else if (aspect < 1.6) {
-        camera.radius = 6.4;
+      if (isMobile) {
+        // Mobile 2x2 Grid: fits both vertically and horizontally with safe padding
+        const vertUnits = 5.2;
+        const horizUnits = 3.6;
+        const radiusForVert = vertUnits / (2 * Math.tan(camera.fov / 2));
+        const radiusForHoriz = (horizUnits / aspect) / (2 * Math.tan(camera.fov / 2));
+        camera.radius = Math.max(radiusForVert, radiusForHoriz, 6.8);
         camera.target = new Vector3(0, 0, 0);
       } else {
-        camera.radius = 5.6;
-        camera.target = new Vector3(0, 0.1, 0);
+        // Desktop 1x4 Horizontal Row: calculates required camera distance so all 4 cards never clip on any resolution/aspect ratio
+        const vertUnits = 3.2;
+        const horizUnits = 6.6;
+        const radiusForVert = vertUnits / (2 * Math.tan(camera.fov / 2));
+        const radiusForHoriz = (horizUnits / aspect) / (2 * Math.tan(camera.fov / 2));
+        camera.radius = Math.max(radiusForVert, radiusForHoriz, 5.4);
+        camera.target = new Vector3(0, 0, 0);
       }
     };
 
@@ -415,14 +420,14 @@ export const BabylonRoleCardScene: React.FC<BabylonRoleCardSceneProps> = ({
 
     const isMobileInit = window.innerWidth < 640;
 
-    // 3. Build 4 Physical 3D Box Cards (Scaled up to fit container prominently)
+    // 3. Build 4 Physical 3D Box Cards (Proportionately scaled to fit beautifully on all screens)
     activeCards.forEach((card, idx) => {
       const cardMesh = MeshBuilder.CreateBox(
         card.id,
         {
-          width: 1.85,
-          height: 2.65,
-          depth: 0.06,
+          width: 1.48,
+          height: 2.22,
+          depth: 0.05,
         },
         scene
       );
@@ -566,9 +571,24 @@ export const BabylonRoleCardScene: React.FC<BabylonRoleCardSceneProps> = ({
     };
     window.addEventListener("resize", handleResize);
 
+    // Pause WebGL rendering when tab is hidden to save battery & prevent heating
+    const handleVisibilityChange = () => {
+      if (!engine || !scene) return;
+      if (document.hidden) {
+        engine.stopRenderLoop();
+      } else {
+        engine.stopRenderLoop();
+        engine.runRenderLoop(() => {
+          scene.render();
+        });
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     // Component Unmount Cleanup
     return () => {
       window.removeEventListener("resize", handleResize);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (pointerObserver) {
         scene.onPointerObservable.remove(pointerObserver);
       }
@@ -713,8 +733,8 @@ export const BabylonRoleCardScene: React.FC<BabylonRoleCardSceneProps> = ({
   }, [cardsState, myPrivateRole, players]);
 
   return (
-    <div className="relative w-full h-[460px] sm:h-[480px] md:h-[540px] rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(147,51,234,0.25)] border border-[#4A2078]/60 bg-gradient-to-b from-[#1C0836]/90 via-[#0B0218]/95 to-[#1C0836]/90 flex items-center justify-center">
-      <canvas ref={canvasRef} className="w-full h-full touch-none focus:outline-none cursor-pointer" />
+    <div className="relative w-full h-[400px] sm:h-[440px] md:h-[480px] lg:h-[520px] max-h-[65vh] rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(147,51,234,0.25)] border border-[#4A2078]/60 bg-gradient-to-b from-[#1C0836]/90 via-[#0B0218]/95 to-[#1C0836]/90 flex items-center justify-center">
+      <canvas ref={canvasRef} className="w-full h-full touch-none focus:outline-none cursor-pointer block" />
 
       {/* Hover Instruction Overlay */}
       {hoveredCardId && !myPrivateRole && (
