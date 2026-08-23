@@ -610,7 +610,14 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
     },
   ];
 
-  const hasRoomVoice = Boolean(room && socket && currentPlayerId);
+  // Show voice controls (Mic, Speaker, Output Routing) only when all players are joined / in active room
+  const hasRoomVoice = Boolean(
+    room &&
+    socket &&
+    currentPlayerId &&
+    room.players &&
+    (room.gameState !== "waiting" || room.players.length >= 4)
+  );
 
   return (
     <div className="fixed bottom-6 right-6 z-[70] flex flex-col items-end">
@@ -623,7 +630,7 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
             </span>
           )}
 
-          {/* Music Toggle Button */}
+          {/* Music Toggle Button (Always available) */}
           <button
             onClick={toggleMusic}
             className={`p-3 rounded-full shadow-lg transition-all transform hover:scale-110 active:scale-95 border-2 border-white/60 flex items-center justify-center ${
@@ -640,82 +647,82 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
             )}
           </button>
 
-          {/* Teams-Style Audio Output Mode Button (Speaker | Headset | Bluetooth) */}
-          <div className="relative">
-            <button
-              onClick={() => setIsOutputMenuOpen((prev) => !prev)}
-              className={`p-3 rounded-full shadow-lg transition-all transform hover:scale-110 active:scale-95 border-2 flex items-center justify-center ${
-                outputMode === "bluetooth"
-                  ? "bg-gradient-to-br from-purple-500 to-indigo-600 text-white border-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.6)]"
-                  : outputMode === "headset"
-                  ? "bg-gradient-to-br from-cyan-500 to-blue-600 text-white border-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.6)]"
-                  : "bg-gradient-to-br from-amber-500 to-orange-600 text-white border-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.6)]"
-              }`}
-              title={`Audio Output: ${outputMode.toUpperCase()} (Click to select Speaker, Headset, or Bluetooth)`}
-            >
-              {outputMode === "bluetooth" && <Bluetooth className="w-5 h-5 animate-pulse" />}
-              {outputMode === "headset" && <Headphones className="w-5 h-5" />}
-              {outputMode === "speaker" && <Speaker className="w-5 h-5" />}
-            </button>
-
-            {/* Teams-Style Output Routing Popover Menu */}
-            {isOutputMenuOpen && (
-              <div className="absolute bottom-16 right-0 w-72 bg-[#17062D]/98 backdrop-blur-2xl border-2 border-[#7C3AED]/80 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] p-3 text-white z-[80] animate-in fade-in zoom-in-95 duration-200">
-                <div className="flex items-center justify-between pb-2 mb-2 border-b border-purple-800/60">
-                  <div className="flex items-center gap-1.5 text-xs font-bold font-serif uppercase tracking-wider text-[#FBE278]">
-                    <Radio className="w-4 h-4 text-[#FBE278] animate-pulse" />
-                    <span>AUDIO OUTPUT (TEAMS)</span>
-                  </div>
-                  <span className="text-[10px] text-purple-300 bg-purple-900/60 px-2 py-0.5 rounded-full font-mono font-semibold">
-                    {outputMode.toUpperCase()}
-                  </span>
-                </div>
-
-                <div className="space-y-1.5">
-                  {OUTPUT_OPTIONS.map((opt) => {
-                    const isSelected = outputMode === opt.id;
-                    const Icon = opt.icon;
-                    return (
-                      <button
-                        key={opt.id}
-                        onClick={() => changeOutputMode(opt.id)}
-                        className={`w-full flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer text-left ${
-                          isSelected
-                            ? `${opt.activeBorder} shadow-md`
-                            : "bg-[#250A47]/60 border-purple-900/40 text-gray-300 hover:bg-[#320D5E]/80 hover:text-white"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div
-                            className={`w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br ${opt.gradient} text-white shadow-sm`}
-                          >
-                            <Icon className="w-4 h-4" />
-                          </div>
-                          <div className="truncate">
-                            <div className="text-xs font-bold flex items-center gap-1.5">
-                              <span>{opt.label}</span>
-                              {isSelected && (
-                                <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full uppercase ${opt.badgeColor}`}>
-                                  Active
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-[10px] text-gray-400 truncate">{opt.sublabel}</div>
-                          </div>
-                        </div>
-
-                        {isSelected && <Check className="w-4 h-4 text-[#FBE278] shrink-0" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Room Mic & Speaker Controls */}
+          {/* Room Voice Chat & Output Controls - Shown only when all players are joined in the room */}
           {hasRoomVoice && (
             <>
+              {/* Audio Output Mode Button (Speaker | Headset | Bluetooth) */}
+              <div className="relative">
+                <button
+                  onClick={() => setIsOutputMenuOpen((prev) => !prev)}
+                  className={`p-3 rounded-full shadow-lg transition-all transform hover:scale-110 active:scale-95 border-2 flex items-center justify-center ${
+                    outputMode === "bluetooth"
+                      ? "bg-gradient-to-br from-purple-500 to-indigo-600 text-white border-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.6)]"
+                      : outputMode === "headset"
+                      ? "bg-gradient-to-br from-cyan-500 to-blue-600 text-white border-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.6)]"
+                      : "bg-gradient-to-br from-amber-500 to-orange-600 text-white border-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.6)]"
+                  }`}
+                  title={`Audio Output: ${outputMode.toUpperCase()} (Click to select Speaker, Headset, or Bluetooth)`}
+                >
+                  {outputMode === "bluetooth" && <Bluetooth className="w-5 h-5 animate-pulse" />}
+                  {outputMode === "headset" && <Headphones className="w-5 h-5" />}
+                  {outputMode === "speaker" && <Speaker className="w-5 h-5" />}
+                </button>
+
+                {/* Output Routing Popover Menu */}
+                {isOutputMenuOpen && (
+                  <div className="absolute bottom-16 right-0 w-72 bg-[#17062D]/98 backdrop-blur-2xl border-2 border-[#7C3AED]/80 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] p-3 text-white z-[80] animate-in fade-in zoom-in-95 duration-200">
+                    <div className="flex items-center justify-between pb-2 mb-2 border-b border-purple-800/60">
+                      <div className="flex items-center gap-1.5 text-xs font-bold font-serif uppercase tracking-wider text-[#FBE278]">
+                        <Radio className="w-4 h-4 text-[#FBE278] animate-pulse" />
+                        <span>AUDIO OUTPUT</span>
+                      </div>
+                      <span className="text-[10px] text-purple-300 bg-purple-900/60 px-2 py-0.5 rounded-full font-mono font-semibold">
+                        {outputMode.toUpperCase()}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      {OUTPUT_OPTIONS.map((opt) => {
+                        const isSelected = outputMode === opt.id;
+                        const Icon = opt.icon;
+                        return (
+                          <button
+                            key={opt.id}
+                            onClick={() => changeOutputMode(opt.id)}
+                            className={`w-full flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer text-left ${
+                              isSelected
+                                ? `${opt.activeBorder} shadow-md`
+                                : "bg-[#250A47]/60 border-purple-900/40 text-gray-300 hover:bg-[#320D5E]/80 hover:text-white"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div
+                                className={`w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br ${opt.gradient} text-white shadow-sm`}
+                              >
+                                <Icon className="w-4 h-4" />
+                              </div>
+                              <div className="truncate">
+                                <div className="text-xs font-bold flex items-center gap-1.5">
+                                  <span>{opt.label}</span>
+                                  {isSelected && (
+                                    <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full uppercase ${opt.badgeColor}`}>
+                                      Active
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[10px] text-gray-400 truncate">{opt.sublabel}</div>
+                              </div>
+                            </div>
+
+                            {isSelected && <Check className="w-4 h-4 text-[#FBE278] shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Mic Button */}
               <button
                 onClick={toggleMute}
