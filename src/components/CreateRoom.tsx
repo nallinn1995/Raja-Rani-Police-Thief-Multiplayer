@@ -117,7 +117,8 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onBack, onRoomCreated, c
     <div
       className="min-h-[100dvh] bg-cover bg-center bg-no-repeat flex flex-col items-center justify-center p-2 sm:p-6 relative overflow-y-auto text-white font-sans select-none"
       style={{
-        backgroundImage: "url('/assets/images/background.png')",
+        backgroundImage: "url('/assets/images/background.jpg'), url('/assets/images/background.png')",
+        backgroundColor: "#0A041A",
         willChange: "transform",
         transform: "translateZ(0)",
       }}

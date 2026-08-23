@@ -460,7 +460,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <Icon className={`w-4 h-4 ${isActive ? "text-black" : "text-slate-400"}`} />
                   <span>{tab.label}</span>
                 </div>
-                {tab.badge !== undefined && tab.badge > 0 && (
+                {tab.badge !== undefined && (typeof tab.badge === 'number' ? tab.badge > 0 : Boolean(tab.badge)) && (
                   <span
                     className={`px-2 py-0.5 text-[10px] rounded-full font-extrabold ${
                       isActive ? "bg-black text-amber-400" : "bg-amber-500/20 text-amber-300"

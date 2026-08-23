@@ -72,7 +72,7 @@ export const AuthOverlay: React.FC<AuthOverlayProps> = ({
         } catch (signInErr: any) {
           // Fallback check for admin bootstrap credentials or admin API login
           const adminRes = await adminService.login(password, username.trim()).catch(() => null);
-          if (adminRes && adminRes.success) {
+          if (adminRes && adminRes.token) {
             user = {
               username: adminRes.admin?.username || username.trim() || "SuperAdmin",
               role: "admin",

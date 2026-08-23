@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Crown,
   Shield,
@@ -24,7 +24,6 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { XP_CONFIG } from "../config/xpConfig";
-import { configService, FullSystemConfig } from "../services/configService";
 
 interface GameInfoProps {
   onBack: () => void;
@@ -32,11 +31,6 @@ interface GameInfoProps {
 }
 
 export const GameInfo: React.FC<GameInfoProps> = ({ onBack, onStartGame }) => {
-  const [config, setConfig] = useState<FullSystemConfig>(configService.getConfig());
-
-  useEffect(() => {
-    return configService.subscribe(setConfig);
-  }, []);
 
   const [activeTab, setActiveTab] = useState<
     "about" | "roles" | "how-to-play" | "modes" | "xp-system" | "features"

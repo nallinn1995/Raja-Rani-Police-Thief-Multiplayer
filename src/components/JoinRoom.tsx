@@ -66,8 +66,8 @@ export const JoinRoom: React.FC<JoinRoomProps> = ({ onBack, onRoomJoined, joinRo
 
   return (
     <div
-      className="min-h-screen bg-cover bg-center bg-no-repeat flex flex-col items-center justify-center p-4 relative overflow-y-auto overflow-x-hidden text-white font-sans"
-      style={{ backgroundImage: "url('/assets/images/background.png')" }}
+      className="min-h-screen bg-[#0A041A] bg-cover bg-center bg-no-repeat flex flex-col items-center justify-center p-4 relative overflow-y-auto overflow-x-hidden text-white font-sans"
+      style={{ backgroundImage: "url('/assets/images/background.jpg'), url('/assets/images/background.png')" }}
     >
       {/* Subtle Vignette Overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-purple-950/25 via-transparent to-purple-950/35 pointer-events-none" />

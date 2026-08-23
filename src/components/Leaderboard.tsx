@@ -44,8 +44,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
 
   return (
     <div
-      className="min-h-screen text-white font-sans bg-cover bg-center bg-no-repeat flex items-center justify-center p-4 relative overflow-hidden"
-      style={{ backgroundImage: "url('/assets/images/background.png')" }}
+      className="min-h-screen text-white font-sans bg-[#0A041A] bg-cover bg-center bg-no-repeat flex items-center justify-center p-4 relative overflow-hidden"
+      style={{ backgroundImage: "url('/assets/images/background.jpg'), url('/assets/images/background.png')" }}
     >
       {/* Dark Royal Vignette & Shadow Overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#0A021A]/70 via-transparent to-[#0A021A]/85 pointer-events-none" />

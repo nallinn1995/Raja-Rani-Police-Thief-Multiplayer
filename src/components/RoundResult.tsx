@@ -45,8 +45,8 @@ export const RoundResult: React.FC<RoundResultProps> = ({ result, isHost, onNext
 
   return (
     <div
-      className={`min-h-screen text-white font-sans transition-all duration-500 bg-cover bg-center bg-no-repeat flex items-center justify-center p-4 relative overflow-hidden ${result.isCorrect ? 'animate-flash-green' : 'animate-flash-red'}`}
-      style={{ backgroundImage: "url('/assets/images/background.png')" }}
+      className={`min-h-screen text-white font-sans transition-all duration-500 bg-[#0A041A] bg-cover bg-center bg-no-repeat flex items-center justify-center p-4 relative overflow-hidden ${result.isCorrect ? 'animate-flash-green' : 'animate-flash-red'}`}
+      style={{ backgroundImage: "url('/assets/images/background.jpg'), url('/assets/images/background.png')" }}
     >
       {/* Dark Royal Vignette & Shadow Overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#0A021A]/70 via-transparent to-[#0A021A]/85 pointer-events-none" />

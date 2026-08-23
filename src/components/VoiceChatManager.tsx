@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Mic, MicOff, Volume2, VolumeX, SlidersHorizontal } from "lucide-react";
 import { SpeakerWaveIcon, SpeakerXMarkIcon } from "@heroicons/react/24/solid";
 import { Socket } from "socket.io-client";
-import { Room } from "../types/game";
+import { Room, Player } from "../types/game";
 
 interface VoiceChatManagerProps {
   socket?: Socket | null;
@@ -11,6 +11,17 @@ interface VoiceChatManagerProps {
   isMusicPlaying: boolean;
   toggleMusic: () => void;
 }
+
+const RTC_CONFIG: RTCConfiguration = {
+  iceServers: [
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:stun1.l.google.com:19302" },
+    { urls: "stun:stun2.l.google.com:19302" },
+    { urls: "stun:stun3.l.google.com:19302" },
+    { urls: "stun:stun4.l.google.com:19302" },
+  ],
+  iceCandidatePoolSize: 10,
+};
 
 export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
   socket,
@@ -24,108 +35,138 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
   const [isSpeakerMuted, setIsSpeakerMuted] = useState(false);
   const [audioError, setAudioError] = useState("");
 
-  // Open audio controls toggle automatically upon entering a room
+  const localStreamRef = useRef<MediaStream | null>(null);
+  const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
+  const pendingCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
+  const audioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
+  const isSpeakerMutedRef = useRef(false);
+  const isMutedRef = useRef(false);
+
+  // Auto-open audio controls popover upon entering a room
   useEffect(() => {
     if (room?.id) {
       setIsOpen(true);
     }
   }, [room?.id]);
 
-  const localStreamRef = useRef<MediaStream | null>(null);
-  const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
-  const audioContextRef = useRef<Map<string, HTMLAudioElement>>(new Map());
-  const isSpeakerMutedRef = useRef(false);
+  // Synchronize ref with state
+  useEffect(() => {
+    isSpeakerMutedRef.current = isSpeakerMuted;
+    audioElementsRef.current.forEach((audio) => {
+      audio.muted = isSpeakerMuted;
+    });
+  }, [isSpeakerMuted]);
 
-  // Ice servers configuration
-  const rtcConfig = {
-    iceServers: [
-      { urls: "stun:stun.l.google.com:19302" },
-      { urls: "stun:stun1.l.google.com:19302" },
-    ],
-  };
+  useEffect(() => {
+    isMutedRef.current = isMuted;
+  }, [isMuted]);
 
-  // Unlock audio playback on user click (bypasses Chrome Autoplay restriction)
+  // Unlock browser audio playback policy on user click or touch
   useEffect(() => {
     const unlockAudio = () => {
-      audioContextRef.current.forEach((audioElement) => {
+      audioElementsRef.current.forEach((audioElement) => {
         if (audioElement && audioElement.paused) {
-          audioElement.play().catch((e) => console.log("Audio unlock play handled", e));
+          audioElement.play().catch(() => {});
         }
       });
     };
     window.addEventListener("click", unlockAudio);
-    return () => window.removeEventListener("click", unlockAudio);
+    window.addEventListener("touchstart", unlockAudio);
+    return () => {
+      window.removeEventListener("click", unlockAudio);
+      window.removeEventListener("touchstart", unlockAudio);
+    };
   }, []);
 
-  const connectToPeer = (partnerId: string, initiator: boolean) => {
-    if (!socket || !room || !currentPlayerId) return;
-    if (peersRef.current.has(partnerId)) return;
+  // Helper to flush queued ICE candidates once remote description is set
+  const flushPendingCandidates = async (partnerId: string, pc: RTCPeerConnection) => {
+    const candidates = pendingCandidatesRef.current.get(partnerId) || [];
+    if (candidates.length === 0) return;
 
-    const pc = new RTCPeerConnection(rtcConfig);
-    peersRef.current.set(partnerId, pc);
-
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((track) => {
-        pc.addTrack(track, localStreamRef.current!);
-      });
-    }
-
-    pc.ontrack = (event) => {
-      let audioElement = audioContextRef.current.get(partnerId);
-      if (!audioElement) {
-        audioElement = new Audio();
-        audioElement.autoplay = true;
-        audioElement.muted = isSpeakerMutedRef.current;
-        document.body.appendChild(audioElement);
-        audioContextRef.current.set(partnerId, audioElement);
-      }
-      
-      if (audioElement.srcObject !== event.streams[0]) {
-        audioElement.srcObject = event.streams[0];
-      }
-
-      audioElement.play().catch((e) => console.error("Audio playback error:", e));
-    };
-
-    pc.onicecandidate = (event) => {
-      if (event.candidate && socket && room && currentPlayerId) {
-        socket.emit("voice-candidate", {
-          roomCode: room.id,
-          senderId: currentPlayerId,
-          targetId: partnerId,
-          candidate: event.candidate,
-        });
-      }
-    };
-
-    pc.onnegotiationneeded = async () => {
+    for (const candidate of candidates) {
       try {
-        if (!socket || !room || !currentPlayerId || (pc.signalingState as string) === "closed") return;
-        if (pc.signalingState !== "stable") return;
-        const offer = await pc.createOffer();
-        if ((pc.signalingState as string) === "closed") return;
-        await pc.setLocalDescription(offer);
-        socket.emit("voice-offer", {
-          roomCode: room.id,
-          senderId: currentPlayerId,
-          targetId: partnerId,
-          sdp: pc.localDescription,
-        });
-      } catch (e) {
-        // Quietly handle renegotiation race conditions
+        await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (err) {
+        console.warn(`[VoiceChat] Error adding queued ICE candidate for ${partnerId}:`, err);
       }
-    };
+    }
+    pendingCandidatesRef.current.set(partnerId, []);
+  };
 
-    if (initiator) {
-      if (pc.signalingState !== "closed") {
-        pc.createOffer()
-          .then((offer) => {
-            if (pc.signalingState !== "closed") {
-              return pc.setLocalDescription(offer);
-            }
-          })
-          .then(() => {
-            if (socket && room && currentPlayerId && pc.signalingState !== "closed") {
+  // Create and initialize a peer connection for a partner
+  const createPeerConnection = useCallback(
+    (partnerId: string, isInitiator: boolean) => {
+      if (!socket || !room || !currentPlayerId) return null;
+
+      // Close and remove previous connection if exists
+      const existingPc = peersRef.current.get(partnerId);
+      if (existingPc) {
+        try {
+          existingPc.close();
+        } catch {
+          // Ignore
+        }
+        peersRef.current.delete(partnerId);
+      }
+
+      const pc = new RTCPeerConnection(RTC_CONFIG);
+      peersRef.current.set(partnerId, pc);
+
+      // Attach existing local audio tracks
+      if (localStreamRef.current) {
+        localStreamRef.current.getAudioTracks().forEach((track) => {
+          pc.addTrack(track, localStreamRef.current!);
+        });
+      }
+
+      // Handle receiving remote audio track
+      pc.ontrack = (event) => {
+        let audioElement = audioElementsRef.current.get(partnerId);
+        if (!audioElement) {
+          audioElement = new Audio();
+          audioElement.autoplay = true;
+          (audioElement as any).playsInline = true;
+          audioElement.muted = isSpeakerMutedRef.current;
+          document.body.appendChild(audioElement);
+          audioElementsRef.current.set(partnerId, audioElement);
+        }
+
+        const remoteStream = event.streams[0] || new MediaStream([event.track]);
+        if (audioElement.srcObject !== remoteStream) {
+          audioElement.srcObject = remoteStream;
+        }
+
+        audioElement.play().catch((e) => {
+          console.log("[VoiceChat] Remote audio autoplay pending user gesture:", e);
+        });
+      };
+
+      // Handle ICE Candidate generation
+      pc.onicecandidate = (event) => {
+        if (event.candidate && socket && room && currentPlayerId) {
+          socket.emit("voice-candidate", {
+            roomCode: room.id,
+            senderId: currentPlayerId,
+            targetId: partnerId,
+            candidate: event.candidate,
+          });
+        }
+      };
+
+      // Handle connection state changes
+      pc.onconnectionstatechange = () => {
+        if (pc.connectionState === "failed" || pc.connectionState === "disconnected") {
+          console.log(`[VoiceChat] Connection to ${partnerId} is ${pc.connectionState}`);
+        }
+      };
+
+      // If this client is the initiator, create and send the offer
+      if (isInitiator) {
+        pc.createOffer({ offerToReceiveAudio: true })
+          .then(async (offer) => {
+            if (pc.signalingState === "closed") return;
+            await pc.setLocalDescription(offer);
+            if (socket && room && currentPlayerId) {
               socket.emit("voice-offer", {
                 roomCode: room.id,
                 senderId: currentPlayerId,
@@ -134,74 +175,142 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
               });
             }
           })
-          .catch(() => {});
+          .catch((err) => {
+            console.error("[VoiceChat] Error creating offer:", err);
+          });
       }
-    }
-  };
 
+      return pc;
+    },
+    [socket, room, currentPlayerId]
+  );
+
+  // Acquire local microphone stream
   useEffect(() => {
     if (!socket || !room || !currentPlayerId) return;
 
-    let initialized = false;
-    const initAudio = async () => {
+    let isCancelled = false;
+
+    const initMicrophone = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
         });
-        localStreamRef.current = stream;
 
-        room.players.forEach((p) => {
-          if (p.id !== currentPlayerId) {
-            if (currentPlayerId > p.id) {
-              connectToPeer(p.id, true);
+        if (isCancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+
+        localStreamRef.current = stream;
+        setAudioError("");
+
+        // Ensure track enabled state matches current isMuted state
+        stream.getAudioTracks().forEach((track) => {
+          track.enabled = !isMutedRef.current;
+        });
+
+        // Add track to all existing peer connections
+        peersRef.current.forEach((pc) => {
+          if (pc.signalingState !== "closed") {
+            const senders = pc.getSenders();
+            const hasAudio = senders.some((s) => s.track && s.track.kind === "audio");
+            if (!hasAudio) {
+              stream.getAudioTracks().forEach((track) => {
+                pc.addTrack(track, stream);
+              });
             }
           }
         });
 
-        peersRef.current.forEach((pc) => {
-          const senders = pc.getSenders();
-          const hasAudio = senders.some(
-            (s) => s.track && s.track.kind === "audio"
-          );
-          if (!hasAudio) {
-            stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+        // Deterministically initiate connection to other players in room (smaller playerId initiates)
+        room.players.forEach((p: Player) => {
+          if (p.id !== currentPlayerId && !peersRef.current.has(p.id)) {
+            const shouldInitiate = currentPlayerId < p.id;
+            if (shouldInitiate) {
+              createPeerConnection(p.id, true);
+            }
           }
         });
-        initialized = true;
-      } catch (err) {
-        setAudioError("Mic access denied");
-        console.error("Failed to get local audio", err);
+      } catch (err: any) {
+        console.error("[VoiceChat] Failed to get user media:", err);
+        setAudioError(err?.message?.includes("Permission") ? "Mic access blocked" : "Mic not found");
       }
     };
 
-    if (!localStreamRef.current && !initialized) {
-      initAudio();
+    if (!localStreamRef.current) {
+      initMicrophone();
+    } else {
+      // Connect to any new players
+      room.players.forEach((p: Player) => {
+        if (p.id !== currentPlayerId && !peersRef.current.has(p.id)) {
+          const shouldInitiate = currentPlayerId < p.id;
+          if (shouldInitiate) {
+            createPeerConnection(p.id, true);
+          }
+        }
+      });
     }
 
     return () => {
-      localStreamRef.current?.getTracks().forEach((t) => t.stop());
-      peersRef.current.forEach((pc) => pc.close());
-      peersRef.current.clear();
-      audioContextRef.current.forEach((audio) => {
-        audio.srcObject = null;
-        audio.remove();
-      });
-      audioContextRef.current.clear();
+      isCancelled = true;
     };
-  }, [socket, room, currentPlayerId]);
+  }, [socket, room?.players, currentPlayerId, createPeerConnection]);
 
+  // Clean up departed players
   useEffect(() => {
-    if (!localStreamRef.current || !room || !currentPlayerId) return;
+    if (!room?.players) return;
+    const currentActiveIds = new Set(room.players.map((p) => p.id));
 
-    room.players.forEach((p) => {
-      if (p.id !== currentPlayerId && !peersRef.current.has(p.id)) {
-        if (currentPlayerId > p.id) {
-          connectToPeer(p.id, true);
+    peersRef.current.forEach((pc, partnerId) => {
+      if (!currentActiveIds.has(partnerId)) {
+        try {
+          pc.close();
+        } catch {
+          // Ignore
+        }
+        peersRef.current.delete(partnerId);
+        pendingCandidatesRef.current.delete(partnerId);
+
+        const audio = audioElementsRef.current.get(partnerId);
+        if (audio) {
+          audio.srcObject = null;
+          audio.remove();
+          audioElementsRef.current.delete(partnerId);
         }
       }
     });
-  }, [room?.players, currentPlayerId]);
+  }, [room?.players]);
 
+  // Clean up all voice chat resources on unmount
+  useEffect(() => {
+    return () => {
+      localStreamRef.current?.getTracks().forEach((t) => t.stop());
+      localStreamRef.current = null;
+
+      peersRef.current.forEach((pc) => {
+        try {
+          pc.close();
+        } catch {
+          // Ignore
+        }
+      });
+      peersRef.current.clear();
+      pendingCandidatesRef.current.clear();
+
+      audioElementsRef.current.forEach((audio) => {
+        audio.srcObject = null;
+        audio.remove();
+      });
+      audioElementsRef.current.clear();
+    };
+  }, []);
+
+  // WebRTC Socket Listeners
   useEffect(() => {
     if (!socket || !room || !currentPlayerId) return;
 
@@ -213,14 +322,15 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
       sdp: RTCSessionDescriptionInit;
     }) => {
       let pc = peersRef.current.get(senderId);
-      if (!pc) {
-        connectToPeer(senderId, false);
-        pc = peersRef.current.get(senderId);
+      if (!pc || pc.signalingState === "closed") {
+        pc = createPeerConnection(senderId, false)!;
       }
       if (!pc) return;
 
       try {
         await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+        await flushPendingCandidates(senderId, pc);
+
         if (sdp.type === "offer") {
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
@@ -232,8 +342,8 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
             sdp: pc.localDescription,
           });
         }
-      } catch (e) {
-        console.error("Answer error:", e);
+      } catch (err) {
+        console.error("[VoiceChat] Error handling voice offer:", err);
       }
     };
 
@@ -245,12 +355,13 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
       sdp: RTCSessionDescriptionInit;
     }) => {
       const pc = peersRef.current.get(senderId);
-      if (pc) {
-        try {
-          await pc.setRemoteDescription(new RTCSessionDescription(sdp));
-        } catch (e) {
-          console.error("Set remote desc error:", e);
-        }
+      if (!pc || pc.signalingState === "closed") return;
+
+      try {
+        await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+        await flushPendingCandidates(senderId, pc);
+      } catch (err) {
+        console.error("[VoiceChat] Error handling voice answer:", err);
       }
     };
 
@@ -262,14 +373,19 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
       candidate: RTCIceCandidateInit;
     }) => {
       const pc = peersRef.current.get(senderId);
-      if (pc && (pc.signalingState as string) !== "closed") {
+
+      // If PC exists and remote description is set, add candidate directly
+      if (pc && pc.remoteDescription && pc.signalingState !== "closed") {
         try {
-          if (pc.remoteDescription && (pc.signalingState as string) !== "closed") {
-            await pc.addIceCandidate(new RTCIceCandidate(candidate));
-          }
-        } catch (e) {
-          // Ignore candidate errors on closed connections
+          await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (err) {
+          console.warn("[VoiceChat] Error adding ICE candidate:", err);
         }
+      } else {
+        // Queue candidate to apply once remote description arrives
+        const queue = pendingCandidatesRef.current.get(senderId) || [];
+        queue.push(candidate);
+        pendingCandidatesRef.current.set(senderId, queue);
       }
     };
 
@@ -282,9 +398,9 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
       socket.off("voice-answer", onVoiceAnswer);
       socket.off("voice-candidate", onVoiceCandidate);
     };
-  }, [socket, room?.id, currentPlayerId]);
+  }, [socket, room?.id, currentPlayerId, createPeerConnection]);
 
-  // Real-time mic volume level analyzer for speaking dot animations
+  // Real-time mic volume level analyzer for speaking indicator animations
   useEffect(() => {
     if (!localStreamRef.current || !socket || !room?.id || !currentPlayerId) return;
 
@@ -296,90 +412,101 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
     let silenceTimeout: NodeJS.Timeout | null = null;
 
     try {
-      audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 512;
-      analyser.smoothingTimeConstant = 0.4;
+      const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtxClass) {
+        audioCtx = new AudioCtxClass();
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        analyser.smoothingTimeConstant = 0.3;
 
-      source = audioCtx.createMediaStreamSource(localStreamRef.current);
-      source.connect(analyser);
+        source = audioCtx.createMediaStreamSource(localStreamRef.current);
+        source.connect(analyser);
 
-      const bufferLength = analyser.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
 
-      const checkSpeaking = () => {
-        if (!analyser) return;
-        analyser.getByteFrequencyData(dataArray);
+        const checkSpeaking = () => {
+          if (!analyser) return;
+          analyser.getByteFrequencyData(dataArray);
 
-        let sum = 0;
-        for (let i = 0; i < bufferLength; i++) {
-          sum += dataArray[i];
-        }
-        const avg = sum / bufferLength;
-
-        const isSpeakingNow = avg > 8 && !isMuted;
-
-        if (isSpeakingNow) {
-          if (silenceTimeout) {
-            clearTimeout(silenceTimeout);
-            silenceTimeout = null;
+          let sum = 0;
+          for (let i = 0; i < bufferLength; i++) {
+            sum += dataArray[i];
           }
-          if (!wasSpeaking) {
-            wasSpeaking = true;
-            socket.emit("player-speaking", {
-              roomCode: room.id,
-              playerId: currentPlayerId,
-              isSpeaking: true,
-            });
-          }
-        } else {
-          if (wasSpeaking && !silenceTimeout) {
-            silenceTimeout = setTimeout(() => {
-              wasSpeaking = false;
+          const avg = sum / bufferLength;
+          const isSpeakingNow = avg > 10 && !isMutedRef.current;
+
+          if (isSpeakingNow) {
+            if (silenceTimeout) {
+              clearTimeout(silenceTimeout);
+              silenceTimeout = null;
+            }
+            if (!wasSpeaking) {
+              wasSpeaking = true;
               socket.emit("player-speaking", {
                 roomCode: room.id,
                 playerId: currentPlayerId,
-                isSpeaking: false,
+                isSpeaking: true,
               });
-              silenceTimeout = null;
-            }, 600);
+            }
+          } else {
+            if (wasSpeaking && !silenceTimeout) {
+              silenceTimeout = setTimeout(() => {
+                wasSpeaking = false;
+                socket.emit("player-speaking", {
+                  roomCode: room.id,
+                  playerId: currentPlayerId,
+                  isSpeaking: false,
+                });
+                silenceTimeout = null;
+              }, 500);
+            }
           }
-        }
 
-        animId = requestAnimationFrame(checkSpeaking);
-      };
+          animId = requestAnimationFrame(checkSpeaking);
+        };
 
-      checkSpeaking();
+        checkSpeaking();
+      }
     } catch (e) {
-      console.error("Audio analyser error:", e);
+      console.error("[VoiceChat] Audio analyser error:", e);
     }
 
     return () => {
       if (animId) cancelAnimationFrame(animId);
       if (silenceTimeout) clearTimeout(silenceTimeout);
       if (audioCtx && audioCtx.state !== "closed") {
-        audioCtx.close();
+        audioCtx.close().catch(() => {});
       }
     };
-  }, [localStreamRef.current, isMuted, socket, room?.id, currentPlayerId]);
+  }, [localStreamRef.current, socket, room?.id, currentPlayerId]);
 
   const toggleMute = () => {
+    const newMutedState = !isMuted;
+    setIsMuted(newMutedState);
+    isMutedRef.current = newMutedState;
+
     if (localStreamRef.current) {
-      const audioTrack = localStreamRef.current.getAudioTracks()[0];
-      if (audioTrack) {
-        const newMutedState = !isMuted;
-        audioTrack.enabled = !newMutedState;
-        setIsMuted(newMutedState);
-      }
+      localStreamRef.current.getAudioTracks().forEach((track) => {
+        track.enabled = !newMutedState;
+      });
+    }
+
+    if (socket && room && currentPlayerId && newMutedState) {
+      socket.emit("player-speaking", {
+        roomCode: room.id,
+        playerId: currentPlayerId,
+        isSpeaking: false,
+      });
     }
   };
 
   const toggleSpeaker = () => {
-    const newState = !isSpeakerMuted;
-    setIsSpeakerMuted(newState);
-    isSpeakerMutedRef.current = newState;
-    audioContextRef.current.forEach((audio) => {
-      audio.muted = newState;
+    const newSpeakerState = !isSpeakerMuted;
+    setIsSpeakerMuted(newSpeakerState);
+    isSpeakerMutedRef.current = newSpeakerState;
+    audioElementsRef.current.forEach((audio) => {
+      audio.muted = newSpeakerState;
     });
   };
 

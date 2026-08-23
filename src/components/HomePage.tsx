@@ -23,8 +23,8 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   return (
     <div
-      className="min-h-screen w-full flex flex-col items-center justify-center p-3 sm:p-4 relative text-white font-sans bg-cover bg-center bg-no-repeat select-none overflow-y-auto"
-      style={{ backgroundImage: "url('/assets/images/background.png')" }}
+      className="min-h-screen w-full flex flex-col items-center justify-center p-3 sm:p-4 relative text-white font-sans bg-[#0A041A] bg-cover bg-center bg-no-repeat select-none overflow-y-auto"
+      style={{ backgroundImage: "url('/assets/images/background.jpg'), url('/assets/images/background.png')" }}
     >
       {/* Subtle Vignette Overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-purple-950/25 via-transparent to-purple-950/35 pointer-events-none" />

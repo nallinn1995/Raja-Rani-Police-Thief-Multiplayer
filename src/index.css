@@ -833,3 +833,12 @@ select:focus-visible {
   border-bottom-right-radius: 12px;
   pointer-events: none;
 }
+
+/* Fast loading game background with solid fallback to eliminate visual lag */
+.game-bg-screen {
+  background-color: #0A041A;
+  background-image: url('/assets/images/background.jpg'), url('/assets/images/background.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}

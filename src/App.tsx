@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from "react";
 import { Bounce, ToastContainer, toast } from "react-toastify";
 
 import io from "socket.io-client";
@@ -9,7 +9,6 @@ import { JoinRoom } from "./components/JoinRoom";
 import { WaitingRoom } from "./components/WaitingRoom";
 import { GameBoard } from "./components/GameBoard";
 import { RoundResult } from "./components/RoundResult";
-import { Leaderboard } from "./components/Leaderboard";
 import { Welcome } from "./components/Welcome";
 import { AppHeader } from "./components/AppHeader";
 import {
@@ -22,12 +21,31 @@ import { VoiceChatManager } from "./components/VoiceChatManager";
 import { authService, User as UserType } from "./services/authService";
 import { profileService } from "./services/profileService";
 import { AuthOverlay } from "./components/auth/AuthOverlay";
-import { GameInfo } from "./components/GameInfo";
-import { ProfileDashboard } from "./components/ProfileDashboard";
 import { adminService } from "./services/adminService";
-import { AdminDashboard } from "./components/admin/AdminDashboard";
-import { AdminLoginModal } from "./components/admin/AdminLoginModal";
 import { configService } from "./services/configService";
+
+// Lazy-loaded routes for performance & lightweight initial bundle
+const Leaderboard = lazy(() =>
+  import("./components/Leaderboard").then((m) => ({ default: m.Leaderboard }))
+);
+const GameInfo = lazy(() =>
+  import("./components/GameInfo").then((m) => ({ default: m.GameInfo }))
+);
+const ProfileDashboard = lazy(() =>
+  import("./components/ProfileDashboard").then((m) => ({
+    default: m.ProfileDashboard,
+  }))
+);
+const AdminDashboard = lazy(() =>
+  import("./components/admin/AdminDashboard").then((m) => ({
+    default: m.AdminDashboard,
+  }))
+);
+const AdminLoginModal = lazy(() =>
+  import("./components/admin/AdminLoginModal").then((m) => ({
+    default: m.AdminLoginModal,
+  }))
+);
 
 const SOCKET_URL = import.meta.env.VITE_SERVER_URL;
 
@@ -858,195 +876,203 @@ useEffect(() => {
         />
       )}
 
-      {(() => {
-        switch (appState) {
-          case "welcome":
-            return (
-              <Welcome
-                currentUser={currentUser}
-                onOpenAuth={() => setShowAuthModal(true)}
-                onOpenGameInfo={() => {
-                  sessionStorage.setItem("appState", "game-info");
-                  setAppState("game-info");
-                }}
-                startGame={() => {
-                  sessionStorage.setItem("appState", "home");
-                  setAppState("home");
-                }}
-                onLogout={() => {
-                  authService.logout();
-                  adminService.logout();
-                  setIsAdminAuthed(false);
-                  setCurrentUser(null);
-                  sessionStorage.setItem("appState", "welcome");
-                  setAppState("welcome");
-                  toast.info("Logged out successfully");
-                }}
-                onOpenDashboard={() => {
-                  sessionStorage.setItem("appState", "dashboard");
-                  setAppState("dashboard");
-                }}
-                onOpenAdminDashboard={() => {
-                  setIsAdminAuthed(true);
-                  sessionStorage.setItem("appState", "admin");
-                  setAppState("admin");
-                }}
-              />
-            );
-
-          case "home":
-            return (
-              <HomePage
-                onBack={() => {
-                  sessionStorage.setItem("appState", "welcome");
-                  setAppState("welcome");
-                }}
-                onCreateRoom={() => {
-                  sessionStorage.setItem("appState", "create");
-                  setAppState("create");
-                }}
-                onJoinRoom={() => {
-                  setAppState("join");
-                  sessionStorage.setItem("appState", "join");
-                }}
-                onOpenGameInfo={() => {
-                  sessionStorage.setItem("appState", "game-info");
-                  setAppState("game-info");
-                }}
-              />
-            );
-
-          case "create":
-            return (
-              <CreateRoom
-                onBack={() => {
-                  sessionStorage.setItem("appState", "home");
-                  setAppState("home");
-                }}
-                onRoomCreated={handleRoomCreated}
-                createRoom={handleCreateRoom}
-              />
-            );
-
-          case "join":
-            return (
-              <JoinRoom
-                onBack={() => {
-                  setAppState("home");
-                  sessionStorage.setItem("appState", "home");
-                }}
-                onRoomJoined={handleRoomJoined}
-                joinRoom={handleJoinRoom}
-              />
-            );
-
-          case "waiting":
-            return room ? (
-              <WaitingRoom
-                room={room}
-                currentPlayerId={currentPlayerId}
-                messages={messages}
-                onSendMessage={handleSendMessage}
-              />
-            ) : null;
-
-          case "playing":
-            return room ? (
-              <GameBoard
-                socket={socket}
-                room={room}
-                currentPlayerId={currentPlayerId}
-                myRole={myRole}
-                policeId={policeId}
-                allRoles={allRoles}
-                messages={messages}
-                cardsState={cardsState}
-                myPrivateRole={myPrivateRole}
-                onPoliceReveal={handlePoliceReveal}
-                onMakeGuess={handleMakeGuess}
-                onSendMessage={handleSendMessage}
-                onLeaveRoom={handlePlayAgain}
-              />
-            ) : null;
-
-          case "result":
-            return roundResult ? (
-              <RoundResult
-                result={roundResult}
-                isHost={room?.players.find((p) => p.id === currentPlayerId)?.isHost}
-                onNextRound={handleNextRound}
-              />
-            ) : null;
-
-          case "leaderboard":
-            return (
-              <Leaderboard
-                leaderboard={leaderboard}
-                onPlayAgain={handlePlayAgain}
-                onBackToHome={handleBackToHome}
-              />
-            );
-
-          case "game-info":
-            return (
-              <GameInfo
-                onBack={() => {
-                  sessionStorage.setItem("appState", "welcome");
-                  setAppState("welcome");
-                }}
-                onStartGame={() => {
-                  sessionStorage.setItem("appState", "home");
-                  setAppState("home");
-                }}
-              />
-            );
-
-          case "dashboard":
-            return currentUser ? (
-              <ProfileDashboard
-                user={currentUser}
-                onUpdateUser={(updatedUser) => setCurrentUser(updatedUser)}
-                onBack={() => {
-                  sessionStorage.setItem("appState", "welcome");
-                  setAppState("welcome");
-                }}
-              />
-            ) : null;
-
-          case "admin":
-            if (isAdminAuthed || adminService.isAdminLoggedIn()) {
+      <Suspense
+        fallback={
+          <div className="min-h-screen bg-[#0A041A] flex items-center justify-center">
+            <div className="loader mx-auto" />
+          </div>
+        }
+      >
+        {(() => {
+          switch (appState) {
+            case "welcome":
               return (
-                <AdminDashboard
-                  onBackToApp={() => {
+                <Welcome
+                  currentUser={currentUser}
+                  onOpenAuth={() => setShowAuthModal(true)}
+                  onOpenGameInfo={() => {
+                    sessionStorage.setItem("appState", "game-info");
+                    setAppState("game-info");
+                  }}
+                  startGame={() => {
+                    sessionStorage.setItem("appState", "home");
+                    setAppState("home");
+                  }}
+                  onLogout={() => {
+                    authService.logout();
+                    adminService.logout();
+                    setIsAdminAuthed(false);
+                    setCurrentUser(null);
+                    sessionStorage.setItem("appState", "welcome");
+                    setAppState("welcome");
+                    toast.info("Logged out successfully");
+                  }}
+                  onOpenDashboard={() => {
+                    sessionStorage.setItem("appState", "dashboard");
+                    setAppState("dashboard");
+                  }}
+                  onOpenAdminDashboard={() => {
+                    setIsAdminAuthed(true);
+                    sessionStorage.setItem("appState", "admin");
+                    setAppState("admin");
+                  }}
+                />
+              );
+
+            case "home":
+              return (
+                <HomePage
+                  onBack={() => {
+                    sessionStorage.setItem("appState", "welcome");
+                    setAppState("welcome");
+                  }}
+                  onCreateRoom={() => {
+                    sessionStorage.setItem("appState", "create");
+                    setAppState("create");
+                  }}
+                  onJoinRoom={() => {
+                    setAppState("join");
+                    sessionStorage.setItem("appState", "join");
+                  }}
+                  onOpenGameInfo={() => {
+                    sessionStorage.setItem("appState", "game-info");
+                    setAppState("game-info");
+                  }}
+                />
+              );
+
+            case "create":
+              return (
+                <CreateRoom
+                  onBack={() => {
+                    sessionStorage.setItem("appState", "home");
+                    setAppState("home");
+                  }}
+                  onRoomCreated={handleRoomCreated}
+                  createRoom={handleCreateRoom}
+                />
+              );
+
+            case "join":
+              return (
+                <JoinRoom
+                  onBack={() => {
+                    setAppState("home");
+                    sessionStorage.setItem("appState", "home");
+                  }}
+                  onRoomJoined={handleRoomJoined}
+                  joinRoom={handleJoinRoom}
+                />
+              );
+
+            case "waiting":
+              return room ? (
+                <WaitingRoom
+                  room={room}
+                  currentPlayerId={currentPlayerId}
+                  messages={messages}
+                  onSendMessage={handleSendMessage}
+                />
+              ) : null;
+
+            case "playing":
+              return room ? (
+                <GameBoard
+                  socket={socket}
+                  room={room}
+                  currentPlayerId={currentPlayerId}
+                  myRole={myRole}
+                  policeId={policeId}
+                  allRoles={allRoles}
+                  messages={messages}
+                  cardsState={cardsState}
+                  myPrivateRole={myPrivateRole}
+                  onPoliceReveal={handlePoliceReveal}
+                  onMakeGuess={handleMakeGuess}
+                  onSendMessage={handleSendMessage}
+                  onLeaveRoom={handlePlayAgain}
+                />
+              ) : null;
+
+            case "result":
+              return roundResult ? (
+                <RoundResult
+                  result={roundResult}
+                  isHost={room?.players.find((p) => p.id === currentPlayerId)?.isHost}
+                  onNextRound={handleNextRound}
+                />
+              ) : null;
+
+            case "leaderboard":
+              return (
+                <Leaderboard
+                  leaderboard={leaderboard}
+                  onPlayAgain={handlePlayAgain}
+                  onBackToHome={handleBackToHome}
+                />
+              );
+
+            case "game-info":
+              return (
+                <GameInfo
+                  onBack={() => {
+                    sessionStorage.setItem("appState", "welcome");
+                    setAppState("welcome");
+                  }}
+                  onStartGame={() => {
+                    sessionStorage.setItem("appState", "home");
+                    setAppState("home");
+                  }}
+                />
+              );
+
+            case "dashboard":
+              return currentUser ? (
+                <ProfileDashboard
+                  user={currentUser}
+                  onUpdateUser={(updatedUser) => setCurrentUser(updatedUser)}
+                  onBack={() => {
+                    sessionStorage.setItem("appState", "welcome");
+                    setAppState("welcome");
+                  }}
+                />
+              ) : null;
+
+            case "admin":
+              if (isAdminAuthed || adminService.isAdminLoggedIn()) {
+                return (
+                  <AdminDashboard
+                    onBackToApp={() => {
+                      window.history.pushState({}, "", "/");
+                      sessionStorage.setItem("appState", "welcome");
+                      setAppState("welcome");
+                    }}
+                    onLogout={() => {
+                      adminService.logout();
+                      setIsAdminAuthed(false);
+                    }}
+                  />
+                );
+              }
+              return (
+                <AdminLoginModal
+                  isOpen={true}
+                  onClose={() => {
                     window.history.pushState({}, "", "/");
                     sessionStorage.setItem("appState", "welcome");
                     setAppState("welcome");
                   }}
-                  onLogout={() => {
-                    adminService.logout();
-                    setIsAdminAuthed(false);
+                  onSuccess={() => {
+                    setIsAdminAuthed(true);
                   }}
                 />
               );
-            }
-            return (
-              <AdminLoginModal
-                isOpen={true}
-                onClose={() => {
-                  window.history.pushState({}, "", "/");
-                  sessionStorage.setItem("appState", "welcome");
-                  setAppState("welcome");
-                }}
-                onSuccess={() => {
-                  setIsAdminAuthed(true);
-                }}
-              />
-            );
 
-          default:
-            return null;
-        }
-      })()}
+            default:
+              return null;
+          }
+        })()}
+      </Suspense>
 
       {showAuthModal && (
         <AuthOverlay

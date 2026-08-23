@@ -40,7 +40,6 @@ import {
   recordMatchResult as recordPoliceThiefMatch,
 } from "./controllers/policeThiefController.js";
 import {
-  systemConfig,
   adminLogin,
   getOverviewStats,
   getAllUsers,
@@ -1056,6 +1055,11 @@ io.on("connection", (socket) => {
     if (targetPlayer && targetPlayer.socketId) {
       io.to(targetPlayer.socketId).emit("voice-candidate", { senderId, candidate });
     }
+  });
+
+  socket.on("player-speaking", ({ roomCode, playerId, isSpeaking }) => {
+    if (!roomCode) return;
+    socket.to(roomCode.toUpperCase()).emit("player-speaking-update", { playerId, isSpeaking });
   });
 
   socket.on("disconnect", () => {
