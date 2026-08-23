@@ -1,7 +1,8 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { BookOpen, ShieldCheck, Instagram, Youtube, Facebook, MessageSquare } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { UserProfile } from './UserProfile';
+import { configService, FullSystemConfig } from '../services/configService';
 
 interface WelcomeProps {
   startGame: () => void;
@@ -10,6 +11,7 @@ interface WelcomeProps {
   currentUser?: any;
   onLogout?: () => void;
   onOpenDashboard?: () => void;
+  onOpenAdminDashboard?: () => void;
 }
 
 export const Welcome: React.FC<WelcomeProps> = ({
@@ -19,8 +21,14 @@ export const Welcome: React.FC<WelcomeProps> = ({
   currentUser,
   onLogout,
   onOpenDashboard,
+  onOpenAdminDashboard,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [config, setConfig] = useState<FullSystemConfig>(configService.getConfig());
+
+  useEffect(() => {
+    return configService.subscribe(setConfig);
+  }, []);
 
   // IntersectionObserver for smooth scroll reveal animations
   useEffect(() => {
@@ -101,6 +109,7 @@ export const Welcome: React.FC<WelcomeProps> = ({
                 user={currentUser}
                 onLogout={onLogout || (() => {})}
                 onOpenDashboard={onOpenDashboard || (() => {})}
+                onOpenAdminDashboard={onOpenAdminDashboard}
               />
             ) : (
               <button
@@ -188,13 +197,13 @@ export const Welcome: React.FC<WelcomeProps> = ({
             </motion.div>
 
             {/* Tagline 1: Gold Bold Statement */}
-            <h2 className="text-[11px] sm:text-sm md:text-base font-extrabold uppercase tracking-wider text-[#FBE278] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] max-w-lg leading-snug px-2">
-              THE CLASSIC PLAYGROUND GAME,<br className="hidden sm:inline" /> NOW A THRILLING DIGITAL SHOWDOWN!
+            <h2 className="text-[11px] sm:text-sm md:text-base font-extrabold uppercase tracking-wider text-[#FBE278] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] max-w-lg leading-snug px-2 whitespace-pre-line">
+              {config.screenTexts?.welcome?.heroTitle || "THE CLASSIC PLAYGROUND GAME,\nNOW A THRILLING DIGITAL SHOWDOWN!"}
             </h2>
 
             {/* Tagline 2: Descriptive Subtext */}
             <p className="text-[11px] sm:text-xs text-white max-w-sm mx-auto font-medium px-4 leading-relaxed drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
-              Strategy, bluff and deduction come together in this timeless game of kingdoms and secrets.
+              {config.screenTexts?.welcome?.heroSubtext || "Strategy, bluff and deduction come together in this timeless game of kingdoms and secrets."}
             </p>
 
             {/* Interactive PLAY NOW Button with Backlight Ambient Glow */}
@@ -218,7 +227,7 @@ export const Welcome: React.FC<WelcomeProps> = ({
 
             {/* Quick Feature Subtext */}
             <p className="text-[10px] sm:text-[11px] text-white/95 tracking-wide font-semibold drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
-              Quick Match • No Download • Play Anywhere
+              {config.screenTexts?.welcome?.featureSubtext || "Quick Match • No Download • Play Anywhere"}
             </p>
           </div>
 
@@ -312,7 +321,7 @@ export const Welcome: React.FC<WelcomeProps> = ({
               className="w-20 sm:w-36 md:w-[13rem] h-auto object-contain select-none opacity-90"
             />
             <h3 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#FBE278] font-serif tracking-wide text-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-              Why You'll Love It?
+              {config.screenTexts?.welcome?.whyLoveTitle || "Why You'll Love It?"}
             </h3>
             <img 
               src="/assets/images/Landing Page/righ_decor.png" 
@@ -452,7 +461,7 @@ export const Welcome: React.FC<WelcomeProps> = ({
               className="w-20 sm:w-36 md:w-[13rem] h-auto object-contain select-none opacity-90"
             />
             <h3 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#FBE278] font-serif tracking-wide text-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-              Meet the Characters
+              {config.screenTexts?.welcome?.charactersTitle || "Meet the Characters"}
             </h3>
             <img 
               src="/assets/images/Landing Page/righ_decor.png" 
@@ -648,7 +657,7 @@ export const Welcome: React.FC<WelcomeProps> = ({
               className="w-20 sm:w-36 md:w-[13rem] h-auto object-contain select-none opacity-90"
             />
             <h3 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#FBE278] font-serif tracking-wide text-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-              Game Modes
+              {config.screenTexts?.welcome?.gameModesTitle || "Game Modes"}
             </h3>
             <img 
               src="/assets/images/Landing Page/righ_decor.png" 
@@ -775,7 +784,7 @@ export const Welcome: React.FC<WelcomeProps> = ({
               {/* Center Content: Title, Subtext & Play Button */}
               <div className="flex-1 text-center flex flex-col items-center space-y-2.5 sm:space-y-3 max-w-xl">
                 <h3 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-[#FBE278] font-serif tracking-wide drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]">
-                  READY TO RULE THE KINGDOM?
+                  {config.screenTexts?.welcome?.ctaTitle || "READY TO RULE THE KINGDOM?"}
                 </h3>
                 
                 <p className="text-[11px] sm:text-sm text-white font-medium max-w-md leading-relaxed drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">

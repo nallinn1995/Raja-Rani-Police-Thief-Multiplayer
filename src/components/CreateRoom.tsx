@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Shield, Crown } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, Shield, Crown, Lock } from 'lucide-react';
 import { GameMode } from '../types/game';
 import { authService } from '../services/authService';
+import { configService, defaultConfig } from '../services/configService';
 
 interface CreateRoomProps {
   onBack: () => void;
@@ -27,6 +28,41 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onBack, onRoomCreated, c
     return currentUser?.username || '';
   });
   const [gameMode, setGameMode] = useState<GameMode>(GameMode.CLASSIC_POINTS);
+
+  // Game mode availability from admin config
+  const [detectiveEnabled, setDetectiveEnabled] = useState(
+    defaultConfig.systemSettings!.detectiveEnabled
+  );
+  const [modernEnabled, setModernEnabled] = useState(
+    defaultConfig.systemSettings!.modernEnabled
+  );
+  const [detectiveButtonText, setDetectiveButtonText] = useState(
+    defaultConfig.systemSettings!.detectiveButtonText
+  );
+  const [modernButtonText, setModernButtonText] = useState(
+    defaultConfig.systemSettings!.modernButtonText
+  );
+
+  useEffect(() => {
+    const unsub = configService.subscribe((cfg) => {
+      const s = cfg.systemSettings;
+      if (s) {
+        setDetectiveEnabled(!!s.detectiveEnabled);
+        setModernEnabled(!!s.modernEnabled);
+        setDetectiveButtonText(s.detectiveButtonText || 'Coming Soon');
+        setModernButtonText(s.modernButtonText || 'Coming Soon');
+        // If selected mode gets disabled, fall back to classic
+        if (!s.detectiveEnabled && gameMode === GameMode.DETECTIVE_CHALLENGE) {
+          setGameMode(GameMode.CLASSIC_POINTS);
+        }
+        if (!s.modernEnabled && gameMode === GameMode.MODERN_MODE) {
+          setGameMode(GameMode.CLASSIC_POINTS);
+        }
+      }
+    });
+    return unsub;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   React.useEffect(() => {
     if (currentUser?.username && !playerName) {
@@ -177,31 +213,51 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onBack, onRoomCreated, c
                   <img src="/assets/images/trophy.png" className="w-3.5 h-3.5 object-contain" alt="Classic" />
                   <span>Classic</span>
                 </button>
+                {/* Detective - mobile tab */}
                 <button
                   type="button"
-                  onClick={() => setGameMode(GameMode.DETECTIVE_CHALLENGE)}
-                  className={`flex-1 py-1.5 px-1 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 ${
-                    gameMode === GameMode.DETECTIVE_CHALLENGE
+                  onClick={() => detectiveEnabled && setGameMode(GameMode.DETECTIVE_CHALLENGE)}
+                  disabled={!detectiveEnabled}
+                  className={`flex-1 py-1.5 px-1 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 relative ${
+                    !detectiveEnabled
+                      ? 'text-gray-600 cursor-not-allowed opacity-60'
+                      : gameMode === GameMode.DETECTIVE_CHALLENGE
                       ? 'bg-gradient-to-r from-cyan-950 to-blue-900 text-cyan-300 border border-cyan-400/60 shadow-md'
                       : 'text-gray-400 hover:text-white'
                   }`}
                 >
                   <Shield className="w-3.5 h-3.5 text-cyan-300" />
-                  <span>Detective</span>
-                  <span className="text-[9px] px-1 py-0.2 rounded bg-cyan-500 text-slate-950 font-black">4P</span>
+                  {detectiveEnabled ? (
+                    <>
+                      <span>Detective</span>
+                      <span className="text-[9px] px-1 py-0.2 rounded bg-cyan-500 text-slate-950 font-black">4P</span>
+                    </>
+                  ) : (
+                    <span className="text-[9px] font-black text-orange-400">{detectiveButtonText}</span>
+                  )}
                 </button>
+                {/* Modern - mobile tab */}
                 <button
                   type="button"
-                  onClick={() => setGameMode(GameMode.MODERN_MODE)}
-                  className={`flex-1 py-1.5 px-1 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 ${
-                    gameMode === GameMode.MODERN_MODE
+                  onClick={() => modernEnabled && setGameMode(GameMode.MODERN_MODE)}
+                  disabled={!modernEnabled}
+                  className={`flex-1 py-1.5 px-1 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 relative ${
+                    !modernEnabled
+                      ? 'text-gray-600 cursor-not-allowed opacity-60'
+                      : gameMode === GameMode.MODERN_MODE
                       ? 'bg-gradient-to-r from-amber-950 via-purple-950 to-indigo-950 text-yellow-300 border border-yellow-400/60 shadow-md'
                       : 'text-gray-400 hover:text-white'
                   }`}
                 >
                   <Crown className="w-3.5 h-3.5 text-yellow-400" />
-                  <span>Modern</span>
-                  <span className="text-[9px] px-1 py-0.2 rounded bg-yellow-400 text-black font-black">6P</span>
+                  {modernEnabled ? (
+                    <>
+                      <span>Modern</span>
+                      <span className="text-[9px] px-1 py-0.2 rounded bg-yellow-400 text-black font-black">6P</span>
+                    </>
+                  ) : (
+                    <span className="text-[9px] font-black text-orange-400">{modernButtonText}</span>
+                  )}
                 </button>
               </div>
 
@@ -276,16 +332,26 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onBack, onRoomCreated, c
                 </div>
               </button>
 
-              {/* Detective Challenge */}
+              {/* Detective Challenge - with Coming Soon overlay when disabled */}
               <button
                 type="button"
-                onClick={() => setGameMode(GameMode.DETECTIVE_CHALLENGE)}
+                onClick={() => detectiveEnabled && setGameMode(GameMode.DETECTIVE_CHALLENGE)}
+                disabled={!detectiveEnabled}
                 className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition-all duration-300 relative overflow-hidden ${
-                  gameMode === GameMode.DETECTIVE_CHALLENGE
+                  !detectiveEnabled
+                    ? 'bg-[#0a0a1a]/90 border-[#2A1040] cursor-not-allowed opacity-70'
+                    : gameMode === GameMode.DETECTIVE_CHALLENGE
                     ? 'bg-gradient-to-b from-cyan-900/90 to-blue-950/90 border-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.4)] ring-2 ring-cyan-400/50'
                     : 'bg-[#11052C]/90 border-[#4A2078] hover:border-cyan-500 opacity-75 hover:opacity-100'
                 }`}
               >
+                {/* Coming Soon Overlay */}
+                {!detectiveEnabled && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black/55 backdrop-blur-[2px] rounded-2xl">
+                    <Lock className="w-5 h-5 text-orange-400 mb-1" />
+                    <span className="text-xs font-extrabold text-orange-400 tracking-wider uppercase">{detectiveButtonText}</span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between mb-2">
                   <div className="w-9 h-9 rounded-xl bg-cyan-950 border border-cyan-400/40 flex items-center justify-center shrink-0">
                     <Shield className="w-5 h-5 text-cyan-300" />
@@ -302,16 +368,26 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onBack, onRoomCreated, c
                 </div>
               </button>
 
-              {/* Modern Mode */}
+              {/* Modern Mode - with Coming Soon overlay when disabled */}
               <button
                 type="button"
-                onClick={() => setGameMode(GameMode.MODERN_MODE)}
+                onClick={() => modernEnabled && setGameMode(GameMode.MODERN_MODE)}
+                disabled={!modernEnabled}
                 className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition-all duration-300 relative overflow-hidden ${
-                  gameMode === GameMode.MODERN_MODE
+                  !modernEnabled
+                    ? 'bg-[#0a0a1a]/90 border-[#2A1040] cursor-not-allowed opacity-70'
+                    : gameMode === GameMode.MODERN_MODE
                     ? 'bg-gradient-to-b from-amber-900/90 via-purple-900/90 to-indigo-950/90 border-yellow-400 shadow-[0_0_20px_rgba(250,204,21,0.5)] ring-2 ring-yellow-400/50'
                     : 'bg-[#11052C]/90 border-[#4A2078] hover:border-yellow-500 opacity-75 hover:opacity-100'
                 }`}
               >
+                {/* Coming Soon Overlay */}
+                {!modernEnabled && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black/55 backdrop-blur-[2px] rounded-2xl">
+                    <Lock className="w-5 h-5 text-orange-400 mb-1" />
+                    <span className="text-xs font-extrabold text-orange-400 tracking-wider uppercase">{modernButtonText}</span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between mb-2">
                   <div className="w-9 h-9 rounded-xl bg-amber-950 border border-yellow-400/40 flex items-center justify-center shrink-0">
                     <Crown className="w-5 h-5 text-yellow-400" />

@@ -6,10 +6,37 @@ import DetectiveChallengeStats from "../models/detectiveChallenge/DetectiveChall
 import DetectiveChallengeMatch from "../models/detectiveChallenge/DetectiveChallengeMatch.js";
 import ModernModeStats from "../models/modernMode/ModernModeStats.js";
 import ModernModeMatch from "../models/modernMode/ModernModeMatch.js";
+import SystemConfig from "../models/SystemConfig.js";
 import { hashPassword, issueAccessToken, verifyAccessToken, getBearerToken, verifyPassword } from "../security.js";
 
-// Global dynamic system config stored in memory (can be expanded to DB if needed)
+// Global dynamic system config stored in memory & backed by MongoDB
 export const systemConfig = {
+  screenTexts: {
+    welcome: {
+      heroTitle: "THE CLASSIC PLAYGROUND GAME,\nNOW A THRILLING DIGITAL SHOWDOWN!",
+      heroSubtext: "Strategy, bluff and deduction come together in this timeless game of kingdoms and secrets.",
+      featureSubtext: "Quick Match • No Download • Play Anywhere",
+      whyLoveTitle: "Why You'll Love It?",
+      charactersTitle: "Meet the Characters",
+      gameModesTitle: "Game Modes",
+      ctaTitle: "READY TO RULE THE KINGDOM?",
+    },
+    gameInfo: {
+      title: "Game Rules & Info",
+      subtitle: "Master the strategy, understand the scoring, and dominate the kingdom!",
+      classicRules: "Each player picks a secret card. The Police must guess who holds the Thief card. Correct guess yields 500 points to Police. Wrong guess yields 800 points to Thief!",
+      detectiveRules: "Analyze clues, suspect statements, and crime scene logs to uncover the criminal before time runs out!",
+      modernRules: "Play with 6 Kingdom Roles: Raja, Rani, Mantri, Police, Thief, and Villager with shield abilities and witness bonuses!",
+    },
+    homePage: {
+      welcomeTitle: "Raja Rani Police Thief",
+      welcomeSubtext: "Select a game mode or create a private room to start playing with friends!",
+    },
+    maintenance: {
+      title: "Under Scheduled Maintenance",
+      message: "The server is currently under scheduled maintenance. Please check back shortly!",
+    },
+  },
   maintenanceMode: false,
   maintenanceMessage: "The server is currently under scheduled maintenance. Please check back shortly!",
   announcement: "",
@@ -28,6 +55,75 @@ export const systemConfig = {
     detectiveCorrectGuess: 500,
   },
 };
+
+export async function getOrInitSystemConfig() {
+  try {
+    let doc = await SystemConfig.findOne({ configKey: "global_config" });
+    if (!doc) {
+      doc = new SystemConfig({ configKey: "global_config" });
+      await doc.save();
+    }
+    const docObj = doc.toObject();
+    delete docObj._id;
+    delete docObj.__v;
+    delete docObj.configKey;
+    Object.assign(systemConfig, docObj);
+    return systemConfig;
+  } catch (err) {
+    console.error("Error fetching SystemConfig from DB:", err);
+    return systemConfig;
+  }
+}
+
+export async function updateSystemConfigInDB(updateData) {
+  try {
+    let doc = await SystemConfig.findOne({ configKey: "global_config" });
+    if (!doc) {
+      doc = new SystemConfig({ configKey: "global_config" });
+    }
+
+    if (updateData.screenTexts) {
+      doc.screenTexts = {
+        welcome: { ...doc.screenTexts?.welcome, ...updateData.screenTexts.welcome },
+        gameInfo: { ...doc.screenTexts?.gameInfo, ...updateData.screenTexts.gameInfo },
+        homePage: { ...doc.screenTexts?.homePage, ...updateData.screenTexts.homePage },
+        maintenance: { ...doc.screenTexts?.maintenance, ...updateData.screenTexts.maintenance },
+      };
+    }
+
+    if (updateData.pointsRules) {
+      doc.pointsRules = { ...doc.pointsRules, ...updateData.pointsRules };
+    }
+
+    if (updateData.systemSettings) {
+      doc.systemSettings = { ...doc.systemSettings, ...updateData.systemSettings };
+    }
+
+    if (typeof updateData.maintenanceMode === "boolean") {
+      doc.systemSettings.maintenanceMode = updateData.maintenanceMode;
+    }
+    if (typeof updateData.maintenanceMessage === "string") {
+      doc.screenTexts.maintenance.message = updateData.maintenanceMessage;
+    }
+    if (typeof updateData.announcement === "string") {
+      doc.systemSettings.announcement = updateData.announcement;
+    }
+
+    doc.markModified("screenTexts");
+    doc.markModified("pointsRules");
+    doc.markModified("systemSettings");
+    await doc.save();
+
+    return await getOrInitSystemConfig();
+  } catch (err) {
+    console.error("Error updating SystemConfig in DB:", err);
+    Object.assign(systemConfig, updateData);
+    return systemConfig;
+  }
+}
+
+// Initial DB sync on module load
+getOrInitSystemConfig().catch(() => {});
 
 const getAdminSecret = () => process.env.ADMIN_PASSWORD;
 

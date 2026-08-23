@@ -36,6 +36,7 @@ import { ModernProfileTab } from './modernMode/ModernProfileTab';
 import { AchievementsView, AchievementBadgeIcon } from './AchievementsView';
 import { Search } from 'lucide-react';
 import { PRESET_AVATARS, getAvatarSrc } from '../utils/avatarUtils';
+import { MobileCarousel } from './common/MobileCarousel';
 
 interface ProfileDashboardProps {
   user: UserType;
@@ -520,43 +521,36 @@ export const ProfileDashboard: React.FC<ProfileDashboardProps> = ({ user, onBack
         {/* Tab Content Display */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            {/* Top Grid: User Info Banner + Quick Stats */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              {/* User Info Banner Card (7 Cols) */}
-              <div className="lg:col-span-7 bg-[#1A0C3B]/90 backdrop-blur-xl border border-[#3A1C61] rounded-3xl p-6 shadow-[0_10px_30px_rgba(0,0,0,0.5),0_0_20px_rgba(147,51,234,0.15)] flex flex-col sm:flex-row items-center justify-between gap-6 relative overflow-hidden">
-                <div className="space-y-4 text-xs sm:text-sm text-purple-200 text-center sm:text-left">
-                  <div className="flex items-center gap-2.5 justify-center sm:justify-start">
-                    <Calendar className="w-4 h-4 text-purple-400 shrink-0" />
-                    <div>
-                      <p className="text-purple-400 text-[11px] font-medium">Join Date</p>
-                      <p className="font-semibold text-white">{formatDateTime(stats.joinDate)}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2.5 justify-center sm:justify-start">
-                    <Clock className="w-4 h-4 text-purple-400 shrink-0" />
-                    <div>
-                      <p className="text-purple-400 text-[11px] font-medium">Last Played</p>
-                      <p className="font-semibold text-white">{formatDateTime(stats.lastPlayedDate)}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Level Badge Center Shield */}
-                <div className="flex flex-col items-center justify-center">
-                  <div className="relative w-24 h-24 flex items-center justify-center mb-2">
+            {/* MOBILE CAROUSEL VIEW (Visible on Mobile screens < sm) */}
+            <div className="space-y-5 block sm:hidden">
+              {/* Mobile Carousel 1: Profile & Level Crest & Quick Stats */}
+              <MobileCarousel
+                title="Profile & Level Crest"
+                icon={<Crown className="w-5 h-5 text-amber-400" />}
+                badge={
+                  <span className="text-[10px] font-extrabold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2.5 py-0.5 rounded-full">
+                    Level {globalLevelInfo.level}
+                  </span>
+                }
+              >
+                {/* Slide 1: Level Crest & XP Progress */}
+                <div className="bg-[#12072B] border border-amber-500/40 rounded-2xl p-4 flex flex-col items-center justify-center text-center space-y-3">
+                  <div className="relative w-20 h-20 flex items-center justify-center">
                     <div className="absolute inset-0 rounded-full bg-gradient-to-br from-yellow-400/20 to-amber-600/10 animate-pulse" />
-                    {/* Golden Crest */}
-                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-b from-[#4A2508] to-[#211003] border-2 border-yellow-400 rotate-45 flex items-center justify-center shadow-[0_0_20px_rgba(234,179,8,0.3)]">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-b from-[#4A2508] to-[#211003] border-2 border-yellow-400 rotate-45 flex items-center justify-center shadow-[0_0_20px_rgba(234,179,8,0.3)]">
                       <div className="-rotate-45 text-center">
-                        <p className="text-[10px] font-extrabold tracking-widest text-yellow-300 uppercase">LEVEL</p>
-                        <p className="text-2xl font-black text-white title-font">{globalLevelInfo.level}</p>
+                        <p className="text-[9px] font-extrabold tracking-widest text-yellow-300 uppercase">LEVEL</p>
+                        <p className="text-xl font-black text-white title-font">{globalLevelInfo.level}</p>
                       </div>
                     </div>
                   </div>
-                  <p className="text-xs font-bold text-purple-200 mb-1">
-                    {globalLevelInfo.xpInCurrentLevel.toLocaleString()} / {globalLevelInfo.xpNeededForNextLevel.toLocaleString()} XP
-                  </p>
-                  <div className="w-28 h-2 rounded-full bg-[#11052C] overflow-hidden p-0.5 border border-[#3A1C61]" title={`Total Lifetime XP: ${globalLevelInfo.xp.toLocaleString()} XP`}>
+                  <div>
+                    <p className="text-sm font-extrabold text-yellow-400">{stats.username || user.username}</p>
+                    <p className="text-xs text-purple-200 mt-0.5">
+                      {globalLevelInfo.xpInCurrentLevel.toLocaleString()} / {globalLevelInfo.xpNeededForNextLevel.toLocaleString()} XP
+                    </p>
+                  </div>
+                  <div className="w-full h-2 rounded-full bg-[#0A0217] overflow-hidden border border-[#3A1C61]">
                     <div
                       className="h-full rounded-full bg-gradient-to-r from-yellow-400 to-amber-500 transition-all duration-500"
                       style={{ width: `${globalLevelInfo.progressPercent}%` }}
@@ -564,80 +558,82 @@ export const ProfileDashboard: React.FC<ProfileDashboardProps> = ({ user, onBack
                   </div>
                 </div>
 
-                <div className="space-y-4 text-xs sm:text-sm text-purple-200 text-center sm:text-right">
-                  <div>
-                    <p className="text-purple-400 text-[11px] font-medium">Username</p>
-                    <p className="font-bold text-yellow-400 text-base">{stats.username || user.username}</p>
-                  </div>
-                  <div className="flex items-center gap-2.5 justify-center sm:justify-end">
-                    <Clock className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <div>
-                      <p className="text-purple-400 text-[11px] font-medium">Total Play Time</p>
-                      <p className="font-semibold text-emerald-400">
-                        {formatPlayTime(overallStats.totalPlayTime || 0)}
-                      </p>
+                {/* Slide 2: Account Activity Info */}
+                <div className="bg-[#12072B] border border-[#3A1C61] rounded-2xl p-4 space-y-3">
+                  <h4 className="text-xs font-bold text-amber-300 uppercase tracking-wider border-b border-[#2C1454] pb-2">
+                    Account Details
+                  </h4>
+                  <div className="space-y-2.5 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-purple-300 font-medium flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-purple-400" />
+                        <span>Join Date</span>
+                      </span>
+                      <span className="font-semibold text-white">{formatDateTime(stats.joinDate)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-purple-300 font-medium flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-purple-400" />
+                        <span>Last Played</span>
+                      </span>
+                      <span className="font-semibold text-white">{formatDateTime(stats.lastPlayedDate)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-purple-300 font-medium flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Play Time</span>
+                      </span>
+                      <span className="font-semibold text-emerald-400">{formatPlayTime(overallStats.totalPlayTime || 0)}</span>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Quick Stats Bar Card (5 Cols) */}
-              <div className="lg:col-span-5 bg-[#1A0C3B]/90 backdrop-blur-xl border border-[#3A1C61] rounded-3xl p-6 shadow-[0_10px_30px_rgba(0,0,0,0.5),0_0_20px_rgba(147,51,234,0.15)] flex items-center justify-around text-center">
-                <div className="space-y-1">
-                  <div className="w-10 h-10 mx-auto rounded-xl bg-purple-900/40 border border-purple-500/30 flex items-center justify-center text-purple-300">
-                    <Gamepad2 className="w-5 h-5" />
+                {/* Slide 3: Career Quick Stats */}
+                <div className="bg-[#12072B] border border-[#3A1C61] rounded-2xl p-4 space-y-3">
+                  <h4 className="text-xs font-bold text-amber-300 uppercase tracking-wider border-b border-[#2C1454] pb-2">
+                    Career Quick Stats
+                  </h4>
+                  <div className="grid grid-cols-2 gap-2.5 text-center">
+                    <div className="bg-[#180938] border border-[#3A1C61] p-2.5 rounded-xl">
+                      <p className="text-[10px] text-purple-300 font-medium">Games Played</p>
+                      <p className="text-lg font-black text-white">{overallStats.gamesPlayed || 0}</p>
+                    </div>
+                    <div className="bg-[#180938] border border-emerald-500/30 p-2.5 rounded-xl">
+                      <p className="text-[10px] text-emerald-400 font-medium">Games Won</p>
+                      <p className="text-lg font-black text-emerald-300">{overallStats.gamesWon || 0}</p>
+                    </div>
+                    <div className="bg-[#180938] border border-red-500/30 p-2.5 rounded-xl">
+                      <p className="text-[10px] text-red-400 font-medium">Games Lost</p>
+                      <p className="text-lg font-black text-red-300">{overallStats.gamesLost || 0}</p>
+                    </div>
+                    <div className="bg-[#180938] border border-cyan-500/30 p-2.5 rounded-xl">
+                      <p className="text-[10px] text-cyan-400 font-medium">Win Rate</p>
+                      <p className="text-lg font-black text-cyan-300">{overallStats.winRate || 0}%</p>
+                    </div>
                   </div>
-                  <p className="text-xl font-extrabold text-white">{overallStats.gamesPlayed || 0}</p>
-                  <p className="text-xs text-purple-300 font-medium">Games Played</p>
                 </div>
+              </MobileCarousel>
 
-                <div className="space-y-1">
-                  <div className="w-10 h-10 mx-auto rounded-xl bg-emerald-900/40 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                    <Trophy className="w-5 h-5" />
-                  </div>
-                  <p className="text-xl font-extrabold text-white">{overallStats.gamesWon || 0}</p>
-                  <p className="text-xs text-purple-300 font-medium">Games Won</p>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="w-10 h-10 mx-auto rounded-xl bg-red-900/40 border border-red-500/30 flex items-center justify-center text-red-400">
-                    <Frown className="w-5 h-5" />
-                  </div>
-                  <p className="text-xl font-extrabold text-white">{overallStats.gamesLost || 0}</p>
-                  <p className="text-xs text-purple-300 font-medium">Games Lost</p>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="w-10 h-10 mx-auto rounded-xl bg-cyan-900/40 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-                    <Target className="w-5 h-5" />
-                  </div>
-                  <p className="text-xl font-extrabold text-white">{overallStats.winRate || 0}%</p>
-                  <p className="text-xs text-purple-300 font-medium">Win Rate</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Mode-Wise XP & Level Breakdown Showcase (3-Col Grid) */}
-            <div className="bg-[#1A0C3B]/90 backdrop-blur-xl border border-[#3A1C61] rounded-3xl p-6 shadow-[0_10px_30px_rgba(0,0,0,0.5),0_0_20px_rgba(147,51,234,0.1)] space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-white tracking-wide flex items-center gap-2">
-                  <Flame className="w-5 h-5 text-amber-400" />
-                  <span>Mode-Wise Level & XP Breakdown</span>
-                </h3>
-                <span className="text-xs font-extrabold text-amber-300 bg-amber-950/80 px-3 py-1 rounded-full border border-amber-500/40 font-mono">
-                  Combined Total XP: {totalXp.toLocaleString()} XP
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Classic Mode XP */}
-                <div className="bg-[#12072B] border border-amber-500/40 p-4 rounded-2xl space-y-2">
+              {/* Mobile Carousel 2: Mode-Wise Level & XP Breakdown */}
+              <MobileCarousel
+                title="Mode-Wise XP & Level"
+                icon={<Flame className="w-5 h-5 text-amber-400" />}
+                badge={
+                  <span className="text-[10px] font-bold text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-500/40">
+                    {totalXp.toLocaleString()} XP
+                  </span>
+                }
+              >
+                {/* Classic Mode XP Slide */}
+                <div className="bg-[#12072B] border border-amber-500/40 p-4 rounded-2xl space-y-2.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Crown className="w-4 h-4 text-amber-400" />
-                      <span className="font-bold text-amber-300 text-sm">Classic Mode</span>
+                      <span className="font-extrabold text-amber-300 text-sm">Classic Mode</span>
                     </div>
-                    <span className="text-xs font-mono font-black text-white">Lvl {classicLevelInfo.level}</span>
+                    <span className="text-xs font-mono font-black text-white bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/30">
+                      Lvl {classicLevelInfo.level}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between text-xs text-purple-300 font-mono">
                     <span>{classicXp.toLocaleString()} XP</span>
@@ -651,14 +647,16 @@ export const ProfileDashboard: React.FC<ProfileDashboardProps> = ({ user, onBack
                   </div>
                 </div>
 
-                {/* Modern Mode XP */}
-                <div className="bg-[#12072B] border border-yellow-500/40 p-4 rounded-2xl space-y-2">
+                {/* Modern Mode XP Slide */}
+                <div className="bg-[#12072B] border border-yellow-500/40 p-4 rounded-2xl space-y-2.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Crown className="w-4 h-4 text-yellow-400" />
-                      <span className="font-bold text-yellow-300 text-sm">Modern Mode</span>
+                      <span className="font-extrabold text-yellow-300 text-sm">Modern Mode</span>
                     </div>
-                    <span className="text-xs font-mono font-black text-white">Lvl {modernLevelInfo.level}</span>
+                    <span className="text-xs font-mono font-black text-white bg-yellow-500/20 px-2 py-0.5 rounded border border-yellow-500/30">
+                      Lvl {modernLevelInfo.level}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between text-xs text-purple-300 font-mono">
                     <span>{modernXp.toLocaleString()} XP</span>
@@ -672,14 +670,16 @@ export const ProfileDashboard: React.FC<ProfileDashboardProps> = ({ user, onBack
                   </div>
                 </div>
 
-                {/* Detective Challenge XP */}
-                <div className="bg-[#12072B] border border-cyan-500/40 p-4 rounded-2xl space-y-2">
+                {/* Detective Challenge XP Slide */}
+                <div className="bg-[#12072B] border border-cyan-500/40 p-4 rounded-2xl space-y-2.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Search className="w-4 h-4 text-cyan-400" />
-                      <span className="font-bold text-cyan-300 text-sm">Detective Challenge</span>
+                      <span className="font-extrabold text-cyan-300 text-sm">Detective Challenge</span>
                     </div>
-                    <span className="text-xs font-mono font-black text-white">Lvl {detectiveLevelInfo.level}</span>
+                    <span className="text-xs font-mono font-black text-white bg-cyan-500/20 px-2 py-0.5 rounded border border-cyan-500/30">
+                      Lvl {detectiveLevelInfo.level}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between text-xs text-purple-300 font-mono">
                     <span>{detectiveXp.toLocaleString()} XP</span>
@@ -692,301 +692,708 @@ export const ProfileDashboard: React.FC<ProfileDashboardProps> = ({ user, onBack
                     />
                   </div>
                 </div>
-              </div>
-            </div>
+              </MobileCarousel>
 
-            {/* Lifetime Statistics Box (Full Width 12 Cols) */}
-            <div className="bg-[#1A0C3B]/90 backdrop-blur-xl border border-[#3A1C61] rounded-3xl p-6 shadow-[0_10px_30px_rgba(0,0,0,0.5),0_0_20px_rgba(147,51,234,0.1)] space-y-4">
-              <div className="flex items-center justify-between border-b border-[#3A1C61] pb-3">
-                <h3 className="text-lg font-bold text-white tracking-wide flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-fuchsia-400" />
-                  <span>Lifetime Statistics</span>
-                </h3>
-                <span className="text-xs font-semibold text-purple-300 bg-[#12072B] border border-[#3A1C61] px-3 py-1 rounded-full">
-                  Overall Career
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-                <div className="bg-[#12072B] hover:bg-[#160836] border border-[#3A1C61] hover:border-[#5A2C81] rounded-2xl p-3.5 text-center transition-all shadow-sm">
-                  <p className="text-[11px] font-semibold text-purple-300 mb-1 truncate">Games Played</p>
-                  <div className="w-8 h-8 mx-auto rounded-xl bg-purple-900/40 border border-purple-500/30 flex items-center justify-center text-purple-300 mb-1.5">
-                    <Gamepad2 className="w-4 h-4" />
+              {/* Mobile Carousel 3: Lifetime Career Statistics */}
+              <MobileCarousel
+                title="Lifetime Statistics"
+                icon={<BarChart3 className="w-5 h-5 text-fuchsia-400" />}
+              >
+                {/* Slide 1: Match Performance Stats */}
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div className="bg-[#12072B] border border-[#3A1C61] p-3 rounded-2xl text-center space-y-1">
+                    <p className="text-[11px] font-semibold text-purple-300">Games Played</p>
+                    <p className="text-xl font-extrabold text-white">{overallStats.gamesPlayed || 0}</p>
                   </div>
-                  <p className="text-xl font-extrabold text-white">{overallStats.gamesPlayed || 0}</p>
-                </div>
-
-                <div className="bg-[#12072B] hover:bg-[#160836] border border-[#3A1C61] hover:border-emerald-500/40 rounded-2xl p-3.5 text-center transition-all shadow-sm">
-                  <p className="text-[11px] font-semibold text-emerald-400 mb-1 truncate">Games Won</p>
-                  <div className="w-8 h-8 mx-auto rounded-xl bg-emerald-900/40 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-1.5">
-                    <Trophy className="w-4 h-4" />
+                  <div className="bg-[#12072B] border border-emerald-500/40 p-3 rounded-2xl text-center space-y-1">
+                    <p className="text-[11px] font-semibold text-emerald-400">Games Won</p>
+                    <p className="text-xl font-extrabold text-emerald-300">{overallStats.gamesWon || 0}</p>
                   </div>
-                  <p className="text-xl font-extrabold text-white">{overallStats.gamesWon || 0}</p>
-                </div>
-
-                <div className="bg-[#12072B] hover:bg-[#160836] border border-[#3A1C61] hover:border-red-500/40 rounded-2xl p-3.5 text-center transition-all shadow-sm">
-                  <p className="text-[11px] font-semibold text-red-400 mb-1 truncate">Games Lost</p>
-                  <div className="w-8 h-8 mx-auto rounded-xl bg-red-900/40 border border-red-500/30 flex items-center justify-center text-red-400 mb-1.5">
-                    <Frown className="w-4 h-4" />
+                  <div className="bg-[#12072B] border border-red-500/40 p-3 rounded-2xl text-center space-y-1">
+                    <p className="text-[11px] font-semibold text-red-400">Games Lost</p>
+                    <p className="text-xl font-extrabold text-red-300">{overallStats.gamesLost || 0}</p>
                   </div>
-                  <p className="text-xl font-extrabold text-white">{overallStats.gamesLost || 0}</p>
-                </div>
-
-                <div className="bg-[#12072B] hover:bg-[#160836] border border-[#3A1C61] hover:border-cyan-500/40 rounded-2xl p-3.5 text-center transition-all shadow-sm">
-                  <p className="text-[11px] font-semibold text-cyan-400 mb-1 truncate">Win Rate</p>
-                  <div className="w-8 h-8 mx-auto rounded-xl bg-cyan-900/40 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-1.5">
-                    <Target className="w-4 h-4" />
+                  <div className="bg-[#12072B] border border-cyan-500/40 p-3 rounded-2xl text-center space-y-1">
+                    <p className="text-[11px] font-semibold text-cyan-400">Win Rate</p>
+                    <p className="text-xl font-extrabold text-cyan-300">{overallStats.winRate || 0}%</p>
                   </div>
-                  <p className="text-xl font-extrabold text-white">{overallStats.winRate || 0}%</p>
                 </div>
 
-                <div className="bg-[#12072B] hover:bg-[#160836] border border-[#3A1C61] hover:border-amber-500/40 rounded-2xl p-3.5 text-center transition-all shadow-sm">
-                  <p className="text-[11px] font-semibold text-purple-300 mb-1 truncate">Total Rounds</p>
-                  <div className="w-8 h-8 mx-auto rounded-xl bg-amber-900/40 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-1.5">
-                    <RotateCw className="w-4 h-4" />
+                {/* Slide 2: Streaks & Play Time */}
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div className="bg-[#12072B] border border-amber-500/40 p-3 rounded-2xl text-center space-y-1">
+                    <p className="text-[11px] font-semibold text-amber-300">Total Rounds</p>
+                    <p className="text-xl font-extrabold text-white">{overallStats.totalRoundsPlayed || 0}</p>
                   </div>
-                  <p className="text-xl font-extrabold text-white">{overallStats.totalRoundsPlayed || 0}</p>
-                </div>
-
-                <div className="bg-[#12072B] hover:bg-[#160836] border border-[#3A1C61] hover:border-blue-500/40 rounded-2xl p-3.5 text-center transition-all shadow-sm">
-                  <p className="text-[11px] font-semibold text-purple-300 mb-1 truncate">Play Time</p>
-                  <div className="w-8 h-8 mx-auto rounded-xl bg-blue-900/40 border border-blue-500/30 flex items-center justify-center text-blue-400 mb-1.5">
-                    <Clock className="w-4 h-4" />
+                  <div className="bg-[#12072B] border border-blue-500/40 p-3 rounded-2xl text-center space-y-1">
+                    <p className="text-[11px] font-semibold text-blue-400">Play Time</p>
+                    <p className="text-base font-extrabold text-white">{formatPlayTime(overallStats.totalPlayTime || 0)}</p>
                   </div>
-                  <p className="text-xl font-extrabold text-white">{formatPlayTime(overallStats.totalPlayTime || 0)}</p>
-                </div>
-
-                <div className="bg-[#12072B] hover:bg-[#160836] border border-[#3A1C61] hover:border-orange-500/40 rounded-2xl p-3.5 text-center transition-all shadow-sm">
-                  <p className="text-[11px] font-semibold text-purple-300 mb-1 truncate">Win Streak</p>
-                  <div className="w-8 h-8 mx-auto rounded-xl bg-orange-900/40 border border-orange-500/30 flex items-center justify-center text-orange-400 mb-1.5">
-                    <Flame className="w-4 h-4" />
+                  <div className="bg-[#12072B] border border-orange-500/40 p-3 rounded-2xl text-center space-y-1">
+                    <p className="text-[11px] font-semibold text-orange-400">Current Streak</p>
+                    <p className="text-xl font-extrabold text-orange-300">{overallStats.currentWinStreak || 0}</p>
                   </div>
-                  <p className="text-xl font-extrabold text-white">{overallStats.currentWinStreak || 0}</p>
-                </div>
-
-                <div className="bg-[#12072B] hover:bg-[#160836] border border-[#3A1C61] hover:border-fuchsia-500/40 rounded-2xl p-3.5 text-center transition-all shadow-sm">
-                  <p className="text-[11px] font-semibold text-purple-300 mb-1 truncate">Best Streak</p>
-                  <div className="w-8 h-8 mx-auto rounded-xl bg-purple-900/40 border border-fuchsia-500/30 flex items-center justify-center text-fuchsia-400 mb-1.5">
-                    <Crown className="w-4 h-4" />
+                  <div className="bg-[#12072B] border border-fuchsia-500/40 p-3 rounded-2xl text-center space-y-1">
+                    <p className="text-[11px] font-semibold text-fuchsia-400">Best Streak</p>
+                    <p className="text-xl font-extrabold text-fuchsia-300">{overallStats.longestWinStreak || 0}</p>
                   </div>
-                  <p className="text-xl font-extrabold text-white">{overallStats.longestWinStreak || 0}</p>
                 </div>
-              </div>
-            </div>
+              </MobileCarousel>
 
-            {/* Mode Performance & Personal Records (Full Width 12 Cols Showcase) */}
-            <div className="bg-[#1A0C3B]/90 backdrop-blur-xl border border-[#3A1C61] rounded-3xl p-6 shadow-[0_10px_30px_rgba(0,0,0,0.5),0_0_20px_rgba(147,51,234,0.1)] space-y-5">
-              <div className="flex items-center justify-between border-b border-[#3A1C61] pb-3">
-                <div>
-                  <h3 className="text-lg font-bold text-white tracking-wide flex items-center gap-2">
-                    <Award className="w-5 h-5 text-yellow-400" />
-                    <span>Mode Performance & Records</span>
-                  </h3>
-                  <p className="text-xs text-purple-300 mt-0.5">
-                    Mode highlights and peak stats across Classic, Modern & Detective Challenge
-                  </p>
-                </div>
-                <button
-                  onClick={() => setActiveTab('records')}
-                  className="text-xs font-bold text-purple-200 hover:text-white bg-[#12072B] hover:bg-[#2A1154] border border-[#3A1C61] px-4 py-2 rounded-xl transition-all shadow-md shrink-0 cursor-pointer"
-                >
-                  View All Records →
-                </button>
-              </div>
-
-              {/* 3 Spacious Mode Cards Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                {/* Classic Mode Card */}
-                <div className="bg-[#12072B] hover:bg-[#160836] border border-amber-500/30 hover:border-amber-400/60 rounded-2xl p-5 flex flex-col justify-between shadow-lg transition-all duration-300">
-                  <div className="flex items-center justify-between mb-4 border-b border-[#251245] pb-3">
+              {/* Mobile Carousel 4: Mode Performance & Records */}
+              <MobileCarousel
+                title="Mode Records"
+                icon={<Award className="w-5 h-5 text-yellow-400" />}
+                actionButton={
+                  <button
+                    onClick={() => setActiveTab('records')}
+                    className="text-[11px] font-bold text-purple-200 hover:text-white bg-[#12072B] border border-[#3A1C61] px-2.5 py-1 rounded-xl transition-all"
+                  >
+                    View All →
+                  </button>
+                }
+              >
+                {/* Classic Mode Record Slide */}
+                <div className="bg-[#12072B] border border-amber-500/40 p-4 rounded-2xl space-y-2.5">
+                  <div className="flex items-center justify-between border-b border-[#251245] pb-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
-                        <Crown className="w-4 h-4" />
-                      </div>
-                      <span className="font-extrabold text-amber-400 text-base tracking-wide">Classic Mode</span>
+                      <Crown className="w-4 h-4 text-amber-400" />
+                      <span className="font-extrabold text-amber-400 text-sm">Classic Mode</span>
                     </div>
-                    <span className="text-[10px] font-bold text-amber-300 bg-amber-950/80 px-2.5 py-1 rounded-full border border-amber-500/40 uppercase tracking-wider shrink-0">
+                    <span className="text-[9px] font-bold text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded border border-amber-500/40 uppercase">
                       Points
                     </span>
                   </div>
-                  <div className="space-y-3 text-xs">
-                    <div className="flex items-center justify-between border-b border-[#251245]/50 pb-2">
-                      <span className="text-purple-300 font-medium">Highest Match Score</span>
-                      <span className="font-extrabold text-yellow-400 text-sm">+{classicMode.highestScore || 0}</span>
-                    </div>
-                    <div className="flex items-center justify-between border-b border-[#251245]/50 pb-2">
-                      <span className="text-purple-300 font-medium">Classic Wins</span>
-                      <span className="font-extrabold text-emerald-400 text-sm">{classicMode.gamesWon || classicMode.wins || 0}</span>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-purple-300">Highest Score</span>
+                      <span className="font-extrabold text-yellow-400">+{classicMode.highestScore || 0}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-purple-300 font-medium">Classic Win Rate</span>
-                      <span className="font-bold text-cyan-400 text-sm">
+                      <span className="text-purple-300">Classic Wins</span>
+                      <span className="font-extrabold text-emerald-400">{classicMode.gamesWon || classicMode.wins || 0}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-purple-300">Win Rate</span>
+                      <span className="font-bold text-cyan-400">
                         {classicMode.gamesPlayed ? Math.round(((classicMode.gamesWon || 0) / classicMode.gamesPlayed) * 100) : (classicMode.winRate || 0)}%
                       </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Modern Mode Card */}
-                <div className="bg-[#12072B] hover:bg-[#160836] border border-yellow-500/30 hover:border-yellow-400/60 rounded-2xl p-5 flex flex-col justify-between shadow-lg transition-all duration-300">
-                  <div className="flex items-center justify-between mb-4 border-b border-[#251245] pb-3">
+                {/* Modern Mode Record Slide */}
+                <div className="bg-[#12072B] border border-yellow-500/40 p-4 rounded-2xl space-y-2.5">
+                  <div className="flex items-center justify-between border-b border-[#251245] pb-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-xl bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center text-yellow-400">
-                        <Crown className="w-4 h-4" />
-                      </div>
-                      <span className="font-extrabold text-yellow-400 text-base tracking-wide">Modern Mode</span>
+                      <Crown className="w-4 h-4 text-yellow-400" />
+                      <span className="font-extrabold text-yellow-400 text-sm">Modern Mode</span>
                     </div>
-                    <span className="text-[10px] font-bold text-yellow-300 bg-yellow-950/80 px-2.5 py-1 rounded-full border border-yellow-500/40 uppercase tracking-wider shrink-0">
+                    <span className="text-[9px] font-bold text-yellow-300 bg-yellow-950/80 px-2 py-0.5 rounded border border-yellow-500/40 uppercase">
                       Kingdom
                     </span>
                   </div>
-                  <div className="space-y-3 text-xs">
-                    <div className="flex items-center justify-between border-b border-[#251245]/50 pb-2">
-                      <span className="text-purple-300 font-medium">Highest Kingdom Score</span>
-                      <span className="font-extrabold text-yellow-400 text-sm">+{modernMode.highestScore || 0}</span>
-                    </div>
-                    <div className="flex items-center justify-between border-b border-[#251245]/50 pb-2">
-                      <span className="text-purple-300 font-medium">Kingdom Wins</span>
-                      <span className="font-extrabold text-emerald-400 text-sm">{modernMode.gamesWon || 0}</span>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-purple-300">Highest Score</span>
+                      <span className="font-extrabold text-yellow-400">+{modernMode.highestScore || 0}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-purple-300 font-medium">Longest Win Streak</span>
-                      <span className="font-bold text-cyan-400 text-sm">{modernMode.longestWinStreak || 0}</span>
+                      <span className="text-purple-300">Kingdom Wins</span>
+                      <span className="font-extrabold text-emerald-400">{modernMode.gamesWon || 0}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-purple-300">Longest Streak</span>
+                      <span className="font-bold text-cyan-400">{modernMode.longestWinStreak || 0}</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Detective Challenge Mode Card */}
-                <div className="bg-[#12072B] hover:bg-[#160836] border border-cyan-500/30 hover:border-cyan-400/60 rounded-2xl p-5 flex flex-col justify-between shadow-lg transition-all duration-300">
-                  <div className="flex items-center justify-between mb-4 border-b border-[#251245] pb-3">
+                {/* Detective Challenge Record Slide */}
+                <div className="bg-[#12072B] border border-cyan-500/40 p-4 rounded-2xl space-y-2.5">
+                  <div className="flex items-center justify-between border-b border-[#251245] pb-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-                        <Search className="w-4 h-4" />
-                      </div>
-                      <span className="font-extrabold text-cyan-300 text-base tracking-wide">Detective Challenge</span>
+                      <Search className="w-4 h-4 text-cyan-400" />
+                      <span className="font-extrabold text-cyan-300 text-sm">Detective Challenge</span>
                     </div>
-                    <span className="text-[10px] font-bold text-cyan-300 bg-cyan-950/80 px-2.5 py-1 rounded-full border border-cyan-500/40 uppercase tracking-wider shrink-0">
+                    <span className="text-[9px] font-bold text-cyan-300 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-500/40 uppercase">
                       Tactical
                     </span>
                   </div>
-                  <div className="space-y-3 text-xs">
-                    <div className="flex items-center justify-between border-b border-[#251245]/50 pb-2">
-                      <span className="text-purple-300 font-medium">Investigation Accuracy</span>
-                      <span className="font-extrabold text-emerald-400 text-sm">{detectiveChallenge.overallAccuracy || 0}%</span>
-                    </div>
-                    <div className="flex items-center justify-between border-b border-[#251245]/50 pb-2">
-                      <span className="text-purple-300 font-medium">Detective Wins</span>
-                      <span className="font-extrabold text-cyan-300 text-sm">{detectiveChallenge.gamesWon || 0}</span>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-purple-300">Accuracy</span>
+                      <span className="font-extrabold text-emerald-400">{detectiveChallenge.overallAccuracy || 0}%</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-purple-300 font-medium">Average Speed</span>
-                      <span className="font-bold text-yellow-300 text-sm">
+                      <span className="text-purple-300">Detective Wins</span>
+                      <span className="font-extrabold text-cyan-300">{detectiveChallenge.gamesWon || 0}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-purple-300">Avg Speed</span>
+                      <span className="font-bold text-yellow-300">
                         {detectiveChallenge.averageGuessTime ? `${detectiveChallenge.averageGuessTime.toFixed(2)}s` : "—"}
                       </span>
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              </MobileCarousel>
 
-            {/* Role Summary Box (Full 12-Col Showcase) */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              <div className="lg:col-span-12 bg-[#1A0C3B]/90 backdrop-blur-xl border border-[#3A1C61] rounded-3xl p-6 shadow-[0_10px_30px_rgba(0,0,0,0.5),0_0_20px_rgba(147,51,234,0.1)] flex flex-col justify-between">
-                <div className="flex items-center justify-between mb-5">
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-lg sm:text-xl font-bold text-white tracking-wide">Role Performance & Summary</h3>
-                  </div>
+              {/* Mobile Carousel 5: Role Performance Matrix */}
+              <MobileCarousel
+                title="Role Performance"
+                icon={<Users className="w-5 h-5 text-blue-400" />}
+                actionButton={
                   <button
                     onClick={() => setActiveTab('roles')}
-                    className="text-xs font-bold text-purple-200 hover:text-white bg-[#12072B] hover:bg-[#2A1154] border border-[#3A1C61] hover:border-purple-400 px-4 py-1.5 rounded-full transition-all shadow-md shrink-0 cursor-pointer flex items-center gap-1.5"
+                    className="text-[11px] font-bold text-purple-200 hover:text-white bg-[#12072B] border border-[#3A1C61] px-2.5 py-1 rounded-xl transition-all"
                   >
-                    <span>View All</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
+                    View All →
+                  </button>
+                }
+              >
+                {/* Raja Slide */}
+                <div className="bg-[#12072B] border border-yellow-500/40 p-4 rounded-2xl flex flex-col items-center space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <img src="/assets/images/raja.png" alt="Raja" className="w-12 h-12 object-contain" />
+                    <div>
+                      <p className="font-extrabold text-yellow-400 text-base">Raja (King)</p>
+                      <p className="text-[10px] font-semibold text-yellow-600 uppercase">Monarch</p>
+                    </div>
+                  </div>
+                  <div className="w-full text-xs space-y-2 border-t border-[#2A134A] pt-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-purple-300">Times Assigned</span>
+                      <span className="font-extrabold text-white">{roleStats.raja?.timesAssigned || 0}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-purple-300">Total Points</span>
+                      <span className="font-extrabold text-yellow-400">+{roleStats.raja?.totalPoints || 0}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Police Slide */}
+                <div className="bg-[#12072B] border border-blue-500/40 p-4 rounded-2xl flex flex-col items-center space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <img src="/assets/images/police.png" alt="Police" className="w-12 h-12 object-contain" />
+                    <div>
+                      <p className="font-extrabold text-blue-400 text-base">Police (Detective)</p>
+                      <p className="text-[10px] font-semibold text-blue-600 uppercase">Law</p>
+                    </div>
+                  </div>
+                  <div className="w-full text-xs space-y-2 border-t border-[#2A134A] pt-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-purple-300">Times Assigned</span>
+                      <span className="font-extrabold text-white">{roleStats.police?.timesAssigned || policeMode.timesPlayedAsPolice || 0}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-purple-300">Correct Catches</span>
+                      <span className="font-extrabold text-emerald-400">{roleStats.police?.correctCatches || policeMode.totalCorrectCatches || 0}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-purple-300">Accuracy</span>
+                      <span className="font-extrabold text-cyan-400">{roleStats.police?.accuracy || policeMode.policeAccuracy || 0}%</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Thief Slide */}
+                <div className="bg-[#12072B] border border-emerald-500/40 p-4 rounded-2xl flex flex-col items-center space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <img src="/assets/images/thief.png" alt="Thief" className="w-12 h-12 object-contain" />
+                    <div>
+                      <p className="font-extrabold text-emerald-400 text-base">Thief (Rogue)</p>
+                      <p className="text-[10px] font-semibold text-emerald-600 uppercase">Shadow</p>
+                    </div>
+                  </div>
+                  <div className="w-full text-xs space-y-2 border-t border-[#2A134A] pt-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-purple-300">Times Assigned</span>
+                      <span className="font-extrabold text-white">{roleStats.thief?.timesAssigned || (policeMode.thiefEscaped + policeMode.thiefCaught) || 0}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-purple-300">Escaped</span>
+                      <span className="font-extrabold text-emerald-400">{roleStats.thief?.escaped || policeMode.thiefEscaped || 0}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-purple-300">Escape Rate</span>
+                      <span className="font-extrabold text-cyan-400">{roleStats.thief?.escapeRate || policeMode.escapeRate || 0}%</span>
+                    </div>
+                  </div>
+                </div>
+              </MobileCarousel>
+            </div>
+
+            {/* DESKTOP GRID VIEW (Visible on tablet & desktop screens >= sm) */}
+            <div className="hidden space-y-6 sm:block">
+              {/* Top Grid: User Info Banner + Quick Stats */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* User Info Banner Card (7 Cols) */}
+                <div className="lg:col-span-7 bg-[#1A0C3B]/90 backdrop-blur-xl border border-[#3A1C61] rounded-3xl p-6 shadow-[0_10px_30px_rgba(0,0,0,0.5),0_0_20px_rgba(147,51,234,0.15)] flex flex-col sm:flex-row items-center justify-between gap-6 relative overflow-hidden">
+                  <div className="space-y-4 text-xs sm:text-sm text-purple-200 text-center sm:text-left">
+                    <div className="flex items-center gap-2.5 justify-center sm:justify-start">
+                      <Calendar className="w-4 h-4 text-purple-400 shrink-0" />
+                      <div>
+                        <p className="text-purple-400 text-[11px] font-medium">Join Date</p>
+                        <p className="font-semibold text-white">{formatDateTime(stats.joinDate)}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2.5 justify-center sm:justify-start">
+                      <Clock className="w-4 h-4 text-purple-400 shrink-0" />
+                      <div>
+                        <p className="text-purple-400 text-[11px] font-medium">Last Played</p>
+                        <p className="font-semibold text-white">{formatDateTime(stats.lastPlayedDate)}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Level Badge Center Shield */}
+                  <div className="flex flex-col items-center justify-center">
+                    <div className="relative w-24 h-24 flex items-center justify-center mb-2">
+                      <div className="absolute inset-0 rounded-full bg-gradient-to-br from-yellow-400/20 to-amber-600/10 animate-pulse" />
+                      {/* Golden Crest */}
+                      <div className="w-20 h-20 rounded-2xl bg-gradient-to-b from-[#4A2508] to-[#211003] border-2 border-yellow-400 rotate-45 flex items-center justify-center shadow-[0_0_20px_rgba(234,179,8,0.3)]">
+                        <div className="-rotate-45 text-center">
+                          <p className="text-[10px] font-extrabold tracking-widest text-yellow-300 uppercase">LEVEL</p>
+                          <p className="text-2xl font-black text-white title-font">{globalLevelInfo.level}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-xs font-bold text-purple-200 mb-1">
+                      {globalLevelInfo.xpInCurrentLevel.toLocaleString()} / {globalLevelInfo.xpNeededForNextLevel.toLocaleString()} XP
+                    </p>
+                    <div className="w-28 h-2 rounded-full bg-[#11052C] overflow-hidden p-0.5 border border-[#3A1C61]" title={`Total Lifetime XP: ${globalLevelInfo.xp.toLocaleString()} XP`}>
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-yellow-400 to-amber-500 transition-all duration-500"
+                        style={{ width: `${globalLevelInfo.progressPercent}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 text-xs sm:text-sm text-purple-200 text-center sm:text-right">
+                    <div>
+                      <p className="text-purple-400 text-[11px] font-medium">Username</p>
+                      <p className="font-bold text-yellow-400 text-base">{stats.username || user.username}</p>
+                    </div>
+                    <div className="flex items-center gap-2.5 justify-center sm:justify-end">
+                      <Clock className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <div>
+                        <p className="text-purple-400 text-[11px] font-medium">Total Play Time</p>
+                        <p className="font-semibold text-emerald-400">
+                          {formatPlayTime(overallStats.totalPlayTime || 0)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Stats Bar Card (5 Cols) */}
+                <div className="lg:col-span-5 bg-[#1A0C3B]/90 backdrop-blur-xl border border-[#3A1C61] rounded-3xl p-6 shadow-[0_10px_30px_rgba(0,0,0,0.5),0_0_20px_rgba(147,51,234,0.15)] flex items-center justify-around text-center">
+                  <div className="space-y-1">
+                    <div className="w-10 h-10 mx-auto rounded-xl bg-purple-900/40 border border-purple-500/30 flex items-center justify-center text-purple-300">
+                      <Gamepad2 className="w-5 h-5" />
+                    </div>
+                    <p className="text-xl font-extrabold text-white">{overallStats.gamesPlayed || 0}</p>
+                    <p className="text-xs text-purple-300 font-medium">Games Played</p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="w-10 h-10 mx-auto rounded-xl bg-emerald-900/40 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                      <Trophy className="w-5 h-5" />
+                    </div>
+                    <p className="text-xl font-extrabold text-white">{overallStats.gamesWon || 0}</p>
+                    <p className="text-xs text-purple-300 font-medium">Games Won</p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="w-10 h-10 mx-auto rounded-xl bg-red-900/40 border border-red-500/30 flex items-center justify-center text-red-400">
+                      <Frown className="w-5 h-5" />
+                    </div>
+                    <p className="text-xl font-extrabold text-white">{overallStats.gamesLost || 0}</p>
+                    <p className="text-xs text-purple-300 font-medium">Games Lost</p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="w-10 h-10 mx-auto rounded-xl bg-cyan-900/40 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                      <Target className="w-5 h-5" />
+                    </div>
+                    <p className="text-xl font-extrabold text-white">{overallStats.winRate || 0}%</p>
+                    <p className="text-xs text-purple-300 font-medium">Win Rate</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mode-Wise XP & Level Breakdown Showcase (3-Col Grid) */}
+              <div className="bg-[#1A0C3B]/90 backdrop-blur-xl border border-[#3A1C61] rounded-3xl p-6 shadow-[0_10px_30px_rgba(0,0,0,0.5),0_0_20px_rgba(147,51,234,0.1)] space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-bold text-white tracking-wide flex items-center gap-2">
+                    <Flame className="w-5 h-5 text-amber-400" />
+                    <span>Mode-Wise Level & XP Breakdown</span>
+                  </h3>
+                  <span className="text-xs font-extrabold text-amber-300 bg-amber-950/80 px-3 py-1 rounded-full border border-amber-500/40 font-mono">
+                    Combined Total XP: {totalXp.toLocaleString()} XP
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Classic Mode XP */}
+                  <div className="bg-[#12072B] border border-amber-500/40 p-4 rounded-2xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Crown className="w-4 h-4 text-amber-400" />
+                        <span className="font-bold text-amber-300 text-sm">Classic Mode</span>
+                      </div>
+                      <span className="text-xs font-mono font-black text-white">Lvl {classicLevelInfo.level}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-purple-300 font-mono">
+                      <span>{classicXp.toLocaleString()} XP</span>
+                      <span>{classicLevelInfo.xpInCurrentLevel} / {classicLevelInfo.xpNeededForNextLevel}</span>
+                    </div>
+                    <div className="w-full h-2 rounded-full bg-[#0A0217] overflow-hidden border border-amber-500/30">
+                      <div
+                        className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 transition-all duration-500"
+                        style={{ width: `${classicLevelInfo.progressPercent}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Modern Mode XP */}
+                  <div className="bg-[#12072B] border border-yellow-500/40 p-4 rounded-2xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Crown className="w-4 h-4 text-yellow-400" />
+                        <span className="font-bold text-yellow-300 text-sm">Modern Mode</span>
+                      </div>
+                      <span className="text-xs font-mono font-black text-white">Lvl {modernLevelInfo.level}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-purple-300 font-mono">
+                      <span>{modernXp.toLocaleString()} XP</span>
+                      <span>{modernLevelInfo.xpInCurrentLevel} / {modernLevelInfo.xpNeededForNextLevel}</span>
+                    </div>
+                    <div className="w-full h-2 rounded-full bg-[#0A0217] overflow-hidden border border-yellow-500/30">
+                      <div
+                        className="h-full bg-gradient-to-r from-yellow-500 to-amber-400 transition-all duration-500"
+                        style={{ width: `${modernLevelInfo.progressPercent}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Detective Challenge XP */}
+                  <div className="bg-[#12072B] border border-cyan-500/40 p-4 rounded-2xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Search className="w-4 h-4 text-cyan-400" />
+                        <span className="font-bold text-cyan-300 text-sm">Detective Challenge</span>
+                      </div>
+                      <span className="text-xs font-mono font-black text-white">Lvl {detectiveLevelInfo.level}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-purple-300 font-mono">
+                      <span>{detectiveXp.toLocaleString()} XP</span>
+                      <span>{detectiveLevelInfo.xpInCurrentLevel} / {detectiveLevelInfo.xpNeededForNextLevel}</span>
+                    </div>
+                    <div className="w-full h-2 rounded-full bg-[#0A0217] overflow-hidden border border-cyan-500/30">
+                      <div
+                        className="h-full bg-gradient-to-r from-cyan-500 to-blue-400 transition-all duration-500"
+                        style={{ width: `${detectiveLevelInfo.progressPercent}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Lifetime Statistics Box (Full Width 12 Cols) */}
+              <div className="bg-[#1A0C3B]/90 backdrop-blur-xl border border-[#3A1C61] rounded-3xl p-6 shadow-[0_10px_30px_rgba(0,0,0,0.5),0_0_20px_rgba(147,51,234,0.1)] space-y-4">
+                <div className="flex items-center justify-between border-b border-[#3A1C61] pb-3">
+                  <h3 className="text-lg font-bold text-white tracking-wide flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5 text-fuchsia-400" />
+                    <span>Lifetime Statistics</span>
+                  </h3>
+                  <span className="text-xs font-semibold text-purple-300 bg-[#12072B] border border-[#3A1C61] px-3 py-1 rounded-full">
+                    Overall Career
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+                  <div className="bg-[#12072B] hover:bg-[#160836] border border-[#3A1C61] hover:border-[#5A2C81] rounded-2xl p-3.5 text-center transition-all shadow-sm">
+                    <p className="text-[11px] font-semibold text-purple-300 mb-1 truncate">Games Played</p>
+                    <div className="w-8 h-8 mx-auto rounded-xl bg-purple-900/40 border border-purple-500/30 flex items-center justify-center text-purple-300 mb-1.5">
+                      <Gamepad2 className="w-4 h-4" />
+                    </div>
+                    <p className="text-xl font-extrabold text-white">{overallStats.gamesPlayed || 0}</p>
+                  </div>
+
+                  <div className="bg-[#12072B] hover:bg-[#160836] border border-[#3A1C61] hover:border-emerald-500/40 rounded-2xl p-3.5 text-center transition-all shadow-sm">
+                    <p className="text-[11px] font-semibold text-emerald-400 mb-1 truncate">Games Won</p>
+                    <div className="w-8 h-8 mx-auto rounded-xl bg-emerald-900/40 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-1.5">
+                      <Trophy className="w-4 h-4" />
+                    </div>
+                    <p className="text-xl font-extrabold text-white">{overallStats.gamesWon || 0}</p>
+                  </div>
+
+                  <div className="bg-[#12072B] hover:bg-[#160836] border border-[#3A1C61] hover:border-red-500/40 rounded-2xl p-3.5 text-center transition-all shadow-sm">
+                    <p className="text-[11px] font-semibold text-red-400 mb-1 truncate">Games Lost</p>
+                    <div className="w-8 h-8 mx-auto rounded-xl bg-red-900/40 border border-red-500/30 flex items-center justify-center text-red-400 mb-1.5">
+                      <Frown className="w-4 h-4" />
+                    </div>
+                    <p className="text-xl font-extrabold text-white">{overallStats.gamesLost || 0}</p>
+                  </div>
+
+                  <div className="bg-[#12072B] hover:bg-[#160836] border border-[#3A1C61] hover:border-cyan-500/40 rounded-2xl p-3.5 text-center transition-all shadow-sm">
+                    <p className="text-[11px] font-semibold text-cyan-400 mb-1 truncate">Win Rate</p>
+                    <div className="w-8 h-8 mx-auto rounded-xl bg-cyan-900/40 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-1.5">
+                      <Target className="w-4 h-4" />
+                    </div>
+                    <p className="text-xl font-extrabold text-white">{overallStats.winRate || 0}%</p>
+                  </div>
+
+                  <div className="bg-[#12072B] hover:bg-[#160836] border border-[#3A1C61] hover:border-amber-500/40 rounded-2xl p-3.5 text-center transition-all shadow-sm">
+                    <p className="text-[11px] font-semibold text-purple-300 mb-1 truncate">Total Rounds</p>
+                    <div className="w-8 h-8 mx-auto rounded-xl bg-amber-900/40 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-1.5">
+                      <RotateCw className="w-4 h-4" />
+                    </div>
+                    <p className="text-xl font-extrabold text-white">{overallStats.totalRoundsPlayed || 0}</p>
+                  </div>
+
+                  <div className="bg-[#12072B] hover:bg-[#160836] border border-[#3A1C61] hover:border-blue-500/40 rounded-2xl p-3.5 text-center transition-all shadow-sm">
+                    <p className="text-[11px] font-semibold text-purple-300 mb-1 truncate">Play Time</p>
+                    <div className="w-8 h-8 mx-auto rounded-xl bg-blue-900/40 border border-blue-500/30 flex items-center justify-center text-blue-400 mb-1.5">
+                      <Clock className="w-4 h-4" />
+                    </div>
+                    <p className="text-xl font-extrabold text-white">{formatPlayTime(overallStats.totalPlayTime || 0)}</p>
+                  </div>
+
+                  <div className="bg-[#12072B] hover:bg-[#160836] border border-[#3A1C61] hover:border-orange-500/40 rounded-2xl p-3.5 text-center transition-all shadow-sm">
+                    <p className="text-[11px] font-semibold text-purple-300 mb-1 truncate">Win Streak</p>
+                    <div className="w-8 h-8 mx-auto rounded-xl bg-orange-900/40 border border-orange-500/30 flex items-center justify-center text-orange-400 mb-1.5">
+                      <Flame className="w-4 h-4" />
+                    </div>
+                    <p className="text-xl font-extrabold text-white">{overallStats.currentWinStreak || 0}</p>
+                  </div>
+
+                  <div className="bg-[#12072B] hover:bg-[#160836] border border-[#3A1C61] hover:border-fuchsia-500/40 rounded-2xl p-3.5 text-center transition-all shadow-sm">
+                    <p className="text-[11px] font-semibold text-purple-300 mb-1 truncate">Best Streak</p>
+                    <div className="w-8 h-8 mx-auto rounded-xl bg-purple-900/40 border border-fuchsia-500/30 flex items-center justify-center text-fuchsia-400 mb-1.5">
+                      <Crown className="w-4 h-4" />
+                    </div>
+                    <p className="text-xl font-extrabold text-white">{overallStats.longestWinStreak || 0}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mode Performance & Personal Records (Full Width 12 Cols Showcase) */}
+              <div className="bg-[#1A0C3B]/90 backdrop-blur-xl border border-[#3A1C61] rounded-3xl p-6 shadow-[0_10px_30px_rgba(0,0,0,0.5),0_0_20px_rgba(147,51,234,0.1)] space-y-5">
+                <div className="flex items-center justify-between border-b border-[#3A1C61] pb-3">
+                  <div>
+                    <h3 className="text-lg font-bold text-white tracking-wide flex items-center gap-2">
+                      <Award className="w-5 h-5 text-yellow-400" />
+                      <span>Mode Performance & Records</span>
+                    </h3>
+                    <p className="text-xs text-purple-300 mt-0.5">
+                      Mode highlights and peak stats across Classic, Modern & Detective Challenge
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('records')}
+                    className="text-xs font-bold text-purple-200 hover:text-white bg-[#12072B] hover:bg-[#2A1154] border border-[#3A1C61] px-4 py-2 rounded-xl transition-all shadow-md shrink-0 cursor-pointer"
+                  >
+                    View All Records →
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {/* Raja Card */}
-                  <div className="bg-[#12072B] hover:bg-[#160836] border border-yellow-500/40 hover:border-yellow-400 rounded-2xl p-4 sm:p-5 flex flex-col justify-between shadow-[0_0_15px_rgba(234,179,8,0.12)] transition-all duration-300">
-                    <div className="flex flex-col items-center mb-3">
-                      <div className="p-1.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 mb-2">
-                        <img src="/assets/images/raja.png" alt="Raja" className="w-14 h-14 object-contain" />
+                {/* 3 Spacious Mode Cards Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                  {/* Classic Mode Card */}
+                  <div className="bg-[#12072B] hover:bg-[#160836] border border-amber-500/30 hover:border-amber-400/60 rounded-2xl p-5 flex flex-col justify-between shadow-lg transition-all duration-300">
+                    <div className="flex items-center justify-between mb-4 border-b border-[#251245] pb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                          <Crown className="w-4 h-4" />
+                        </div>
+                        <span className="font-extrabold text-amber-400 text-base tracking-wide">Classic Mode</span>
                       </div>
-                      <p className="font-extrabold text-yellow-400 text-base tracking-wide">Raja</p>
-                      <p className="text-[10px] font-semibold text-yellow-600 uppercase tracking-widest">King</p>
+                      <span className="text-[10px] font-bold text-amber-300 bg-amber-950/80 px-2.5 py-1 rounded-full border border-amber-500/40 uppercase tracking-wider shrink-0">
+                        Points
+                      </span>
                     </div>
-                    <div className="w-full text-xs space-y-2 pt-3 border-t border-[#2A134A]">
-                      <div className="flex items-center justify-between">
-                        <span className="text-purple-300 font-medium text-[11px] sm:text-xs truncate">Times Assigned</span>
-                        <span className="font-extrabold text-white text-xs sm:text-sm whitespace-nowrap">{roleStats.raja?.timesAssigned || 0}</span>
+                    <div className="space-y-3 text-xs">
+                      <div className="flex items-center justify-between border-b border-[#251245]/50 pb-2">
+                        <span className="text-purple-300 font-medium">Highest Match Score</span>
+                        <span className="font-extrabold text-yellow-400 text-sm">+{classicMode.highestScore || 0}</span>
+                      </div>
+                      <div className="flex items-center justify-between border-b border-[#251245]/50 pb-2">
+                        <span className="text-purple-300 font-medium">Classic Wins</span>
+                        <span className="font-extrabold text-emerald-400 text-sm">{classicMode.gamesWon || classicMode.wins || 0}</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-purple-300 font-medium text-[11px] sm:text-xs truncate">Total Points</span>
-                        <span className="font-extrabold text-yellow-400 text-xs sm:text-sm whitespace-nowrap">+{roleStats.raja?.totalPoints || 0}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Police Card */}
-                  <div className="bg-[#12072B] hover:bg-[#160836] border border-blue-500/40 hover:border-blue-400 rounded-2xl p-4 sm:p-5 flex flex-col justify-between shadow-[0_0_15px_rgba(59,130,246,0.12)] transition-all duration-300">
-                    <div className="flex flex-col items-center mb-3">
-                      <div className="p-1.5 rounded-2xl bg-blue-500/10 border border-blue-500/30 mb-2">
-                        <img src="/assets/images/police.png" alt="Police" className="w-14 h-14 object-contain" />
-                      </div>
-                      <p className="font-extrabold text-blue-400 text-base tracking-wide">Police</p>
-                      <p className="text-[10px] font-semibold text-blue-600 uppercase tracking-widest">Detective</p>
-                    </div>
-                    <div className="w-full text-xs space-y-2 pt-3 border-t border-[#2A134A]">
-                      <div className="flex items-center justify-between">
-                        <span className="text-purple-300 font-medium text-[11px] sm:text-xs truncate">Times Assigned</span>
-                        <span className="font-extrabold text-white text-xs sm:text-sm whitespace-nowrap">{roleStats.police?.timesAssigned || policeMode.timesPlayedAsPolice || 0}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-purple-300 font-medium text-[11px] sm:text-xs truncate">Correct Catches</span>
-                        <span className="font-extrabold text-emerald-400 text-xs sm:text-sm whitespace-nowrap">{roleStats.police?.correctCatches || policeMode.totalCorrectCatches || 0}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-purple-300 font-medium text-[11px] sm:text-xs truncate">Wrong Guesses</span>
-                        <span className="font-extrabold text-red-400 text-xs sm:text-sm whitespace-nowrap">{roleStats.police?.wrongGuesses || policeMode.totalWrongGuesses || 0}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-purple-300 font-medium text-[11px] sm:text-xs truncate">Accuracy</span>
-                        <span className="font-extrabold text-cyan-400 text-xs sm:text-sm whitespace-nowrap">{roleStats.police?.accuracy || policeMode.policeAccuracy || 0}%</span>
+                        <span className="text-purple-300 font-medium">Classic Win Rate</span>
+                        <span className="font-bold text-cyan-400 text-sm">
+                          {classicMode.gamesPlayed ? Math.round(((classicMode.gamesWon || 0) / classicMode.gamesPlayed) * 100) : (classicMode.winRate || 0)}%
+                        </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Thief Card */}
-                  <div className="bg-[#12072B] hover:bg-[#160836] border border-emerald-500/40 hover:border-emerald-400 rounded-2xl p-4 sm:p-5 flex flex-col justify-between shadow-[0_0_15px_rgba(16,185,129,0.12)] transition-all duration-300">
-                    <div className="flex flex-col items-center mb-3">
-                      <div className="p-1.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 mb-2">
-                        <img src="/assets/images/thief.png" alt="Thief" className="w-14 h-14 object-contain" />
+                  {/* Modern Mode Card */}
+                  <div className="bg-[#12072B] hover:bg-[#160836] border border-yellow-500/30 hover:border-yellow-400/60 rounded-2xl p-5 flex flex-col justify-between shadow-lg transition-all duration-300">
+                    <div className="flex items-center justify-between mb-4 border-b border-[#251245] pb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-xl bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center text-yellow-400">
+                          <Crown className="w-4 h-4" />
+                        </div>
+                        <span className="font-extrabold text-yellow-400 text-base tracking-wide">Modern Mode</span>
                       </div>
-                      <p className="font-extrabold text-emerald-400 text-base tracking-wide">Thief</p>
-                      <p className="text-[10px] font-semibold text-emerald-600 uppercase tracking-widest">Rogue</p>
+                      <span className="text-[10px] font-bold text-yellow-300 bg-yellow-950/80 px-2.5 py-1 rounded-full border border-yellow-500/40 uppercase tracking-wider shrink-0">
+                        Kingdom
+                      </span>
                     </div>
-                    <div className="w-full text-xs space-y-2 pt-3 border-t border-[#2A134A]">
-                      <div className="flex items-center justify-between">
-                        <span className="text-purple-300 font-medium text-[11px] sm:text-xs truncate">Times Assigned</span>
-                        <span className="font-extrabold text-white text-xs sm:text-sm whitespace-nowrap">{roleStats.thief?.timesAssigned || (policeMode.thiefEscaped + policeMode.thiefCaught) || 0}</span>
+                    <div className="space-y-3 text-xs">
+                      <div className="flex items-center justify-between border-b border-[#251245]/50 pb-2">
+                        <span className="text-purple-300 font-medium">Highest Kingdom Score</span>
+                        <span className="font-extrabold text-yellow-400 text-sm">+{modernMode.highestScore || 0}</span>
+                      </div>
+                      <div className="flex items-center justify-between border-b border-[#251245]/50 pb-2">
+                        <span className="text-purple-300 font-medium">Kingdom Wins</span>
+                        <span className="font-extrabold text-emerald-400 text-sm">{modernMode.gamesWon || 0}</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-purple-300 font-medium text-[11px] sm:text-xs truncate">Escaped</span>
-                        <span className="font-extrabold text-emerald-400 text-xs sm:text-sm whitespace-nowrap">{roleStats.thief?.escaped || policeMode.thiefEscaped || 0}</span>
+                        <span className="text-purple-300 font-medium">Longest Win Streak</span>
+                        <span className="font-bold text-cyan-400 text-sm">{modernMode.longestWinStreak || 0}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Detective Challenge Mode Card */}
+                  <div className="bg-[#12072B] hover:bg-[#160836] border border-cyan-500/30 hover:border-cyan-400/60 rounded-2xl p-5 flex flex-col justify-between shadow-lg transition-all duration-300">
+                    <div className="flex items-center justify-between mb-4 border-b border-[#251245] pb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                          <Search className="w-4 h-4" />
+                        </div>
+                        <span className="font-extrabold text-cyan-300 text-base tracking-wide">Detective Challenge</span>
+                      </div>
+                      <span className="text-[10px] font-bold text-cyan-300 bg-cyan-950/80 px-2.5 py-1 rounded-full border border-cyan-500/40 uppercase tracking-wider shrink-0">
+                        Tactical
+                      </span>
+                    </div>
+                    <div className="space-y-3 text-xs">
+                      <div className="flex items-center justify-between border-b border-[#251245]/50 pb-2">
+                        <span className="text-purple-300 font-medium">Investigation Accuracy</span>
+                        <span className="font-extrabold text-emerald-400 text-sm">{detectiveChallenge.overallAccuracy || 0}%</span>
+                      </div>
+                      <div className="flex items-center justify-between border-b border-[#251245]/50 pb-2">
+                        <span className="text-purple-300 font-medium">Detective Wins</span>
+                        <span className="font-extrabold text-cyan-300 text-sm">{detectiveChallenge.gamesWon || 0}</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-purple-300 font-medium text-[11px] sm:text-xs truncate">Caught</span>
-                        <span className="font-extrabold text-red-400 text-xs sm:text-sm whitespace-nowrap">{roleStats.thief?.caught || policeMode.thiefCaught || 0}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-purple-300 font-medium text-[11px] sm:text-xs truncate">Escape Rate</span>
-                        <span className="font-extrabold text-cyan-400 text-xs sm:text-sm whitespace-nowrap">{roleStats.thief?.escapeRate || policeMode.escapeRate || 0}%</span>
+                        <span className="text-purple-300 font-medium">Average Speed</span>
+                        <span className="font-bold text-yellow-300 text-sm">
+                          {detectiveChallenge.averageGuessTime ? `${detectiveChallenge.averageGuessTime.toFixed(2)}s` : "—"}
+                        </span>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
+
+              {/* Role Summary Box (Full 12-Col Showcase) */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div className="lg:col-span-12 bg-[#1A0C3B]/90 backdrop-blur-xl border border-[#3A1C61] rounded-3xl p-6 shadow-[0_10px_30px_rgba(0,0,0,0.5),0_0_20px_rgba(147,51,234,0.1)] flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-5">
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-lg sm:text-xl font-bold text-white tracking-wide">Role Performance & Summary</h3>
+                    </div>
+                    <button
+                      onClick={() => setActiveTab('roles')}
+                      className="text-xs font-bold text-purple-200 hover:text-white bg-[#12072B] hover:bg-[#2A1154] border border-[#3A1C61] hover:border-purple-400 px-4 py-1.5 rounded-full transition-all shadow-md shrink-0 cursor-pointer flex items-center gap-1.5"
+                    >
+                      <span>View All</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {/* Raja Card */}
+                    <div className="bg-[#12072B] hover:bg-[#160836] border border-yellow-500/40 hover:border-yellow-400 rounded-2xl p-4 sm:p-5 flex flex-col justify-between shadow-[0_0_15px_rgba(234,179,8,0.12)] transition-all duration-300">
+                      <div className="flex flex-col items-center mb-3">
+                        <div className="p-1.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 mb-2">
+                          <img src="/assets/images/raja.png" alt="Raja" className="w-14 h-14 object-contain" />
+                        </div>
+                        <p className="font-extrabold text-yellow-400 text-base tracking-wide">Raja</p>
+                        <p className="text-[10px] font-semibold text-yellow-600 uppercase tracking-widest">King</p>
+                      </div>
+                      <div className="w-full text-xs space-y-2 pt-3 border-t border-[#2A134A]">
+                        <div className="flex items-center justify-between">
+                          <span className="text-purple-300 font-medium text-[11px] sm:text-xs truncate">Times Assigned</span>
+                          <span className="font-extrabold text-white text-xs sm:text-sm whitespace-nowrap">{roleStats.raja?.timesAssigned || 0}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-purple-300 font-medium text-[11px] sm:text-xs truncate">Total Points</span>
+                          <span className="font-extrabold text-yellow-400 text-xs sm:text-sm whitespace-nowrap">+{roleStats.raja?.totalPoints || 0}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Police Card */}
+                    <div className="bg-[#12072B] hover:bg-[#160836] border border-blue-500/40 hover:border-blue-400 rounded-2xl p-4 sm:p-5 flex flex-col justify-between shadow-[0_0_15px_rgba(59,130,246,0.12)] transition-all duration-300">
+                      <div className="flex flex-col items-center mb-3">
+                        <div className="p-1.5 rounded-2xl bg-blue-500/10 border border-blue-500/30 mb-2">
+                          <img src="/assets/images/police.png" alt="Police" className="w-14 h-14 object-contain" />
+                        </div>
+                        <p className="font-extrabold text-blue-400 text-base tracking-wide">Police</p>
+                        <p className="text-[10px] font-semibold text-blue-600 uppercase tracking-widest">Detective</p>
+                      </div>
+                      <div className="w-full text-xs space-y-2 pt-3 border-t border-[#2A134A]">
+                        <div className="flex items-center justify-between">
+                          <span className="text-purple-300 font-medium text-[11px] sm:text-xs truncate">Times Assigned</span>
+                          <span className="font-extrabold text-white text-xs sm:text-sm whitespace-nowrap">{roleStats.police?.timesAssigned || policeMode.timesPlayedAsPolice || 0}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-purple-300 font-medium text-[11px] sm:text-xs truncate">Correct Catches</span>
+                          <span className="font-extrabold text-emerald-400 text-xs sm:text-sm whitespace-nowrap">{roleStats.police?.correctCatches || policeMode.totalCorrectCatches || 0}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-purple-300 font-medium text-[11px] sm:text-xs truncate">Wrong Guesses</span>
+                          <span className="font-extrabold text-red-400 text-xs sm:text-sm whitespace-nowrap">{roleStats.police?.wrongGuesses || policeMode.totalWrongGuesses || 0}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-purple-300 font-medium text-[11px] sm:text-xs truncate">Accuracy</span>
+                          <span className="font-extrabold text-cyan-400 text-xs sm:text-sm whitespace-nowrap">{roleStats.police?.accuracy || policeMode.policeAccuracy || 0}%</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Thief Card */}
+                    <div className="bg-[#12072B] hover:bg-[#160836] border border-emerald-500/40 hover:border-emerald-400 rounded-2xl p-4 sm:p-5 flex flex-col justify-between shadow-[0_0_15px_rgba(16,185,129,0.12)] transition-all duration-300">
+                      <div className="flex flex-col items-center mb-3">
+                        <div className="p-1.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 mb-2">
+                          <img src="/assets/images/thief.png" alt="Thief" className="w-14 h-14 object-contain" />
+                        </div>
+                        <p className="font-extrabold text-emerald-400 text-base tracking-wide">Thief</p>
+                        <p className="text-[10px] font-semibold text-emerald-600 uppercase tracking-widest">Rogue</p>
+                      </div>
+                      <div className="w-full text-xs space-y-2 pt-3 border-t border-[#2A134A]">
+                        <div className="flex items-center justify-between">
+                          <span className="text-purple-300 font-medium text-[11px] sm:text-xs truncate">Times Assigned</span>
+                          <span className="font-extrabold text-white text-xs sm:text-sm whitespace-nowrap">{roleStats.thief?.timesAssigned || (policeMode.thiefEscaped + policeMode.thiefCaught) || 0}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-purple-300 font-medium text-[11px] sm:text-xs truncate">Escaped</span>
+                          <span className="font-extrabold text-emerald-400 text-xs sm:text-sm whitespace-nowrap">{roleStats.thief?.escaped || policeMode.thiefEscaped || 0}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-purple-300 font-medium text-[11px] sm:text-xs truncate">Caught</span>
+                          <span className="font-extrabold text-red-400 text-xs sm:text-sm whitespace-nowrap">{roleStats.thief?.caught || policeMode.thiefCaught || 0}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-purple-300 font-medium text-[11px] sm:text-xs truncate">Escape Rate</span>
+                          <span className="font-extrabold text-cyan-400 text-xs sm:text-sm whitespace-nowrap">{roleStats.thief?.escapeRate || policeMode.escapeRate || 0}%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
             {/* Bottom Grid: Achievements + Recent Matches */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -1181,6 +1588,7 @@ export const ProfileDashboard: React.FC<ProfileDashboardProps> = ({ user, onBack
                   </div>
                 )}
               </div>
+            </div>
             </div>
 
             {/* Footer Quote */}

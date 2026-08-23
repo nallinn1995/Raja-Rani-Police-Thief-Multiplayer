@@ -14,6 +14,7 @@ import {
   KeyRound,
 } from "lucide-react";
 import { authService, User as UserType } from "../../services/authService";
+import { adminService } from "../../services/adminService";
 import { toast } from "react-toastify";
 
 interface AuthOverlayProps {
@@ -65,7 +66,24 @@ export const AuthOverlay: React.FC<AuthOverlayProps> = ({
       }
       setLoading(true);
       try {
-        const user = await authService.signIn(username.trim(), password);
+        let user: UserType;
+        try {
+          user = await authService.signIn(username.trim(), password);
+        } catch (signInErr: any) {
+          // Fallback check for admin bootstrap credentials or admin API login
+          const adminRes = await adminService.login(password, username.trim()).catch(() => null);
+          if (adminRes && adminRes.success) {
+            user = {
+              username: adminRes.admin?.username || username.trim() || "SuperAdmin",
+              role: "admin",
+              isGuest: false,
+              createdAt: new Date().toISOString(),
+            };
+            authService.setCurrentUser(user);
+          } else {
+            throw signInErr;
+          }
+        }
 
         if (rememberMe) {
           localStorage.setItem("remember_username", username.trim());

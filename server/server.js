@@ -59,6 +59,8 @@ import {
   clearAllMatches,
   broadcastSystemMessage,
   getModernModeAdminData,
+  getOrInitSystemConfig,
+  updateSystemConfigInDB,
 } from "./controllers/adminController.js";
 import {
   hashPassword,
@@ -113,6 +115,7 @@ async function formatUserResponse(userDoc) {
     username: userDoc.username,
     email: userDoc.email,
     isGuest: userDoc.isGuest,
+    role: userDoc.role || "user",
     avatar: avatar || "1",
     description: description || "",
     createdAt: userDoc.createdAt,
@@ -469,12 +472,20 @@ app.post("/api/admin/broadcast", (req, res) => {
   res.json({ success: true, message: "Broadcast sent" });
 });
 app.get("/api/admin/modern-mode/dashboard", getModernModeAdminData);
-app.get("/api/admin/config", (req, res) => {
-  res.json({ success: true, config: systemConfig });
+app.get("/api/config", async (req, res) => {
+  const config = await getOrInitSystemConfig();
+  res.json({ success: true, config });
 });
-app.put("/api/admin/config", (req, res) => {
-  Object.assign(systemConfig, req.body);
-  res.json({ success: true, config: systemConfig });
+app.get("/api/admin/config", async (req, res) => {
+  const config = await getOrInitSystemConfig();
+  res.json({ success: true, config });
+});
+app.put("/api/admin/config", async (req, res) => {
+  const updatedConfig = await updateSystemConfigInDB(req.body);
+  if (typeof io !== "undefined" && io) {
+    io.emit("system_config_updated", updatedConfig);
+  }
+  res.json({ success: true, config: updatedConfig });
 });
 
 const io = new SocketIoServer(server, {

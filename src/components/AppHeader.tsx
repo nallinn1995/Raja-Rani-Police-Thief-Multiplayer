@@ -9,6 +9,7 @@ interface AppHeaderProps {
   onOpenGameInfo?: () => void;
   onLogout?: () => void;
   onOpenDashboard?: () => void;
+  onOpenAdminDashboard?: () => void;
   onGoHome?: () => void;
 }
 
@@ -18,6 +19,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   onOpenGameInfo,
   onLogout,
   onOpenDashboard,
+  onOpenAdminDashboard,
   onGoHome,
 }) => {
   if (!currentUser) return null;
@@ -56,6 +58,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             user={currentUser}
             onLogout={onLogout || (() => {})}
             onOpenDashboard={onOpenDashboard || (() => {})}
+            onOpenAdminDashboard={onOpenAdminDashboard}
           />
         </div>
       </div>

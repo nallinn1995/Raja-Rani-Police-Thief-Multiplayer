@@ -6,6 +6,7 @@ export interface User {
   username: string;
   email?: string;
   isGuest: boolean;
+  role?: "user" | "admin";
   createdAt: string;
   avatar?: string;
   description?: string;

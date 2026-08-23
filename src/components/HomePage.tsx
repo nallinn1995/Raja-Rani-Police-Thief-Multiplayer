@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, BookOpen, SlidersHorizontal } from 'lucide-react';
+import { configService, FullSystemConfig } from '../services/configService';
 
 interface HomePageProps {
   onCreateRoom: () => void;
@@ -14,6 +15,12 @@ export const HomePage: React.FC<HomePageProps> = ({
   onBack,
   onOpenGameInfo,
 }) => {
+  const [config, setConfig] = useState<FullSystemConfig>(configService.getConfig());
+
+  useEffect(() => {
+    return configService.subscribe(setConfig);
+  }, []);
+
   return (
     <div
       className="min-h-screen w-full flex flex-col items-center justify-center p-3 sm:p-4 relative text-white font-sans bg-cover bg-center bg-no-repeat select-none overflow-y-auto"
@@ -46,7 +53,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           {/* Subtitle with Golden Arrow Flourishes */}
           <div className="flex items-center justify-center gap-2 mt-2 text-[#D8C7E0] text-[11px] sm:text-xs font-semibold tracking-wide">
             <span className="text-[#FFD700]">⇥</span>
-            <span>A thrilling multiplayer card game for 4 players</span>
+            <span>{config.screenTexts?.homePage?.welcomeSubtext || "A thrilling multiplayer card game for 4 players"}</span>
             <span className="text-[#FFD700]">⇤</span>
           </div>
         </div>

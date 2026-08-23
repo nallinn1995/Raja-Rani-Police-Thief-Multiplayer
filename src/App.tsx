@@ -24,6 +24,10 @@ import { profileService } from "./services/profileService";
 import { AuthOverlay } from "./components/auth/AuthOverlay";
 import { GameInfo } from "./components/GameInfo";
 import { ProfileDashboard } from "./components/ProfileDashboard";
+import { adminService } from "./services/adminService";
+import { AdminDashboard } from "./components/admin/AdminDashboard";
+import { AdminLoginModal } from "./components/admin/AdminLoginModal";
+import { configService } from "./services/configService";
 
 const SOCKET_URL = import.meta.env.VITE_SERVER_URL;
 
@@ -44,12 +48,14 @@ type AppState =
   | "result"
   | "leaderboard"
   | "game-info"
-  | "dashboard";
+  | "dashboard"
+  | "admin";
 
 function App() {
   //const socket = useSocket();
   const [appState, setAppState] = useState<AppState>("welcome");
   const [currentUser, setCurrentUser] = useState<UserType | null>(authService.getCurrentUser());
+  const [isAdminAuthed, setIsAdminAuthed] = useState<boolean>(adminService.isAdminLoggedIn());
 
   useEffect(() => {
     if (currentUser && !currentUser.isGuest) {
@@ -124,8 +130,13 @@ function App() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const roomParam = urlParams.get("room");
+    const pathname = window.location.pathname.toLowerCase();
+    const isAdminPath = pathname === "/admin" || pathname.startsWith("/admin") || urlParams.get("admin") !== null;
 
-    if (roomParam) {
+    if (isAdminPath) {
+      setAppState("admin");
+      sessionStorage.setItem("appState", "admin");
+    } else if (roomParam) {
       // User clicked an invite link. Clear any previous session so they can join the new room cleanly.
       sessionStorage.removeItem("roomCode");
       sessionStorage.removeItem("playerId");
@@ -400,8 +411,13 @@ useEffect(() => {
       // console.log("🔗 Sent rejoin request:", savedRoom, savedPlayer);
     };
 
+    const onSystemConfigUpdated = (newConfig: any) => {
+      configService.updateConfig(newConfig);
+    };
+
     // --- Register Listeners ---
     socket.on("connect", onConnect);
+    socket.on("system_config_updated", onSystemConfigUpdated);
     socket.on("room-state", onRoomState);
     socket.on("player-joined", onPlayerJoined);
     socket.on("game-started", onGameStarted);
@@ -425,6 +441,7 @@ useEffect(() => {
     // --- Cleanup Listeners ---
     return () => {
       socket.off("connect", onConnect);
+      socket.off("system_config_updated", onSystemConfigUpdated);
       socket.off("room-state", onRoomState);
       socket.off("player-joined", onPlayerJoined);
       socket.off("game-started", onGameStarted);
@@ -822,6 +839,8 @@ useEffect(() => {
           }}
           onLogout={() => {
             authService.logout();
+            adminService.logout();
+            setIsAdminAuthed(false);
             setCurrentUser(null);
             sessionStorage.setItem("appState", "welcome");
             setAppState("welcome");
@@ -830,6 +849,11 @@ useEffect(() => {
           onOpenDashboard={() => {
             sessionStorage.setItem("appState", "dashboard");
             setAppState("dashboard");
+          }}
+          onOpenAdminDashboard={() => {
+            setIsAdminAuthed(true);
+            sessionStorage.setItem("appState", "admin");
+            setAppState("admin");
           }}
         />
       )}
@@ -851,12 +875,21 @@ useEffect(() => {
                 }}
                 onLogout={() => {
                   authService.logout();
+                  adminService.logout();
+                  setIsAdminAuthed(false);
                   setCurrentUser(null);
+                  sessionStorage.setItem("appState", "welcome");
+                  setAppState("welcome");
                   toast.info("Logged out successfully");
                 }}
                 onOpenDashboard={() => {
                   sessionStorage.setItem("appState", "dashboard");
                   setAppState("dashboard");
+                }}
+                onOpenAdminDashboard={() => {
+                  setIsAdminAuthed(true);
+                  sessionStorage.setItem("appState", "admin");
+                  setAppState("admin");
                 }}
               />
             );
@@ -979,6 +1012,36 @@ useEffect(() => {
                 }}
               />
             ) : null;
+
+          case "admin":
+            if (isAdminAuthed || adminService.isAdminLoggedIn()) {
+              return (
+                <AdminDashboard
+                  onBackToApp={() => {
+                    window.history.pushState({}, "", "/");
+                    sessionStorage.setItem("appState", "welcome");
+                    setAppState("welcome");
+                  }}
+                  onLogout={() => {
+                    adminService.logout();
+                    setIsAdminAuthed(false);
+                  }}
+                />
+              );
+            }
+            return (
+              <AdminLoginModal
+                isOpen={true}
+                onClose={() => {
+                  window.history.pushState({}, "", "/");
+                  sessionStorage.setItem("appState", "welcome");
+                  setAppState("welcome");
+                }}
+                onSuccess={() => {
+                  setIsAdminAuthed(true);
+                }}
+              />
+            );
 
           default:
             return null;

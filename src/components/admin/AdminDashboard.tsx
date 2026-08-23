@@ -45,7 +45,7 @@ interface AdminDashboardProps {
 import { DetectiveAdminTab } from "../detectiveChallenge/DetectiveAdminTab";
 import { ModernAdminTab } from "../modernMode/ModernAdminTab";
 
-type TabType = "overview" | "users" | "rooms" | "classic-admin" | "detective-challenge" | "modern-mode" | "stats" | "matches" | "system";
+type TabType = "overview" | "users" | "rooms" | "classic-admin" | "detective-challenge" | "modern-mode" | "stats" | "matches" | "system" | "ultra-cms";
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onBackToApp,
@@ -83,6 +83,95 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [broadcastType, setBroadcastType] = useState<"info" | "success" | "warning" | "error">("info");
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [maintenanceMsg, setMaintenanceMsg] = useState("");
+
+  // Game Mode Availability State (admin control)
+  const [detectiveEnabled, setDetectiveEnabled] = useState(false);
+  const [modernEnabled, setModernEnabled] = useState(false);
+  const [detectiveButtonText, setDetectiveButtonText] = useState("Coming Soon");
+  const [modernButtonText, setModernButtonText] = useState("Coming Soon");
+  const [savingGameModeConfig, setSavingGameModeConfig] = useState(false);
+
+  // Ultra CMS State
+  const [cmsSubTab, setCmsSubTab] = useState<"welcome" | "gameInfo" | "homePage" | "points">("welcome");
+  const [cmsWelcome, setCmsWelcome] = useState({
+    heroTitle: "THE CLASSIC PLAYGROUND GAME,\nNOW A THRILLING DIGITAL SHOWDOWN!",
+    heroSubtext: "Strategy, bluff and deduction come together in this timeless game of kingdoms and secrets.",
+    featureSubtext: "Quick Match • No Download • Play Anywhere",
+    whyLoveTitle: "Why You'll Love It?",
+    charactersTitle: "Meet the Characters",
+    gameModesTitle: "Game Modes",
+    ctaTitle: "READY TO RULE THE KINGDOM?",
+  });
+  const [cmsGameInfo, setCmsGameInfo] = useState({
+    title: "Game Rules & Info",
+    subtitle: "Master the strategy, understand the scoring, and dominate the kingdom!",
+    classicRules: "Each player picks a secret card. The Police must guess who holds the Thief card. Correct guess yields 500 points to Police. Wrong guess yields 800 points to Thief!",
+    detectiveRules: "Analyze clues, suspect statements, and crime scene logs to uncover the criminal before time runs out!",
+    modernRules: "Play with 6 Kingdom Roles: Raja, Rani, Mantri, Police, Thief, and Villager with shield abilities and witness bonuses!",
+  });
+  const [cmsHomePage, setCmsHomePage] = useState({
+    welcomeTitle: "Raja Rani Police Thief",
+    welcomeSubtext: "Select a game mode or create a private room to start playing with friends!",
+  });
+  const [cmsPointsRules, setCmsPointsRules] = useState({
+    raja: 1000,
+    rani: 800,
+    policeCorrect: 500,
+    policeWrong: 0,
+    thiefEscaped: 800,
+    thiefCaught: 0,
+    mantriShieldBonus: 100,
+    villagerWitnessBonus: 100,
+    detectiveCorrectGuess: 500,
+  });
+  const [savingCms, setSavingCms] = useState(false);
+
+  const loadCmsConfig = useCallback(async () => {
+    try {
+      const cfg = await adminService.getSystemConfig();
+      if (cfg) {
+        if (cfg.screenTexts) {
+          if (cfg.screenTexts.welcome) setCmsWelcome((prev) => ({ ...prev, ...cfg.screenTexts.welcome }));
+          if (cfg.screenTexts.gameInfo) setCmsGameInfo((prev) => ({ ...prev, ...cfg.screenTexts.gameInfo }));
+          if (cfg.screenTexts.homePage) setCmsHomePage((prev) => ({ ...prev, ...cfg.screenTexts.homePage }));
+        }
+        if (cfg.pointsRules) {
+          setCmsPointsRules((prev) => ({ ...prev, ...cfg.pointsRules }));
+        }
+        if (cfg.systemSettings) {
+          setDetectiveEnabled(!!cfg.systemSettings.detectiveEnabled);
+          setModernEnabled(!!cfg.systemSettings.modernEnabled);
+          setDetectiveButtonText(cfg.systemSettings.detectiveButtonText || "Coming Soon");
+          setModernButtonText(cfg.systemSettings.modernButtonText || "Coming Soon");
+        }
+      }
+    } catch (err) {
+      console.error("Error loading system config for CMS:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadCmsConfig();
+  }, [loadCmsConfig]);
+
+  const handleSaveCms = async () => {
+    setSavingCms(true);
+    try {
+      await adminService.updateSystemConfig({
+        screenTexts: {
+          welcome: cmsWelcome,
+          gameInfo: cmsGameInfo,
+          homePage: cmsHomePage,
+        },
+        pointsRules: cmsPointsRules,
+      });
+      toast.success("✨ Ultra Screen CMS & Rules saved and applied live across all screens!");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save CMS configuration");
+    } finally {
+      setSavingCms(false);
+    }
+  };
 
   // Fetch Data according to Active Tab
   const loadOverview = useCallback(async () => {
@@ -258,6 +347,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
+  const handleSaveGameModeConfig = async () => {
+    setSavingGameModeConfig(true);
+    try {
+      await adminService.updateSystemConfig({
+        systemSettings: {
+          detectiveEnabled,
+          modernEnabled,
+          detectiveButtonText: detectiveButtonText || "Coming Soon",
+          modernButtonText: modernButtonText || "Coming Soon",
+        } as any,
+      });
+      toast.success("🎮 Game mode availability updated and applied live!");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save game mode config");
+    } finally {
+      setSavingGameModeConfig(false);
+    }
+  };
+
   const formatUptime = (seconds: number) => {
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
@@ -333,6 +441,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             { id: "modern-mode", label: "Modern Kingdom Mode", icon: Crown },
             { id: "stats", label: "All Player Directory", icon: Trophy },
             { id: "matches", label: "Match Logs", icon: History },
+            { id: "ultra-cms", label: "Ultra Screen CMS", icon: Sliders, badge: "POWER" },
             { id: "system", label: "Broadcast & Config", icon: Settings },
           ].map((tab) => {
             const Icon = tab.icon;
@@ -1158,6 +1267,507 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   }`}
                 >
                   {maintenanceMode ? "Disable Maintenance Mode" : "Enable Maintenance Mode"}
+                </button>
+              </div>
+
+            {/* Game Mode Availability Control */}
+            <div className="p-5 bg-slate-950/70 border border-purple-800/50 rounded-2xl space-y-5">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-purple-500/10 border border-purple-500/30 rounded-xl text-purple-400">
+                  <Power className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">Game Mode Availability</h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Enable or disable game modes in Create Room. Disabled modes show a "Coming Soon" overlay with your custom message.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Detective Challenge control */}
+                <div className="p-4 bg-slate-900 border border-cyan-800/40 rounded-xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-cyan-400" />
+                      <span className="text-sm font-bold text-white">Detective Challenge</span>
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-cyan-500 text-slate-950">4P</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setDetectiveEnabled((v) => !v)}
+                      className={`relative w-12 h-6 rounded-full transition-colors duration-300 focus:outline-none ${
+                        detectiveEnabled ? "bg-emerald-500" : "bg-slate-700"
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-300 ${
+                          detectiveEnabled ? "translate-x-6" : "translate-x-0"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-400 uppercase mb-1">
+                      Badge text shown when disabled
+                    </label>
+                    <input
+                      type="text"
+                      value={detectiveButtonText}
+                      onChange={(e) => setDetectiveButtonText(e.target.value)}
+                      placeholder="Coming Soon"
+                      maxLength={30}
+                      disabled={detectiveEnabled}
+                      className="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-cyan-500 disabled:opacity-40"
+                    />
+                  </div>
+                  <p className={`text-[10px] font-semibold ${detectiveEnabled ? "text-emerald-400" : "text-orange-400"}`}>
+                    {detectiveEnabled ? "✅ ENABLED — Players can select this mode" : "🔒 DISABLED — Shows Coming Soon overlay"}
+                  </p>
+                </div>
+
+                {/* Modern Mode control */}
+                <div className="p-4 bg-slate-900 border border-yellow-800/40 rounded-xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Crown className="w-4 h-4 text-yellow-400" />
+                      <span className="text-sm font-bold text-white">Modern Kingdom Mode</span>
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-yellow-400 text-black">6P</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setModernEnabled((v) => !v)}
+                      className={`relative w-12 h-6 rounded-full transition-colors duration-300 focus:outline-none ${
+                        modernEnabled ? "bg-emerald-500" : "bg-slate-700"
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-300 ${
+                          modernEnabled ? "translate-x-6" : "translate-x-0"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-400 uppercase mb-1">
+                      Badge text shown when disabled
+                    </label>
+                    <input
+                      type="text"
+                      value={modernButtonText}
+                      onChange={(e) => setModernButtonText(e.target.value)}
+                      placeholder="Coming Soon"
+                      maxLength={30}
+                      disabled={modernEnabled}
+                      className="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-yellow-500 disabled:opacity-40"
+                    />
+                  </div>
+                  <p className={`text-[10px] font-semibold ${modernEnabled ? "text-emerald-400" : "text-orange-400"}`}>
+                    {modernEnabled ? "✅ ENABLED — Players can select this mode" : "🔒 DISABLED — Shows Coming Soon overlay"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  onClick={handleSaveGameModeConfig}
+                  disabled={savingGameModeConfig}
+                  className="flex items-center space-x-2 px-6 py-2.5 text-xs font-extrabold text-black bg-gradient-to-r from-purple-400 via-pink-400 to-purple-500 hover:from-purple-300 hover:to-pink-300 rounded-xl shadow-lg transition-all active:scale-95 disabled:opacity-50"
+                >
+                  {savingGameModeConfig ? (
+                    <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4 fill-black" />
+                      <span>Save &amp; Apply Live</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+          )}
+
+          {/* ULTRA SCREEN CMS TAB */}
+          {activeTab === "ultra-cms" && (
+            <div className="space-y-6">
+              {/* Header Banner */}
+              <div className="p-6 bg-gradient-to-r from-slate-900 via-amber-950/40 to-slate-900 border border-amber-500/30 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="flex items-center space-x-4">
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-400">
+                    <Sliders className="w-8 h-8 animate-pulse" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold bg-gradient-to-r from-amber-400 to-yellow-200 bg-clip-text text-transparent">
+                      Ultra Screen Text CMS & Rules Control
+                    </h2>
+                    <p className="text-xs text-slate-400">
+                      Live edit titles, subtexts, paragraphs, game rules and scoring for all screens.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleSaveCms}
+                  disabled={savingCms}
+                  className="flex items-center justify-center space-x-2 px-6 py-2.5 text-xs font-extrabold text-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 hover:from-amber-300 hover:to-yellow-200 rounded-xl shadow-lg shadow-amber-500/20 transition-all active:scale-95 disabled:opacity-50"
+                >
+                  {savingCms ? (
+                    <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4 fill-black" />
+                      <span>Save & Apply Live to All Screens</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* CMS Sub-navigation */}
+              <div className="flex items-center space-x-2 border-b border-slate-800 pb-3 overflow-x-auto">
+                {[
+                  { id: "welcome", label: "🌟 Welcome / Landing Screen" },
+                  { id: "gameInfo", label: "📖 Game Rules & Info Screen" },
+                  { id: "homePage", label: "🏠 Home Page Screen" },
+                  { id: "points", label: "⚡ Role Scoring & Points Rules" },
+                ].map((sub) => (
+                  <button
+                    key={sub.id}
+                    onClick={() => setCmsSubTab(sub.id as any)}
+                    className={`px-4 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap ${
+                      cmsSubTab === sub.id
+                        ? "bg-amber-500/20 text-amber-400 border border-amber-500/40"
+                        : "text-slate-400 hover:text-white bg-slate-900/60"
+                    }`}
+                  >
+                    {sub.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Sub Tab 1: Welcome Screen */}
+              {cmsSubTab === "welcome" && (
+                <div className="space-y-5 bg-slate-900/70 border border-slate-800 p-6 rounded-2xl">
+                  <h3 className="text-sm font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                    <span>🌟 Landing Page Hero & Section Headers</span>
+                  </h3>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                      Hero Statement / Main Title
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={cmsWelcome.heroTitle}
+                      onChange={(e) => setCmsWelcome({ ...cmsWelcome, heroTitle: e.target.value })}
+                      className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl text-white text-sm focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                      Hero Descriptive Subtext (Paragraph)
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={cmsWelcome.heroSubtext}
+                      onChange={(e) => setCmsWelcome({ ...cmsWelcome, heroSubtext: e.target.value })}
+                      className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl text-white text-sm focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                        Feature Subtext (Pill bar text)
+                      </label>
+                      <input
+                        type="text"
+                        value={cmsWelcome.featureSubtext}
+                        onChange={(e) => setCmsWelcome({ ...cmsWelcome, featureSubtext: e.target.value })}
+                        className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl text-white text-sm focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                        Section 2 Heading ("Why You'll Love It?")
+                      </label>
+                      <input
+                        type="text"
+                        value={cmsWelcome.whyLoveTitle}
+                        onChange={(e) => setCmsWelcome({ ...cmsWelcome, whyLoveTitle: e.target.value })}
+                        className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl text-white text-sm focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                        Characters Section Heading
+                      </label>
+                      <input
+                        type="text"
+                        value={cmsWelcome.charactersTitle}
+                        onChange={(e) => setCmsWelcome({ ...cmsWelcome, charactersTitle: e.target.value })}
+                        className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl text-white text-sm focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                        Game Modes Section Heading
+                      </label>
+                      <input
+                        type="text"
+                        value={cmsWelcome.gameModesTitle}
+                        onChange={(e) => setCmsWelcome({ ...cmsWelcome, gameModesTitle: e.target.value })}
+                        className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl text-white text-sm focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                        CTA Banner Title
+                      </label>
+                      <input
+                        type="text"
+                        value={cmsWelcome.ctaTitle}
+                        onChange={(e) => setCmsWelcome({ ...cmsWelcome, ctaTitle: e.target.value })}
+                        className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl text-white text-sm focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Sub Tab 2: Game Rules & Info Screen */}
+              {cmsSubTab === "gameInfo" && (
+                <div className="space-y-5 bg-slate-900/70 border border-slate-800 p-6 rounded-2xl">
+                  <h3 className="text-sm font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                    <span>📖 Game Rules & Instructions Content</span>
+                  </h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                        Game Rules Modal Title
+                      </label>
+                      <input
+                        type="text"
+                        value={cmsGameInfo.title}
+                        onChange={(e) => setCmsGameInfo({ ...cmsGameInfo, title: e.target.value })}
+                        className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl text-white text-sm focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                        Game Rules Modal Subtitle
+                      </label>
+                      <input
+                        type="text"
+                        value={cmsGameInfo.subtitle}
+                        onChange={(e) => setCmsGameInfo({ ...cmsGameInfo, subtitle: e.target.value })}
+                        className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl text-white text-sm focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                      Classic Mode Rules Paragraph
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={cmsGameInfo.classicRules}
+                      onChange={(e) => setCmsGameInfo({ ...cmsGameInfo, classicRules: e.target.value })}
+                      className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl text-white text-sm focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                      Detective Challenge Rules Paragraph
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={cmsGameInfo.detectiveRules}
+                      onChange={(e) => setCmsGameInfo({ ...cmsGameInfo, detectiveRules: e.target.value })}
+                      className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl text-white text-sm focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                      Modern Kingdom Mode Rules Paragraph
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={cmsGameInfo.modernRules}
+                      onChange={(e) => setCmsGameInfo({ ...cmsGameInfo, modernRules: e.target.value })}
+                      className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl text-white text-sm focus:outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Sub Tab 3: Home Page Screen */}
+              {cmsSubTab === "homePage" && (
+                <div className="space-y-5 bg-slate-900/70 border border-slate-800 p-6 rounded-2xl">
+                  <h3 className="text-sm font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                    <span>🏠 Main Home Page Banner Content</span>
+                  </h3>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                      Home Page Title
+                    </label>
+                    <input
+                      type="text"
+                      value={cmsHomePage.welcomeTitle}
+                      onChange={(e) => setCmsHomePage({ ...cmsHomePage, welcomeTitle: e.target.value })}
+                      className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl text-white text-sm focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                      Home Page Description / Subtext
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={cmsHomePage.welcomeSubtext}
+                      onChange={(e) => setCmsHomePage({ ...cmsHomePage, welcomeSubtext: e.target.value })}
+                      className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl text-white text-sm focus:outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Sub Tab 4: Points & Role Scoring */}
+              {cmsSubTab === "points" && (
+                <div className="space-y-5 bg-slate-900/70 border border-slate-800 p-6 rounded-2xl">
+                  <h3 className="text-sm font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                    <span>⚡ Game Role Points & Scoring Matrix</span>
+                  </h3>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-amber-300 uppercase mb-1">
+                        👑 Raja Points
+                      </label>
+                      <input
+                        type="number"
+                        value={cmsPointsRules.raja}
+                        onChange={(e) => setCmsPointsRules({ ...cmsPointsRules, raja: Number(e.target.value) })}
+                        className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-purple-300 uppercase mb-1">
+                        💃 Rani Points
+                      </label>
+                      <input
+                        type="number"
+                        value={cmsPointsRules.rani}
+                        onChange={(e) => setCmsPointsRules({ ...cmsPointsRules, rani: Number(e.target.value) })}
+                        className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-blue-300 uppercase mb-1">
+                        👮 Police Correct Guess
+                      </label>
+                      <input
+                        type="number"
+                        value={cmsPointsRules.policeCorrect}
+                        onChange={(e) => setCmsPointsRules({ ...cmsPointsRules, policeCorrect: Number(e.target.value) })}
+                        className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-blue-400 uppercase mb-1">
+                        👮 Police Wrong Guess
+                      </label>
+                      <input
+                        type="number"
+                        value={cmsPointsRules.policeWrong}
+                        onChange={(e) => setCmsPointsRules({ ...cmsPointsRules, policeWrong: Number(e.target.value) })}
+                        className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-emerald-300 uppercase mb-1">
+                        🥷 Thief Escaped
+                      </label>
+                      <input
+                        type="number"
+                        value={cmsPointsRules.thiefEscaped}
+                        onChange={(e) => setCmsPointsRules({ ...cmsPointsRules, thiefEscaped: Number(e.target.value) })}
+                        className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-emerald-400 uppercase mb-1">
+                        🥷 Thief Caught
+                      </label>
+                      <input
+                        type="number"
+                        value={cmsPointsRules.thiefCaught}
+                        onChange={(e) => setCmsPointsRules({ ...cmsPointsRules, thiefCaught: Number(e.target.value) })}
+                        className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-amber-400 uppercase mb-1">
+                        🛡️ Mantri Shield Bonus
+                      </label>
+                      <input
+                        type="number"
+                        value={cmsPointsRules.mantriShieldBonus}
+                        onChange={(e) => setCmsPointsRules({ ...cmsPointsRules, mantriShieldBonus: Number(e.target.value) })}
+                        className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-[#AA521B] uppercase mb-1">
+                        👨‍🌾 Villager Witness Bonus
+                      </label>
+                      <input
+                        type="number"
+                        value={cmsPointsRules.villagerWitnessBonus}
+                        onChange={(e) => setCmsPointsRules({ ...cmsPointsRules, villagerWitnessBonus: Number(e.target.value) })}
+                        className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-cyan-400 uppercase mb-1">
+                        🔍 Detective Correct Guess
+                      </label>
+                      <input
+                        type="number"
+                        value={cmsPointsRules.detectiveCorrectGuess}
+                        onChange={(e) => setCmsPointsRules({ ...cmsPointsRules, detectiveCorrectGuess: Number(e.target.value) })}
+                        className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Bottom Action Bar */}
+              <div className="pt-2 flex justify-end">
+                <button
+                  onClick={handleSaveCms}
+                  disabled={savingCms}
+                  className="flex items-center justify-center space-x-2 px-8 py-3 text-sm font-extrabold text-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 hover:from-amber-300 hover:to-yellow-200 rounded-xl shadow-xl shadow-amber-500/20 transition-all active:scale-95 disabled:opacity-50"
+                >
+                  {savingCms ? (
+                    <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <Zap className="w-5 h-5 fill-black" />
+                      <span>Save & Apply Live to All Screens</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
