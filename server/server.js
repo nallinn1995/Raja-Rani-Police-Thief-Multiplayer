@@ -1031,30 +1031,71 @@ io.on("connection", (socket) => {
 
   // --- WebRTC signaling ---
   socket.on("voice-offer", ({ roomCode, senderId, targetId, sdp }) => {
+    if (!roomCode || !targetId || !sdp) return;
     const room = rooms.get(roomCode.toUpperCase());
-    if (!room) return;
-    const targetPlayer = room.players.find((p) => p.id === targetId);
-    if (targetPlayer && targetPlayer.socketId) {
-      io.to(targetPlayer.socketId).emit("voice-offer", { senderId, sdp });
+    let targetSocketId = null;
+    if (room && room.players) {
+      const targetPlayer = room.players.find((p) => p.id === targetId);
+      if (targetPlayer && targetPlayer.socketId) targetSocketId = targetPlayer.socketId;
+    }
+    if (!targetSocketId) {
+      for (const [sockId, info] of playerSockets.entries()) {
+        if (info.playerId === targetId) {
+          targetSocketId = sockId;
+          break;
+        }
+      }
+    }
+    if (targetSocketId) {
+      io.to(targetSocketId).emit("voice-offer", { senderId, sdp });
     }
   });
 
   socket.on("voice-answer", ({ roomCode, senderId, targetId, sdp }) => {
+    if (!roomCode || !targetId || !sdp) return;
     const room = rooms.get(roomCode.toUpperCase());
-    if (!room) return;
-    const targetPlayer = room.players.find((p) => p.id === targetId);
-    if (targetPlayer && targetPlayer.socketId) {
-      io.to(targetPlayer.socketId).emit("voice-answer", { senderId, sdp });
+    let targetSocketId = null;
+    if (room && room.players) {
+      const targetPlayer = room.players.find((p) => p.id === targetId);
+      if (targetPlayer && targetPlayer.socketId) targetSocketId = targetPlayer.socketId;
+    }
+    if (!targetSocketId) {
+      for (const [sockId, info] of playerSockets.entries()) {
+        if (info.playerId === targetId) {
+          targetSocketId = sockId;
+          break;
+        }
+      }
+    }
+    if (targetSocketId) {
+      io.to(targetSocketId).emit("voice-answer", { senderId, sdp });
     }
   });
 
   socket.on("voice-candidate", ({ roomCode, senderId, targetId, candidate }) => {
+    if (!roomCode || !targetId || !candidate) return;
     const room = rooms.get(roomCode.toUpperCase());
-    if (!room) return;
-    const targetPlayer = room.players.find((p) => p.id === targetId);
-    if (targetPlayer && targetPlayer.socketId) {
-      io.to(targetPlayer.socketId).emit("voice-candidate", { senderId, candidate });
+    let targetSocketId = null;
+    if (room && room.players) {
+      const targetPlayer = room.players.find((p) => p.id === targetId);
+      if (targetPlayer && targetPlayer.socketId) targetSocketId = targetPlayer.socketId;
     }
+    if (!targetSocketId) {
+      for (const [sockId, info] of playerSockets.entries()) {
+        if (info.playerId === targetId) {
+          targetSocketId = sockId;
+          break;
+        }
+      }
+    }
+    if (targetSocketId) {
+      io.to(targetSocketId).emit("voice-candidate", { senderId, candidate });
+    }
+  });
+
+  socket.on("voice-ping", ({ roomCode, senderId }) => {
+    if (!roomCode) return;
+    socket.to(roomCode.toUpperCase()).emit("voice-peer-ready", { senderId });
   });
 
   socket.on("player-speaking", ({ roomCode, playerId, isSpeaking }) => {
