@@ -7,6 +7,7 @@ import DetectiveChallengeMatch from "../models/detectiveChallenge/DetectiveChall
 import ModernModeStats from "../models/modernMode/ModernModeStats.js";
 import ModernModeMatch from "../models/modernMode/ModernModeMatch.js";
 import SystemConfig from "../models/SystemConfig.js";
+import GuestSession from "../models/GuestSession.js";
 import { hashPassword, issueAccessToken, verifyAccessToken, getBearerToken, verifyPassword } from "../security.js";
 
 // Global dynamic system config stored in memory & backed by MongoDB
@@ -200,6 +201,21 @@ export async function getOverviewStats(roomsMap, io) {
     const totalAdmins = await User.countDocuments({ role: "admin" });
     const totalBanned = await User.countDocuments({ isBanned: true });
     
+    // Guest Tracking Analytics
+    const totalGuestPlayers = await GuestSession.countDocuments();
+    const totalPlayers = totalUsers + totalGuestPlayers;
+    const guestAggregate = await GuestSession.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalMatches: { $sum: "$matchesCompleted" },
+          totalGames: { $sum: "$gamesPlayed" },
+        },
+      },
+    ]);
+    const totalGuestMatches = guestAggregate[0]?.totalMatches || 0;
+    const totalGuestGamesStarted = guestAggregate[0]?.totalGames || 0;
+    
     const classicMatchesCount = await MatchHistory.countDocuments({ gameMode: { $ne: "POLICE_THIEF" } });
     const dcMatchDocs = await DetectiveChallengeMatch.countDocuments();
     const mhPoliceDocs = await MatchHistory.countDocuments({ gameMode: "POLICE_THIEF" });
@@ -237,6 +253,11 @@ export async function getOverviewStats(roomsMap, io) {
 
     return {
       totalUsers,
+      totalRegisteredUsers: totalUsers,
+      totalGuestPlayers,
+      totalPlayers,
+      totalGuestMatches,
+      totalGuestGamesStarted,
       totalAdmins,
       totalBanned,
       totalMatches,
@@ -259,6 +280,31 @@ export async function getOverviewStats(roomsMap, io) {
   } catch (error) {
     console.error("Error fetching overview stats:", error);
     throw error;
+  }
+}
+
+// 2.1 Guest Testers Listing
+export async function getAllGuests(req, res) {
+  try {
+    const search = req.query.search || "";
+    const limit = parseInt(req.query.limit) || 100;
+
+    let query = {};
+    if (search) {
+      query = {
+        $or: [
+          { guestDeviceId: { $regex: search, $options: "i" } },
+          { username: { $regex: search, $options: "i" } },
+          { lastPlayedMode: { $regex: search, $options: "i" } },
+        ],
+      };
+    }
+
+    const guests = await GuestSession.find(query).sort({ lastSeenAt: -1 }).limit(limit).lean();
+    res.json({ success: true, count: guests.length, guests });
+  } catch (error) {
+    console.error("Error fetching guest sessions:", error);
+    res.status(500).json({ error: "Failed to fetch guest sessions" });
   }
 }
 

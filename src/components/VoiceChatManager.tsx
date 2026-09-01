@@ -9,8 +9,6 @@ import {
   Speaker,
   Check,
   Radio,
-  Wifi,
-  WifiOff,
 } from "lucide-react";
 import { SpeakerWaveIcon, SpeakerXMarkIcon } from "@heroicons/react/24/solid";
 import { Socket } from "socket.io-client";
@@ -67,7 +65,7 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
   const [outputMode, setOutputMode] = useState<AudioOutputMode>("speaker");
   const [isOutputMenuOpen, setIsOutputMenuOpen] = useState(false);
   const [availableDevices, setAvailableDevices] = useState<MediaDeviceInfo[]>([]);
-  const [activeVoicePeersCount, setActiveVoicePeersCount] = useState(0);
+  const [, setActiveVoicePeersCount] = useState(0);
 
   const localStreamRef = useRef<MediaStream | null>(null);
   const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());

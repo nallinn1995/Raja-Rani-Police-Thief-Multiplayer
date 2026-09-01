@@ -32,6 +32,7 @@ import {
   ActiveRoom,
   PlayerStatsRecord,
   MatchRecord,
+  GuestSessionRecord,
 } from "../../services/adminService";
 import { AdminUserModal } from "./AdminUserModal";
 import { AdminStatsModal } from "./AdminStatsModal";
@@ -45,7 +46,7 @@ interface AdminDashboardProps {
 import { DetectiveAdminTab } from "../detectiveChallenge/DetectiveAdminTab";
 import { ModernAdminTab } from "../modernMode/ModernAdminTab";
 
-type TabType = "overview" | "users" | "rooms" | "classic-admin" | "detective-challenge" | "modern-mode" | "stats" | "matches" | "system" | "ultra-cms";
+type TabType = "overview" | "users" | "guests" | "rooms" | "classic-admin" | "detective-challenge" | "modern-mode" | "stats" | "matches" | "system" | "ultra-cms";
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onBackToApp,
@@ -63,6 +64,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [userRoleFilter, setUserRoleFilter] = useState("all");
   const [selectedUserForEdit, setSelectedUserForEdit] = useState<AdminUser | null>(null);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+
+  // Guests State
+  const [guests, setGuests] = useState<GuestSessionRecord[]>([]);
+  const [guestSearch, setGuestSearch] = useState("");
 
   // Rooms State
   const [activeRooms, setActiveRooms] = useState<ActiveRoom[]>([]);
@@ -199,6 +204,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   }, [userSearch, userRoleFilter]);
 
+  const loadGuests = useCallback(async () => {
+    try {
+      setLoading(true);
+      const list = await adminService.getGuestSessionsList(guestSearch);
+      setGuests(list);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to load guest testers list");
+    } finally {
+      setLoading(false);
+    }
+  }, [guestSearch]);
+
   const loadActiveRooms = useCallback(async () => {
     try {
       setLoading(true);
@@ -242,10 +259,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   useEffect(() => {
     if (activeTab === "overview") loadOverview();
     if (activeTab === "users") loadUsers();
+    if (activeTab === "guests") loadGuests();
     if (activeTab === "rooms") loadActiveRooms();
     if (activeTab === "stats") loadPlayerStats();
     if (activeTab === "matches") loadMatches();
-  }, [activeTab, loadOverview, loadUsers, loadActiveRooms, loadPlayerStats, loadMatches]);
+  }, [activeTab, loadOverview, loadUsers, loadGuests, loadActiveRooms, loadPlayerStats, loadMatches]);
 
   // User Actions
   const handleToggleBan = async (user: AdminUser) => {
@@ -434,7 +452,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <aside className="w-full md:w-64 shrink-0 flex flex-row md:flex-col gap-1.5 overflow-x-auto pb-2 md:pb-0">
           {[
             { id: "overview", label: "Overview", icon: Activity },
-            { id: "users", label: "User Accounts", icon: Users },
+            { id: "users", label: "User Accounts", icon: Users, badge: overview?.totalRegisteredUsers || overview?.totalUsers },
+            { id: "guests", label: "Guest Testers", icon: UserCheck, badge: overview?.totalGuestPlayers ? overview.totalGuestPlayers : undefined },
             { id: "rooms", label: "Active Rooms", icon: Gamepad2, badge: overview?.activeRoomsCount },
             { id: "classic-admin", label: "Classic Mode Stats", icon: Award },
             { id: "detective-challenge", label: "Detective Challenge", icon: Search },
@@ -497,11 +516,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="p-4 bg-slate-950/70 border border-slate-800/80 rounded-2xl">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Users</span>
+                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Players</span>
                     <Users className="w-5 h-5 text-amber-400" />
                   </div>
-                  <p className="text-3xl font-black text-white">{overview.totalUsers}</p>
-                  <p className="text-[11px] text-slate-500 mt-1">{overview.totalAdmins} Admins, {overview.totalBanned} Banned</p>
+                  <p className="text-3xl font-black text-white">{overview.totalPlayers ?? overview.totalUsers}</p>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    {overview.totalRegisteredUsers ?? overview.totalUsers} Registered • {overview.totalGuestPlayers ?? 0} Guests
+                  </p>
+                </div>
+
+                <div className="p-4 bg-slate-950/70 border border-slate-800/80 rounded-2xl">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Guest Testers</span>
+                    <UserCheck className="w-5 h-5 text-cyan-400" />
+                  </div>
+                  <p className="text-3xl font-black text-white">{overview.totalGuestPlayers ?? 0}</p>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    {overview.totalGuestMatches ?? 0} Finished • {overview.totalGuestGamesStarted ?? 0} Started
+                  </p>
                 </div>
 
                 <div className="p-4 bg-slate-950/70 border border-slate-800/80 rounded-2xl">
@@ -520,15 +552,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </div>
                   <p className="text-3xl font-black text-white">{overview.totalMatches}</p>
                   <p className="text-[11px] text-slate-500 mt-1">Across all 3 game modes</p>
-                </div>
-
-                <div className="p-4 bg-slate-950/70 border border-slate-800/80 rounded-2xl">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Live Sockets</span>
-                    <Radio className="w-5 h-5 text-cyan-400 animate-pulse" />
-                  </div>
-                  <p className="text-3xl font-black text-white">{overview.connectedSockets}</p>
-                  <p className="text-[11px] text-slate-500 mt-1">Active WebSocket clients</p>
                 </div>
               </div>
 
@@ -812,6 +835,99 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: GUEST TESTERS */}
+          {activeTab === "guests" && (
+            <div className="space-y-4 flex-1 flex flex-col">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                <div>
+                  <h2 className="text-lg font-bold text-white">Anonymous Guest Testers ({guests.length})</h2>
+                  <p className="text-xs text-slate-400">Anonymous visitor tracking from WhatsApp & direct links without forced registration</p>
+                </div>
+                <button
+                  onClick={loadGuests}
+                  className="p-2 text-slate-400 hover:text-amber-400 bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors"
+                  title="Refresh Guest List"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Filter controls */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-500" />
+                  <input
+                    type="text"
+                    placeholder="Search by device ID, username or mode..."
+                    value={guestSearch}
+                    onChange={(e) => setGuestSearch(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+
+              {/* Data Table */}
+              <div className="flex-1 overflow-x-auto border border-slate-800 rounded-xl bg-slate-950/40">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-950 text-slate-400 uppercase tracking-wider border-b border-slate-800">
+                    <tr>
+                      <th className="p-3.5">Device ID (Anonymous)</th>
+                      <th className="p-3.5">Display Name</th>
+                      <th className="p-3.5 text-center">Games Started</th>
+                      <th className="p-3.5 text-center">Matches Completed</th>
+                      <th className="p-3.5">Last Game Mode</th>
+                      <th className="p-3.5">First Seen</th>
+                      <th className="p-3.5">Last Active</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60">
+                    {loading ? (
+                      <tr>
+                        <td colSpan={7} className="p-8 text-center text-slate-500">
+                          Loading guest testers data...
+                        </td>
+                      </tr>
+                    ) : guests.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="p-8 text-center text-slate-500">
+                          No guest sessions recorded yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      guests.map((g) => (
+                        <tr key={g._id} className="hover:bg-slate-900/60 transition-colors">
+                          <td className="p-3.5 font-mono text-cyan-400 text-[11px] select-all">
+                            {g.guestDeviceId}
+                          </td>
+                          <td className="p-3.5 font-bold text-white">
+                            {g.username || "Guest Player"}
+                          </td>
+                          <td className="p-3.5 text-center font-bold text-amber-400">
+                            {g.gamesPlayed || 0}
+                          </td>
+                          <td className="p-3.5 text-center font-bold text-emerald-400">
+                            {g.matchesCompleted || 0}
+                          </td>
+                          <td className="p-3.5">
+                            <span className="px-2 py-0.5 text-[10px] rounded-md font-bold uppercase bg-slate-800 text-slate-300">
+                              {g.lastPlayedMode || "Classic"}
+                            </span>
+                          </td>
+                          <td className="p-3.5 text-slate-400">
+                            {new Date(g.firstSeenAt).toLocaleString()}
+                          </td>
+                          <td className="p-3.5 text-slate-300">
+                            {new Date(g.lastSeenAt).toLocaleString()}
                           </td>
                         </tr>
                       ))

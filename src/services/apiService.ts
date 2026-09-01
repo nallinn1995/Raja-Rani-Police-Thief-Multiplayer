@@ -14,6 +14,7 @@ export const apiService = {
     },
     userId?: string
   ) {
+    const guestDeviceId = authService.getGuestDeviceId();
     const response = await authService.authFetch(`${API_BASE_URL}/api/rooms`, {
       method: "POST",
       headers: {
@@ -24,6 +25,7 @@ export const apiService = {
         playerName,
         totalRounds,
         userId,
+        guestDeviceId,
         gameMode: options?.gameMode,
         winCondition: options?.winCondition,
         targetScore: options?.targetScore,
@@ -42,12 +44,13 @@ export const apiService = {
   },
 
   async joinRoom(roomCode: string, playerName: string, userId?: string) {
+    const guestDeviceId = authService.getGuestDeviceId();
     const response = await authService.authFetch(`${API_BASE_URL}/api/rooms/${roomCode}/join`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ playerName, userId }),
+      body: JSON.stringify({ playerName, userId, guestDeviceId }),
     });
 
     if (!response.ok) {

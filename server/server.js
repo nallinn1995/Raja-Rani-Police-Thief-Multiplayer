@@ -9,6 +9,7 @@ import { fileURLToPath } from "url";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import dns from "dns";
+import { OAuth2Client } from "google-auth-library";
 
 // Fix Windows/ISP DNS SRV resolution issue for MongoDB Atlas (mongodb+srv://)
 dns.setDefaultResultOrder("ipv4first");
@@ -60,7 +61,9 @@ import {
   getModernModeAdminData,
   getOrInitSystemConfig,
   updateSystemConfigInDB,
+  getAllGuests,
 } from "./controllers/adminController.js";
+import GuestTrackingService from "./services/GuestTrackingService.js";
 import {
   hashPassword,
   verifyPassword,
@@ -215,6 +218,116 @@ app.post("/api/auth/signup", async (req, res) => {
   } catch (err) {
     console.error("Sign up error:", err);
     res.status(500).json({ error: "Internal server error during sign up" });
+  }
+});
+
+// 2.5 Google Sign-In / Continue with Google
+app.post("/api/auth/google", async (req, res) => {
+  try {
+    const { credential } = req.body;
+    if (!credential) {
+      return res.status(400).json({ error: "Google credential token is required" });
+    }
+
+    const clientId = process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID;
+    const client = new OAuth2Client(clientId);
+    let payload = null;
+
+    try {
+      const ticket = await client.verifyIdToken({
+        idToken: credential,
+        audience: clientId ? [clientId] : undefined,
+      });
+      payload = ticket.getPayload();
+    } catch (verifyErr) {
+      console.error("Google token verification failed:", verifyErr.message);
+      return res.status(401).json({ error: "Invalid or expired Google authentication token" });
+    }
+
+    if (!payload || !payload.sub) {
+      return res.status(401).json({ error: "Unable to verify Google user profile" });
+    }
+
+    const { sub: googleId, email, name } = payload;
+    const cleanEmail = email ? email.trim().toLowerCase() : null;
+
+    // 1. Check if user already exists by googleId
+    let user = await User.findOne({ googleId });
+
+    // 2. If not found by googleId, check by verified email
+    if (!user && cleanEmail) {
+      user = await User.findOne({ email: cleanEmail });
+      if (user) {
+        // Link Google ID to existing registered account with this verified email
+        user.googleId = googleId;
+        if (!user.authProvider || user.authProvider === "local") {
+          user.authProvider = "google";
+        }
+        await user.save();
+      }
+    }
+
+    // 3. If still not found, create a new registered Google user
+    if (!user) {
+      let baseUsername = (name || cleanEmail?.split("@")[0] || "Player")
+        .replace(/[^a-zA-Z0-9_]/g, "_")
+        .slice(0, 15);
+      if (!baseUsername || baseUsername.length < 2) baseUsername = "GooglePlayer";
+
+      let targetUsername = baseUsername;
+      let counter = 1;
+      while (await User.findOne({ username: new RegExp(`^${targetUsername}$`, "i") })) {
+        targetUsername = `${baseUsername}_${Math.floor(100 + Math.random() * 900)}`;
+        counter++;
+        if (counter > 20) {
+          targetUsername = `Player_${Date.now().toString().slice(-4)}`;
+          break;
+        }
+      }
+
+      user = new User({
+        username: targetUsername,
+        email: cleanEmail,
+        googleId,
+        authProvider: "google",
+        isGuest: false,
+        avatar: "1",
+        description: "",
+      });
+
+      await user.save();
+
+      // Initialize PlayerStats record for new Google registered user
+      const stats = new PlayerStats({
+        userId: user._id,
+        username: user.username,
+        level: 1,
+        xp: 0,
+        title: "Recruit Detective",
+      });
+      await stats.save().catch(() => {});
+    }
+
+    if (user.isBanned) {
+      return res.status(403).json({ error: "This account has been suspended" });
+    }
+
+    const token = issueAccessToken(user);
+    const refreshToken = issueRefreshToken(user);
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    const userData = await formatUserResponse(user);
+
+    return res.json({
+      success: true,
+      token,
+      refreshToken,
+      user: userData,
+    });
+  } catch (err) {
+    console.error("Google authentication error:", err);
+    res.status(500).json({ error: "Internal server error during Google authentication" });
   }
 });
 
@@ -441,10 +554,26 @@ app.get("/api/admin/overview", async (req, res) => {
   }
 });
 app.get("/api/admin/users", getAllUsers);
+app.get("/api/admin/guests", getAllGuests);
 app.post("/api/admin/users", createAdminUser);
 app.put("/api/admin/users/:id", updateUser);
 app.delete("/api/admin/users/:id", deleteUser);
 app.post("/api/admin/users/:id/ban", toggleBanUser);
+
+// GUEST PING ENDPOINT
+app.post("/api/guest/ping", async (req, res) => {
+  try {
+    const { guestDeviceId, username } = req.body;
+    if (!guestDeviceId) {
+      return res.status(400).json({ error: "guestDeviceId is required" });
+    }
+    const guest = await GuestTrackingService.recordGuestPing(guestDeviceId, username);
+    return res.json({ success: true, guest });
+  } catch (err) {
+    console.error("Guest ping error:", err);
+    return res.status(500).json({ error: "Failed to record guest ping" });
+  }
+});
 
 app.get("/api/admin/rooms", (req, res) => {
   res.json(getActiveRoomsData(rooms));
@@ -534,7 +663,16 @@ app.post(
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { roomName, playerName, totalRounds, gameMode, winCondition, targetScore, userId } = req.body;
+    const { roomName, playerName, totalRounds, gameMode, winCondition, targetScore, userId, guestDeviceId } = req.body;
+
+    const token = getBearerToken(req);
+    const identity = verifyAccessToken(token);
+    const verifiedUserId = identity?.sub && identity.sub === userId ? userId : null;
+    const resolvedGuestDeviceId = !verifiedUserId ? (guestDeviceId || null) : null;
+
+    if (resolvedGuestDeviceId) {
+      GuestTrackingService.recordGuestActivity(resolvedGuestDeviceId, playerName, gameMode || "CLASSIC_POINTS").catch(() => {});
+    }
 
     let roomCode;
     do {
@@ -554,7 +692,8 @@ app.post(
       players: [
         {
           id: uuidv4(),
-          userId: userId || null,
+          userId: verifiedUserId,
+          guestDeviceId: resolvedGuestDeviceId,
           name: playerName,
           isHost: true,
           score: 0,
@@ -604,7 +743,12 @@ app.post(
     }
 
     const { roomCode } = req.params;
-    const { playerName, userId } = req.body;
+    const { playerName, userId, guestDeviceId } = req.body;
+
+    const token = getBearerToken(req);
+    const identity = verifyAccessToken(token);
+    const verifiedUserId = identity?.sub && identity.sub === userId ? userId : null;
+    const resolvedGuestDeviceId = !verifiedUserId ? (guestDeviceId || null) : null;
 
     const room = rooms.get(roomCode.toUpperCase());
 
@@ -629,9 +773,14 @@ app.post(
       return res.status(400).json({ error: "Player name already taken" });
     }
 
+    if (resolvedGuestDeviceId) {
+      GuestTrackingService.recordGuestActivity(resolvedGuestDeviceId, playerName, room.gameMode || "CLASSIC_POINTS").catch(() => {});
+    }
+
     const newPlayer = {
       id: uuidv4(),
-      userId: userId || null,
+      userId: verifiedUserId,
+      guestDeviceId: resolvedGuestDeviceId,
       name: playerName,
       isHost: false,
       score: 0,
@@ -1275,6 +1424,17 @@ async function endGame(roomCode) {
       roundSummaries: room.roundSummaries || [],
     };
     await recordMatchResults(matchData);
+
+    // Record guest match completions for all anonymous guests in room
+    for (const p of room.players) {
+      if (p.guestDeviceId && !p.userId) {
+        GuestTrackingService.recordGuestMatchCompleted(
+          p.guestDeviceId,
+          p.name,
+          room.gameMode || "CLASSIC_POINTS"
+        ).catch(() => {});
+      }
+    }
   } catch (err) {
     console.error("Error recording match results in endGame:", err);
   }

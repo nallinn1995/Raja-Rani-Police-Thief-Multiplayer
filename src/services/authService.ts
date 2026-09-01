@@ -6,6 +6,9 @@ export interface User {
   username: string;
   email?: string;
   isGuest: boolean;
+  guestDeviceId?: string;
+  googleId?: string;
+  authProvider?: "local" | "google";
   role?: "user" | "admin";
   createdAt: string;
   avatar?: string;
@@ -13,6 +16,25 @@ export interface User {
 }
 
 export const authService = {
+  async loginGoogle(credential: string): Promise<User> {
+    const response = await fetch(`${API_BASE_URL}/api/auth/google`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ credential }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Google authentication failed");
+    }
+
+    const data = await response.json();
+    this.setSession(data.user, data.token, data.refreshToken);
+    return data.user;
+  },
+
   async signIn(username: string, password: string): Promise<User> {
     const response = await fetch(`${API_BASE_URL}/api/auth/signin`, {
       method: "POST",
@@ -112,14 +134,40 @@ export const authService = {
     }
   },
 
+  getGuestDeviceId(): string {
+    let deviceId = localStorage.getItem("guest_device_id");
+    if (!deviceId) {
+      if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+        deviceId = crypto.randomUUID();
+      } else {
+        deviceId = "g_" + Math.random().toString(36).substring(2, 15) + "_" + Date.now().toString(36);
+      }
+      localStorage.setItem("guest_device_id", deviceId);
+    }
+    return deviceId;
+  },
+
   loginGuest(): User {
+    const guestDeviceId = this.getGuestDeviceId();
     const guestUser: User = {
       id: undefined,
       username: `Guest_${Math.floor(Math.random() * 10000)}`,
       isGuest: true,
+      guestDeviceId,
       createdAt: new Date().toISOString(),
     };
     this.setSession(guestUser, null, null);
+
+    // Fire-and-forget anonymous guest ping to backend
+    fetch(`${API_BASE_URL}/api/guest/ping`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        guestDeviceId,
+        username: guestUser.username,
+      }),
+    }).catch(() => {});
+
     return guestUser;
   },
 

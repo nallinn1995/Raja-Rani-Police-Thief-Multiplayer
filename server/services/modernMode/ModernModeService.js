@@ -3,6 +3,7 @@ import ModernModeMatch from "../../models/modernMode/ModernModeMatch.js";
 import ModernModeStats from "../../models/modernMode/ModernModeStats.js";
 import ModernModeAchievement from "../../models/modernMode/ModernModeAchievement.js";
 import User from "../../models/User.js";
+import GuestTrackingService from "../GuestTrackingService.js";
 import { awardModernModeXP, calculateModernModeXP } from "./modernModeXPService.js";
 
 function shuffle(array) {
@@ -429,17 +430,18 @@ export class ModernModeService {
 
       const matchDuration = Math.round((Date.now() - (modernState.startTime || Date.now())) / 1000);
 
-      // Auto-resolve missing or invalid player userIds so every player's stats update
+      // Auto-resolve missing or invalid player userIds for registered accounts
       for (const p of modernState.players) {
         if (!p.userId || !mongoose.Types.ObjectId.isValid(p.userId)) {
           try {
-            const dbUser = await User.findOne({ username: p.name.trim() });
+            const dbUser = await User.findOne({ username: p.name.trim(), isGuest: false });
             if (dbUser) {
               p.userId = dbUser._id;
             } else {
-              const newUser = new User({ username: p.name.trim(), isGuest: true });
-              await newUser.save();
-              p.userId = newUser._id;
+              p.userId = null;
+              if (p.guestDeviceId) {
+                GuestTrackingService.recordGuestMatchCompleted(p.guestDeviceId, p.name, "MODERN_MODE").catch(() => {});
+              }
             }
           } catch (e) {
             console.error(`Failed to resolve user ID for ${p.name}:`, e);

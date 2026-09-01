@@ -64,6 +64,11 @@ export interface ModernAdminDashboardData {
 
 export interface OverviewStats {
   totalUsers: number;
+  totalRegisteredUsers?: number;
+  totalGuestPlayers?: number;
+  totalPlayers?: number;
+  totalGuestMatches?: number;
+  totalGuestGamesStarted?: number;
   totalAdmins: number;
   totalBanned: number;
   totalMatches: number;
@@ -94,6 +99,18 @@ export interface OverviewStats {
     maxPlayersPerRoom: number;
     pointsRules: Record<string, number>;
   };
+}
+
+export interface GuestSessionRecord {
+  _id: string;
+  guestDeviceId: string;
+  username: string;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  gamesPlayed: number;
+  matchesCompleted: number;
+  lastPlayedMode: string;
+  lastPlayedAt?: string;
 }
 
 export interface ActiveRoom {
@@ -394,6 +411,19 @@ class AdminService {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to fetch system config");
     return data.config;
+  }
+
+  async getGuestSessionsList(search = "", limit = 100): Promise<GuestSessionRecord[]> {
+    const params = new URLSearchParams();
+    if (search) params.append("search", search);
+    if (limit) params.append("limit", limit.toString());
+
+    const res = await fetch(`${API_BASE}/api/admin/guests?${params.toString()}`, {
+      headers: this.getHeaders(),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to fetch guest sessions");
+    return data.guests || [];
   }
 
   async updateSystemConfig(configData: any): Promise<any> {

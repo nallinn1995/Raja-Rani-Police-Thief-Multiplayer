@@ -6,6 +6,7 @@ import DetectiveChallengeAchievement from "../../models/detectiveChallenge/Detec
 import { DetectiveChallengeStatsService } from "./DetectiveChallengeStatsService.js";
 import { DetectiveChallengeBadgeService } from "./DetectiveChallengeBadgeService.js";
 import { DetectiveChallengeLeaderboardService } from "./DetectiveChallengeLeaderboardService.js";
+import GuestTrackingService from "../GuestTrackingService.js";
 
 const SUSPECT_CHARACTERS = [
   {
@@ -274,7 +275,12 @@ export class DetectiveChallengeService {
             user = await User.findOne({ username: new RegExp(`^${String(p.username).trim()}$`, "i") });
           }
 
-          if (!user || user.isGuest) continue;
+          if (!user || user.isGuest) {
+            if (p.guestDeviceId) {
+              GuestTrackingService.recordGuestMatchCompleted(p.guestDeviceId, p.username || p.name, "DETECTIVE_CHALLENGE").catch(() => {});
+            }
+            continue;
+          }
 
           const stats = await DetectiveChallengeStatsService.updatePlayerStats(user, p, duration || 0);
 

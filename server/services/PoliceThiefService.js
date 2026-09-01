@@ -5,6 +5,7 @@ import PoliceThiefMatchHistory from "../models/PoliceThiefMatchHistory.js";
 import { PoliceThiefStatsService } from "./PoliceThiefStatsService.js";
 import { AchievementService } from "./AchievementService.js";
 import { PoliceThiefLeaderboardService } from "./PoliceThiefLeaderboardService.js";
+import GuestTrackingService from "./GuestTrackingService.js";
 
 export class PoliceThiefService {
   static async recordRound(roundData) {
@@ -104,7 +105,12 @@ export class PoliceThiefService {
             user = await User.findOne({ username: new RegExp(`^${nameToSearch}$`, "i") });
           }
 
-          if (!user || user.isGuest) continue;
+          if (!user || user.isGuest) {
+            if (p.guestDeviceId) {
+              GuestTrackingService.recordGuestMatchCompleted(p.guestDeviceId, p.username || p.name, "POLICE_THIEF").catch(() => {});
+            }
+            continue;
+          }
 
           const stats = await PoliceThiefStatsService.updateStatsForMatchPlayer(
             user,
