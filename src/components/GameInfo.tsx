@@ -22,6 +22,7 @@ import {
   Building2,
   UserCheck,
   ShieldAlert,
+  Bot,
 } from "lucide-react";
 import { XP_CONFIG } from "../config/xpConfig";
 
@@ -684,7 +685,7 @@ export const GameInfo: React.FC<GameInfoProps> = ({ onBack, onStartGame }) => {
         {/* TAB 4: GAME MODES */}
         {activeTab === "modes" && (
           <div className="space-y-6 animate-fade-in">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Classic Points Mode */}
               <div className="p-6 rounded-3xl bg-[#180933] border border-amber-500/30 flex flex-col justify-between">
                 <div>
@@ -698,11 +699,32 @@ export const GameInfo: React.FC<GameInfoProps> = ({ onBack, onStartGame }) => {
                     </div>
                   </div>
                   <p className="text-xs sm:text-sm text-slate-300 leading-relaxed mb-4">
-                    Play traditional Raja, Rani, Police, and Thief rounds. Points accumulate every round. Scores earn normalized XP (+Score / 10), participation XP, and winner bonuses!
+                    Play traditional Raja, Rani, Police, and Thief rounds online with friends or offline. Points accumulate every round. Scores earn normalized XP (+Score / 10), participation XP, and winner bonuses!
                   </p>
                 </div>
                 <div className="p-3 bg-[#0F0422] rounded-xl border border-purple-800/40 text-xs text-slate-400">
-                  👑 Traditional 4-player social deduction game.
+                  👑 Traditional 4-player social deduction game with friends or AI.
+                </div>
+              </div>
+
+              {/* Offline AI Mode */}
+              <div className="p-6 rounded-3xl bg-[#180933] border border-emerald-500/40 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center space-x-3 mb-3">
+                    <div className="p-3 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-400">
+                      <Bot className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="font-black text-lg text-emerald-300">Offline AI Mode</h3>
+                      <span className="text-[11px] text-emerald-400 font-medium">Instant Single Player against Smart Bots</span>
+                    </div>
+                  </div>
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed mb-4">
+                    Play anytime, anywhere without an internet connection. Challenge 3 intelligent royal AI bots (Vikram, Arjun, Kabir) with customizable rounds (1-10) or target score goals (1000-10,000 PTS).
+                  </p>
+                </div>
+                <div className="p-3 bg-[#0F0422] rounded-xl border border-emerald-800/40 text-xs text-slate-400">
+                  🎮 Instant solo play with intelligent bot deduction and local state.
                 </div>
               </div>
 
@@ -886,6 +908,18 @@ export const GameInfo: React.FC<GameInfoProps> = ({ onBack, onStartGame }) => {
           <div className="space-y-6 animate-fade-in">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[
+                {
+                  title: "Play with Friends (Online)",
+                  desc: "Create custom private rooms, share room codes, and enjoy live synchronized multiplayer with voice chat.",
+                  icon: Users,
+                  color: "text-amber-400",
+                },
+                {
+                  title: "Offline Mode (Smart AI)",
+                  desc: "Play instantly without an internet connection or waiting for players against 3 intelligent royal AI bots.",
+                  icon: Bot,
+                  color: "text-emerald-400",
+                },
                 {
                   title: "Real-time Voice Chat",
                   desc: "Integrated WebRTC voice communication for natural bluffs, interrogations, and royal strategy.",

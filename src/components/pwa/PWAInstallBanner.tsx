@@ -77,14 +77,9 @@ export const PWAInstallBanner: React.FC<PWAInstallBannerProps> = ({
             </div>
 
             {/* Center: Text Details */}
-            <div className="flex-1 text-center sm:text-left space-y-0.5 pr-0 sm:pr-4">
-              <div className="flex items-center justify-center sm:justify-start gap-1.5">
-                <h4 className="text-xs sm:text-sm font-extrabold text-[#FBE278] tracking-wide font-serif drop-shadow-sm">
-                  Play Raja Rani like an App
-                </h4>
-              </div>
-              <p className="text-[11px] sm:text-xs text-purple-200/90 font-medium leading-snug">
-                Install the game on your phone for faster access and an app-like experience.
+            <div className="flex-1 text-center sm:text-left pr-0 sm:pr-4">
+              <p className="text-xs sm:text-sm font-bold text-[#FBE278] leading-snug drop-shadow-sm font-sans">
+                Install this game on your Phone or Desktop for faster access and Play anywhere
               </p>
             </div>
 
@@ -95,7 +90,7 @@ export const PWAInstallBanner: React.FC<PWAInstallBannerProps> = ({
                 className="w-full sm:w-auto px-4 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-[#EB9C09] via-[#F9C933] to-[#EB9C09] hover:opacity-95 text-black font-black text-xs uppercase tracking-wider shadow-[0_0_18px_rgba(249,201,51,0.5)] hover:shadow-[0_0_25px_rgba(251,226,120,0.8)] transition-all transform active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
               >
                 <Download className="w-3.5 h-3.5 text-black" />
-                <span>Add to Home Screen</span>
+                <span>Install App</span>
               </button>
             </div>
           </div>

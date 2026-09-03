@@ -1,5 +1,5 @@
 import React from 'react';
-import { Smartphone, Check } from 'lucide-react';
+import { Smartphone } from 'lucide-react';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { IOSInstallModal } from './IOSInstallModal';
 
@@ -16,20 +16,7 @@ export const PWAHeaderButton: React.FC<PWAHeaderButtonProps> = ({ className = ''
     closeIOSModal,
   } = usePWAInstall();
 
-  if (isInstalled) {
-    return (
-      <div
-        className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 bg-[#3F1152]/50 border border-[#36D978]/60 rounded-full text-[10px] sm:text-xs font-semibold text-[#36D978] shadow-sm select-none ${className}`}
-        title="Running as installed standalone application"
-      >
-        <Check className="w-3 h-3 text-[#36D978]" />
-        <span className="hidden sm:inline">Raja Rani App Installed</span>
-        <span className="sm:hidden">Installed</span>
-      </div>
-    );
-  }
-
-  if (!canInstall) {
+  if (isInstalled || !canInstall) {
     return null;
   }
 

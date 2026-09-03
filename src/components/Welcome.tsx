@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { BookOpen, ShieldCheck, Instagram, Youtube, Facebook, MessageSquare } from 'lucide-react';
+import { BookOpen, ShieldCheck, Bot } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { UserProfile } from './UserProfile';
 import { configService, FullSystemConfig } from '../services/configService';
 import { PWAInstallBanner } from './pwa/PWAInstallBanner';
 import { PWAHeaderButton } from './pwa/PWAHeaderButton';
+import { LegalModal, LegalDocType } from './legal/LegalModal';
 
 interface WelcomeProps {
   startGame: () => void;
@@ -27,6 +28,13 @@ export const Welcome: React.FC<WelcomeProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [config, setConfig] = useState<FullSystemConfig>(configService.getConfig());
+  const [legalModalOpen, setLegalModalOpen] = useState<boolean>(false);
+  const [legalTab, setLegalTab] = useState<LegalDocType>('terms');
+
+  const openLegalModal = (tab: LegalDocType) => {
+    setLegalTab(tab);
+    setLegalModalOpen(true);
+  };
 
   useEffect(() => {
     return configService.subscribe(setConfig);
@@ -118,14 +126,10 @@ export const Welcome: React.FC<WelcomeProps> = ({
               />
             ) : (
               <button
-                onClick={() => {
-                  if (onOpenAuth) {
-                    onOpenAuth();
-                  }
-                }}
+                onClick={handlePlayNow}
                 className="px-4 sm:px-6 py-1.5 sm:py-2 bg-gradient-to-r from-[#AC41D7] via-[#9B2ECB] to-[#782287] hover:opacity-95 text-white font-bold text-[11px] sm:text-xs md:text-sm rounded-full shadow-[0_0_16px_rgba(172,65,215,0.5)] hover:shadow-[0_0_24px_rgba(172,65,215,0.8)] transition-all duration-200 cursor-pointer active:scale-95 whitespace-nowrap flex-shrink-0"
               >
-                Sign In / Register
+                Play Now
               </button>
             )}
           </div>
@@ -232,7 +236,7 @@ export const Welcome: React.FC<WelcomeProps> = ({
 
             {/* Quick Feature Subtext */}
             <p className="text-[10px] sm:text-[11px] text-white/95 tracking-wide font-semibold drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
-              {config.screenTexts?.welcome?.featureSubtext || "Quick Match • No Download • Play Anywhere"}
+              {config.screenTexts?.welcome?.featureSubtext || "Play with Friends Online • Offline AI Mode • Install App Anywhere"}
             </p>
 
             {/* PWA Install Banner */}
@@ -244,8 +248,40 @@ export const Welcome: React.FC<WelcomeProps> = ({
             <div className="w-full bg-[#21073F]/90 backdrop-blur-md border border-[#3F1152] hover:border-[#AC41D7]/50 rounded-2xl sm:rounded-full px-3 sm:px-6 py-2.5 sm:py-3.5 shadow-[0_0_25px_rgba(33,7,63,0.8)] transition-all duration-300">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-0 divide-y md:divide-y-0 md:divide-x divide-[#3F1152]">
                 
-                {/* Item 1: 4 - 6 PLAYERS */}
+                {/* Item 1: PLAY WITH FRIENDS */}
                 <div className="flex items-center justify-center space-x-2 sm:space-x-2.5 p-1.5 md:px-3">
+                  <img 
+                    src="/assets/images/Landing Page/globe.png" 
+                    alt="Play With Friends Icon" 
+                    className="w-5 h-5 sm:w-7 sm:h-7 object-contain filter drop-shadow-[0_0_6px_rgba(235,156,9,0.6)]"
+                  />
+                  <div className="text-left">
+                    <div className="text-[11px] sm:text-xs font-extrabold text-[#FBE278] tracking-wider leading-none">
+                      PLAY WITH FRIENDS
+                    </div>
+                    <div className="text-[9px] sm:text-[10px] font-semibold text-[#C2A6B9] tracking-wider mt-0.5">
+                      ONLINE ROOMS
+                    </div>
+                  </div>
+                </div>
+
+                {/* Item 2: OFFLINE MODE */}
+                <div className="flex items-center justify-center space-x-2 sm:space-x-2.5 p-1.5 md:px-3 pt-3 md:pt-1.5">
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.5)]">
+                    <Bot className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-amber-300" />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-[11px] sm:text-xs font-extrabold text-[#FBE278] tracking-wider leading-none">
+                      OFFLINE MODE
+                    </div>
+                    <div className="text-[9px] sm:text-[10px] font-semibold text-[#C2A6B9] tracking-wider mt-0.5">
+                      PLAY WITH AI
+                    </div>
+                  </div>
+                </div>
+
+                {/* Item 3: 4 - 6 PLAYERS */}
+                <div className="flex items-center justify-center space-x-2 sm:space-x-2.5 p-1.5 md:px-3 pt-3 md:pt-1.5">
                   <img 
                     src="/assets/images/Landing Page/members.png" 
                     alt="Players Icon" 
@@ -253,44 +289,10 @@ export const Welcome: React.FC<WelcomeProps> = ({
                   />
                   <div className="text-left">
                     <div className="text-[11px] sm:text-xs font-extrabold text-[#FBE278] tracking-wider leading-none">
-                      4 – 6
+                      4 – 6 PLAYERS
                     </div>
                     <div className="text-[9px] sm:text-[10px] font-semibold text-[#C2A6B9] tracking-wider mt-0.5">
-                      PLAYERS
-                    </div>
-                  </div>
-                </div>
-
-                {/* Item 2: MULTIPLAYER ONLINE */}
-                <div className="flex items-center justify-center space-x-2 sm:space-x-2.5 p-1.5 md:px-3 pt-3 md:pt-1.5">
-                  <img 
-                    src="/assets/images/Landing Page/globe.png" 
-                    alt="Multiplayer Icon" 
-                    className="w-5 h-5 sm:w-7 sm:h-7 object-contain filter drop-shadow-[0_0_6px_rgba(235,156,9,0.6)]"
-                  />
-                  <div className="text-left">
-                    <div className="text-[11px] sm:text-xs font-extrabold text-[#FBE278] tracking-wider leading-none">
-                      MULTIPLAYER
-                    </div>
-                    <div className="text-[9px] sm:text-[10px] font-semibold text-[#C2A6B9] tracking-wider mt-0.5">
-                      ONLINE
-                    </div>
-                  </div>
-                </div>
-
-                {/* Item 3: QUICK MATCH FAST & FUN */}
-                <div className="flex items-center justify-center space-x-2 sm:space-x-2.5 p-1.5 md:px-3 pt-3 md:pt-1.5">
-                  <img 
-                    src="/assets/images/Landing Page/Thunder.png" 
-                    alt="Quick Match Icon" 
-                    className="w-5 h-5 sm:w-7 sm:h-7 object-contain filter drop-shadow-[0_0_6px_rgba(249,201,51,0.7)]"
-                  />
-                  <div className="text-left">
-                    <div className="text-[11px] sm:text-xs font-extrabold text-[#FBE278] tracking-wider leading-none">
-                      QUICK MATCH
-                    </div>
-                    <div className="text-[9px] sm:text-[10px] font-semibold text-[#C2A6B9] tracking-wider mt-0.5">
-                      FAST & FUN
+                      ROYAL ROLES
                     </div>
                   </div>
                 </div>
@@ -359,17 +361,17 @@ export const Welcome: React.FC<WelcomeProps> = ({
               </div>
 
               <h4 className="text-sm sm:text-base font-extrabold text-[#FBE278] uppercase tracking-wider mb-2">
-                CLASSIC FUN
+                PLAY WITH FRIENDS
               </h4>
               <p className="text-xs sm:text-sm text-white/90 font-medium leading-relaxed max-w-[200px]">
-                The childhood game you know and love, digitized perfectly.
+                Create private rooms, invite friends, bluff, chat and deduce together in real-time.
               </p>
 
               {/* Decorative Gradient Line below text */}
               <div className="w-9 h-1 rounded-full bg-gradient-to-r from-[#FBE278] via-[#EB9C09] to-[#AC41D7] mt-4 opacity-90 shadow-[0_0_8px_rgba(251,226,120,0.5)]" />
             </motion.div>
 
-            {/* Card 2: SOCIAL & FUN */}
+            {/* Card 2: OFFLINE AI MODE */}
             <motion.div 
               whileHover={{ y: -8, scale: 1.02 }}
               transition={{ type: 'spring', stiffness: 300, damping: 20 }}
@@ -379,7 +381,7 @@ export const Welcome: React.FC<WelcomeProps> = ({
                 <div className="absolute inset-0 rounded-full bg-[#E85BCF]/15 blur-lg group-hover:bg-[#E85BCF]/30 transition-all duration-300 pointer-events-none" />
                 <motion.img 
                   src="/assets/images/Landing Page/people.png" 
-                  alt="Social & Fun People" 
+                  alt="Offline AI Mode" 
                   className="w-12 h-12 sm:w-16 sm:h-16 object-contain relative z-10 filter drop-shadow-[0_0_10px_rgba(232,91,207,0.5)]"
                   animate={{ scale: [1, 1.08, 1] }}
                   transition={{ duration: 2.8, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
@@ -387,10 +389,10 @@ export const Welcome: React.FC<WelcomeProps> = ({
               </div>
 
               <h4 className="text-sm sm:text-base font-extrabold text-[#FBE278] uppercase tracking-wider mb-2">
-                SOCIAL & FUN
+                OFFLINE AI MODE
               </h4>
               <p className="text-xs sm:text-sm text-white/90 font-medium leading-relaxed max-w-[200px]">
-                Play with friends, chat, laugh and make memories together.
+                Play solo against 3 smart AI bots anytime with no internet or waiting needed.
               </p>
 
               {/* Decorative Gradient Line below text */}
@@ -843,44 +845,21 @@ export const Welcome: React.FC<WelcomeProps> = ({
             Made with <span className="text-red-500 animate-pulse text-sm">❤️</span> for '90s kids
           </p>
 
-          {/* Social Media Links */}
-          <div className="flex items-center space-x-3 sm:space-x-3.5">
-            <a 
-              href="https://discord.com" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="w-8 h-8 rounded-full bg-[#21073F] border border-[#782287]/60 hover:border-[#AC41D7] flex items-center justify-center text-[#C2A6B9] hover:text-white shadow-[0_0_10px_rgba(120,34,135,0.3)] hover:shadow-[0_0_15px_rgba(172,65,215,0.6)] transition-all duration-200 transform hover:scale-110"
-              title="Discord"
+          {/* Professional Standard Legal Links */}
+          <div className="flex items-center justify-center space-x-3 sm:space-x-5 text-xs text-purple-200">
+            <button
+              onClick={() => openLegalModal('terms')}
+              className="hover:text-[#FBE278] transition-colors underline-offset-4 hover:underline cursor-pointer font-medium"
             >
-              <MessageSquare className="w-4 h-4" />
-            </a>
-            <a 
-              href="https://instagram.com" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="w-8 h-8 rounded-full bg-[#21073F] border border-[#782287]/60 hover:border-[#AC41D7] flex items-center justify-center text-[#C2A6B9] hover:text-white shadow-[0_0_10px_rgba(120,34,135,0.3)] hover:shadow-[0_0_15px_rgba(172,65,215,0.6)] transition-all duration-200 transform hover:scale-110"
-              title="Instagram"
+              Terms of Service
+            </button>
+            <span className="text-purple-500">•</span>
+            <button
+              onClick={() => openLegalModal('privacy')}
+              className="hover:text-[#FBE278] transition-colors underline-offset-4 hover:underline cursor-pointer font-medium"
             >
-              <Instagram className="w-4 h-4" />
-            </a>
-            <a 
-              href="https://youtube.com" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="w-8 h-8 rounded-full bg-[#21073F] border border-[#782287]/60 hover:border-[#AC41D7] flex items-center justify-center text-[#C2A6B9] hover:text-white shadow-[0_0_10px_rgba(120,34,135,0.3)] hover:shadow-[0_0_15px_rgba(172,65,215,0.6)] transition-all duration-200 transform hover:scale-110"
-              title="YouTube"
-            >
-              <Youtube className="w-4 h-4" />
-            </a>
-            <a 
-              href="https://facebook.com" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="w-8 h-8 rounded-full bg-[#21073F] border border-[#782287]/60 hover:border-[#AC41D7] flex items-center justify-center text-[#C2A6B9] hover:text-white shadow-[0_0_10px_rgba(120,34,135,0.3)] hover:shadow-[0_0_15px_rgba(172,65,215,0.6)] transition-all duration-200 transform hover:scale-110"
-              title="Facebook"
-            >
-              <Facebook className="w-4 h-4" />
-            </a>
+              Privacy Policy
+            </button>
           </div>
 
           {/* Copyright Notice */}
@@ -890,6 +869,13 @@ export const Welcome: React.FC<WelcomeProps> = ({
 
         </div>
       </footer>
+
+      {/* Professional Legal Modal (Terms of Service & Privacy Policy) */}
+      <LegalModal
+        isOpen={legalModalOpen}
+        initialTab={legalTab}
+        onClose={() => setLegalModalOpen(false)}
+      />
 
     </div>
   );
