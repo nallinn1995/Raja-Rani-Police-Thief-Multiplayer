@@ -2,6 +2,7 @@ import React from 'react';
 import { BookOpen } from 'lucide-react';
 import { UserProfile } from './UserProfile';
 import { User } from '../services/authService';
+import { PWAHeaderButton } from './pwa/PWAHeaderButton';
 
 interface AppHeaderProps {
   currentUser: User | null;
@@ -53,6 +54,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               <span>Game Info</span>
             </button>
           )}
+
+          {/* PWA Install Button */}
+          <PWAHeaderButton />
 
           <UserProfile
             user={currentUser}

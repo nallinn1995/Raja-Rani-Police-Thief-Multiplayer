@@ -3,6 +3,8 @@ import { BookOpen, ShieldCheck, Instagram, Youtube, Facebook, MessageSquare } fr
 import { motion } from 'framer-motion';
 import { UserProfile } from './UserProfile';
 import { configService, FullSystemConfig } from '../services/configService';
+import { PWAInstallBanner } from './pwa/PWAInstallBanner';
+import { PWAHeaderButton } from './pwa/PWAHeaderButton';
 
 interface WelcomeProps {
   startGame: () => void;
@@ -103,6 +105,9 @@ export const Welcome: React.FC<WelcomeProps> = ({
               <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#FBE278]" />
               <span>Game Info</span>
             </button>
+
+            {/* PWA Install Button in Header */}
+            <PWAHeaderButton />
 
             {currentUser ? (
               <UserProfile
@@ -229,6 +234,9 @@ export const Welcome: React.FC<WelcomeProps> = ({
             <p className="text-[10px] sm:text-[11px] text-white/95 tracking-wide font-semibold drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
               {config.screenTexts?.welcome?.featureSubtext || "Quick Match • No Download • Play Anywhere"}
             </p>
+
+            {/* PWA Install Banner */}
+            <PWAInstallBanner className="w-full max-w-lg mx-auto mt-2" />
           </div>
 
           {/* Bottom Feature Pill Bar (Section 1 Bottom Container) */}

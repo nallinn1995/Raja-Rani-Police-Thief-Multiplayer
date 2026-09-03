@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, BookOpen, SlidersHorizontal } from 'lucide-react';
 import { configService, FullSystemConfig } from '../services/configService';
+import { PWAInstallBanner } from './pwa/PWAInstallBanner';
 
 interface HomePageProps {
   onCreateRoom: () => void;
@@ -88,6 +89,9 @@ export const HomePage: React.FC<HomePageProps> = ({
             </div>
           </button>
         </div>
+
+        {/* PWA "Add to Home Screen" Banner for Mobile Users */}
+        <PWAInstallBanner className="w-full max-w-sm mb-3.5" />
 
         {/* GAME RULES & ROLE SCORING BOTTOM CONTAINER */}
         <div className="w-full max-w-sm bg-[#0D031F]/90 border border-purple-500/40 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xl backdrop-blur-md">

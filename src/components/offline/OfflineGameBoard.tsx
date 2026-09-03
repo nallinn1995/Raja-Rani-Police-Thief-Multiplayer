@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Shield, Crown, Trophy, Bot, Sparkles, CheckCircle2, AlertTriangle, ArrowRight, RotateCcw, LogOut, Lock, HelpCircle, Eye } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Shield, Crown, Trophy, Bot, Sparkles, CheckCircle2, ArrowRight, RotateCcw, LogOut, Lock, HelpCircle } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { OfflineGameConfig } from './OfflineSetup';
-import { BabylonRoleCardScene } from '../classic/BabylonRoleCardScene';
 
 interface OfflinePlayer {
   id: string;
@@ -100,12 +99,11 @@ export const OfflineGameBoard: React.FC<OfflineGameBoardProps> = ({
   const [policeId, setPoliceId] = useState<string>('');
   const [guessedThiefId, setGuessedThiefId] = useState<string>('');
   const [selectedSuspectId, setSelectedSuspectId] = useState<string>('');
-  const [isAiThinking, setIsAiThinking] = useState<boolean>(false);
+  const [, setIsAiThinking] = useState<boolean>(false);
   const [policeAnnouncement, setPoliceAnnouncement] = useState<string>('');
-  const [use3D, setUse3D] = useState<boolean>(true);
 
   // Initialize a new round
-  const startNewRound = useCallback((roundNum: number) => {
+  const startNewRound = useCallback((_roundNum: number) => {
     // Shuffle roles
     const roles: ('Raja' | 'Rani' | 'Police' | 'Thief')[] = ['Raja', 'Rani', 'Police', 'Thief'];
     for (let i = roles.length - 1; i > 0; i--) {

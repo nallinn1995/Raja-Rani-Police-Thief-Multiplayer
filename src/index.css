@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,700;0,900;1,700;1,900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800;900&family=Playfair+Display:ital,wght@0,700;0,900;1,700;1,900&family=Poppins:wght@300;400;500;600;700;800&display=swap');
 
 :root {
   /* Background */
@@ -43,6 +43,10 @@
     overflow-x: hidden;
     max-width: 100vw;
     -webkit-overflow-scrolling: touch;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
   }
 
   body {
@@ -741,97 +745,98 @@ select:focus-visible {
   box-shadow: 0 0 50px rgba(168, 38, 178, 0.35), inset 0 0 30px rgba(0, 0, 0, 0.8);
 }
 
+.font-royal {
+  font-family: 'Cinzel', 'Playfair Display', serif;
+}
+
+.font-body {
+  font-family: 'Poppins', sans-serif;
+}
+
+.auth-modal-card {
+  background: radial-gradient(130% 120% at 50% 0%, #260B46 0%, #140628 45%, #070214 100%);
+  border: 2px solid #F4C542;
+  box-shadow: 0 0 60px rgba(168, 38, 178, 0.45), 0 0 25px rgba(244, 197, 66, 0.2), inset 0 0 40px rgba(0, 0, 0, 0.85);
+}
+
 .auth-gold-frame {
-  border: 2px solid #FBE278;
-  box-shadow: 0 0 18px rgba(251, 226, 120, 0.4), inset 0 0 12px rgba(251, 226, 120, 0.15);
+  border: 2px solid #F4C542;
+  box-shadow: 0 0 18px rgba(244, 197, 66, 0.4), inset 0 0 12px rgba(244, 197, 66, 0.15);
 }
 
 .auth-gold-text {
-  color: #FBE278;
+  color: #F4C542;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 
 .auth-gold-gradient-text {
-  background: linear-gradient(180deg, #FFF6BD 0%, #FBE278 40%, #E6A119 100%);
+  background: linear-gradient(180deg, #FFF7D6 0%, #F4C542 45%, #D99313 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.7));
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8));
 }
 
 .auth-btn-primary {
-  background: linear-gradient(180deg, #B923CE 0%, #9016A5 50%, #68097B 100%);
-  border: 2px solid #FBE278;
-  box-shadow: 0 0 20px rgba(185, 35, 206, 0.6), inset 0 1px 2px rgba(255, 255, 255, 0.4);
-  transition: all 0.2s ease-in-out;
+  background: linear-gradient(180deg, #A81EB6 0%, #760E8D 50%, #520967 100%);
+  border: 2px solid #F4C542;
+  box-shadow: 0 0 22px rgba(168, 30, 182, 0.65), 0 0 10px rgba(244, 197, 66, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.45);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.auth-btn-primary:hover {
-  background: linear-gradient(180deg, #C92BE0 0%, #9F1CB5 50%, #760C8C 100%);
-  box-shadow: 0 0 30px rgba(185, 35, 206, 0.85), inset 0 1px 3px rgba(255, 255, 255, 0.6);
+.auth-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #BD2CD0 0%, #8D15A7 50%, #630C7B 100%);
+  box-shadow: 0 0 32px rgba(189, 44, 208, 0.85), 0 0 14px rgba(244, 197, 66, 0.5), inset 0 1px 3px rgba(255, 255, 255, 0.65);
   transform: translateY(-1px);
 }
 
-.auth-btn-primary:active {
+.auth-btn-primary:active:not(:disabled) {
   transform: translateY(1px);
+}
+
+.auth-btn-secondary {
+  background: rgba(28, 11, 54, 0.85);
+  border: 1px solid #5F2282;
+  transition: all 0.2s ease-in-out;
+}
+
+.auth-btn-secondary:hover:not(:disabled) {
+  background: rgba(43, 17, 82, 0.95);
+  border-color: #A81EB6;
+  box-shadow: 0 0 16px rgba(168, 30, 182, 0.35);
+}
+
+.auth-btn-guest {
+  background: rgba(11, 20, 48, 0.85);
+  border: 1px solid #1E4473;
+  color: #38BDF8;
+  transition: all 0.2s ease-in-out;
+}
+
+.auth-btn-guest:hover:not(:disabled) {
+  background: rgba(16, 32, 75, 0.95);
+  border-color: #38BDF8;
+  box-shadow: 0 0 18px rgba(56, 189, 248, 0.4);
 }
 
 .auth-input-box {
   background-color: #0A041A;
-  border: 1px solid rgba(120, 34, 135, 0.7);
+  border: 1.5px solid rgba(120, 34, 135, 0.6);
   transition: all 0.2s ease-in-out;
 }
 
 .auth-input-box:focus-within {
-  border-color: #FBE278;
-  box-shadow: 0 0 12px rgba(251, 226, 120, 0.35);
+  border-color: #F4C542;
+  box-shadow: 0 0 14px rgba(244, 197, 66, 0.35);
 }
 
-.auth-corner-tl {
-  position: absolute;
-  top: 5px;
-  left: 5px;
-  width: 22px;
-  height: 22px;
-  border-top: 2px solid #FBE278;
-  border-left: 2px solid #FBE278;
-  border-top-left-radius: 12px;
-  pointer-events: none;
+.auth-security-badge {
+  background: rgba(22, 8, 44, 0.7);
+  border: 1px solid rgba(95, 34, 130, 0.5);
 }
 
-.auth-corner-tr {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  width: 22px;
-  height: 22px;
-  border-top: 2px solid #FBE278;
-  border-right: 2px solid #FBE278;
-  border-top-right-radius: 12px;
-  pointer-events: none;
-}
-
-.auth-corner-bl {
-  position: absolute;
-  bottom: 5px;
-  left: 5px;
-  width: 22px;
-  height: 22px;
-  border-bottom: 2px solid #FBE278;
-  border-left: 2px solid #FBE278;
-  border-bottom-left-radius: 12px;
-  pointer-events: none;
-}
-
-.auth-corner-br {
-  position: absolute;
-  bottom: 5px;
-  right: 5px;
-  width: 22px;
-  height: 22px;
-  border-bottom: 2px solid #FBE278;
-  border-right: 2px solid #FBE278;
-  border-bottom-right-radius: 12px;
-  pointer-events: none;
+.auth-perk-card {
+  background: rgba(18, 7, 36, 0.5);
+  border: 1px solid rgba(244, 197, 66, 0.12);
 }
 
 /* Fast loading game background with solid fallback to eliminate visual lag */

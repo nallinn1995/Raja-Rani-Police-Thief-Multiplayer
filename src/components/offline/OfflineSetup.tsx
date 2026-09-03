@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Bot, Play, Sparkles, Trophy, Shield, User as UserIcon } from 'lucide-react';
+import { ArrowLeft, Bot, Play, Trophy, User as UserIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { authService } from '../../services/authService';
 
