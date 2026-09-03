@@ -20,6 +20,7 @@ export function usePWAInstall() {
   const [isIOSSafari, setIsIOSSafari] = useState<boolean>(false);
   const [isAndroid, setIsAndroid] = useState<boolean>(false);
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
+  const [isInstalling, setIsInstalling] = useState<boolean>(false);
 
   const deferredPromptRef = useRef<BeforeInstallPromptEvent | null>(
     (typeof window !== 'undefined' && (window as any).__PWA_PROMPT__) || null
@@ -57,7 +58,7 @@ export function usePWAInstall() {
     const standalone = checkIsStandalone();
     setIsInstalled(standalone);
 
-    // 3. Pick up globally captured prompt if already ready
+    // 3. Pick up globally captured prompt if ready
     if ((window as any).__PWA_PROMPT__) {
       deferredPromptRef.current = (window as any).__PWA_PROMPT__;
       setDeferredPrompt((window as any).__PWA_PROMPT__);
@@ -105,26 +106,46 @@ export function usePWAInstall() {
     };
   }, [checkIsStandalone]);
 
-  // Request confirmation first
+  // Request confirmation
   const requestInstallConfirmation = useCallback(() => {
     if (isInstalled) return;
     setShowConfirmModal(true);
   }, [isInstalled]);
 
-  // Execute direct install once user confirms
+  // Direct installation execution
   const confirmAndInstall = useCallback(async (): Promise<'accepted' | 'dismissed' | 'manual'> => {
-    setShowConfirmModal(false);
-
     if (isInstalled) {
+      setShowConfirmModal(false);
       return 'accepted';
     }
 
-    const promptEvent = (window as any).__PWA_PROMPT__ || deferredPromptRef.current || deferredPrompt;
+    let promptEvent = (window as any).__PWA_PROMPT__ || deferredPromptRef.current || deferredPrompt;
+
+    // If promptEvent not ready yet, wait briefly for it
+    if (!promptEvent && typeof window !== 'undefined') {
+      setIsInstalling(true);
+      await new Promise<void>((resolve) => {
+        const timeout = setTimeout(resolve, 500);
+        window.addEventListener(
+          'pwa_prompt_ready',
+          () => {
+            clearTimeout(timeout);
+            resolve();
+          },
+          { once: true }
+        );
+      });
+      setIsInstalling(false);
+      promptEvent = (window as any).__PWA_PROMPT__ || deferredPromptRef.current || deferredPrompt;
+    }
+
+    setShowConfirmModal(false);
+
     if (promptEvent) {
       try {
         await promptEvent.prompt();
         const choice = await promptEvent.userChoice;
-        console.log(`[PWA] Install prompt outcome: ${choice.outcome}`);
+        console.log(`[PWA] Install choice outcome: ${choice.outcome}`);
         if (choice.outcome === 'accepted') {
           setIsInstalled(true);
           try {
@@ -140,8 +161,12 @@ export function usePWAInstall() {
       }
     }
 
+    if (isIOS) {
+      alert("To add Raja Rani to your home screen on iOS: tap Safari's Share button (⎋), then tap 'Add to Home Screen'.");
+    }
+
     return 'manual';
-  }, [isInstalled, deferredPrompt]);
+  }, [isInstalled, deferredPrompt, isIOS]);
 
   const closeConfirmModal = useCallback(() => {
     setShowConfirmModal(false);
@@ -158,6 +183,7 @@ export function usePWAInstall() {
     isIOSSafari,
     isAndroid,
     hasPrompt,
+    isInstalling,
     showConfirmModal,
     requestInstallConfirmation,
     confirmAndInstall,
