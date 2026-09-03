@@ -140,24 +140,24 @@ export function usePWAInstall() {
       }
     }
 
-    // Fallback if browser doesn't permit programmatic prompt (e.g. iOS)
-    if (isIOS) {
-      alert("On iOS: Tap Safari's Share button (⎋) and select 'Add to Home Screen'.");
-    } else {
-      alert("To install: Click the Install icon in your browser's address bar or menu.");
-    }
     return 'manual';
-  }, [isInstalled, deferredPrompt, isIOS]);
+  }, [isInstalled, deferredPrompt]);
 
   const closeConfirmModal = useCallback(() => {
     setShowConfirmModal(false);
   }, []);
+
+  const hasPrompt = !!(
+    deferredPrompt ||
+    (typeof window !== 'undefined' && (window as any).__PWA_PROMPT__)
+  );
 
   return {
     isInstalled,
     isIOS,
     isIOSSafari,
     isAndroid,
+    hasPrompt,
     showConfirmModal,
     requestInstallConfirmation,
     confirmAndInstall,

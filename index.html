@@ -33,6 +33,11 @@
         localStorage.setItem('raja_rani_app_installed', 'true');
         window.dispatchEvent(new CustomEvent('pwa_installed_success'));
       });
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' })
+          .then(function(reg) { console.log('[PWA Global] SW registered:', reg.scope); })
+          .catch(function(err) { console.warn('[PWA Global] SW register failed:', err); });
+      }
     </script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <title>

@@ -7,12 +7,12 @@ const PRECACHE_ASSETS = [
   '/',
   '/index.html',
   '/manifest.webmanifest',
+  '/manifest.json',
   '/favicon.png',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
   '/icons/icon-maskable-512x512.png',
   '/icons/apple-touch-icon.png',
-  '/assets/images/Landing Page/section_centered_iimage.png',
   '/assets/images/background.jpg'
 ];
 

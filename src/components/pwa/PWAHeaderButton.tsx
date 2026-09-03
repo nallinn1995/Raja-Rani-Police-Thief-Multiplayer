@@ -11,6 +11,8 @@ export const PWAHeaderButton: React.FC<PWAHeaderButtonProps> = ({ className = ''
   const {
     isInstalled,
     isIOS,
+    isAndroid,
+    hasPrompt,
     showConfirmModal,
     requestInstallConfirmation,
     confirmAndInstall,
@@ -36,6 +38,8 @@ export const PWAHeaderButton: React.FC<PWAHeaderButtonProps> = ({ className = ''
       <InstallConfirmModal
         isOpen={showConfirmModal}
         isIOS={isIOS}
+        isAndroid={isAndroid}
+        hasPrompt={hasPrompt}
         onConfirm={confirmAndInstall}
         onClose={closeConfirmModal}
       />

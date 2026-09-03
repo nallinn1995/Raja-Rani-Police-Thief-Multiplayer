@@ -14,6 +14,8 @@ export const PWAInstallBanner: React.FC<PWAInstallBannerProps> = ({
   const {
     isInstalled,
     isIOS,
+    isAndroid,
+    hasPrompt,
     showConfirmModal,
     requestInstallConfirmation,
     confirmAndInstall,
@@ -83,6 +85,8 @@ export const PWAInstallBanner: React.FC<PWAInstallBannerProps> = ({
       <InstallConfirmModal
         isOpen={showConfirmModal}
         isIOS={isIOS}
+        isAndroid={isAndroid}
+        hasPrompt={hasPrompt}
         onConfirm={confirmAndInstall}
         onClose={closeConfirmModal}
       />
