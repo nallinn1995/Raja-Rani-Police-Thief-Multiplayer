@@ -226,6 +226,28 @@ export async function getOverviewStats(roomsMap, io) {
     const totalStatsRecords = await PlayerStats.countDocuments();
     const totalDcStatsRecords = await DetectiveChallengeStats.countDocuments();
     const totalModernStatsRecords = await ModernModeStats.countDocuments();
+
+    // Offline Games Tracking Analytics (Isolated simple counter)
+    const regOfflineAggregate = await PlayerStats.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalOffline: { $sum: "$offlineGamesPlayed" },
+        },
+      },
+    ]);
+    const totalRegisteredOfflineGames = regOfflineAggregate[0]?.totalOffline || 0;
+
+    const guestOfflineAggregate = await GuestSession.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalOffline: { $sum: "$offlineGamesPlayed" },
+        },
+      },
+    ]);
+    const totalGuestOfflineGames = guestOfflineAggregate[0]?.totalOffline || 0;
+    const totalOfflineGames = totalRegisteredOfflineGames + totalGuestOfflineGames;
     
     let activeRoomsCount = 0;
     let classicRoomsCount = 0;
@@ -261,6 +283,10 @@ export async function getOverviewStats(roomsMap, io) {
       totalAdmins,
       totalBanned,
       totalMatches,
+      totalOnlineGames: totalMatches,
+      totalOfflineGames,
+      totalRegisteredOfflineGames,
+      totalGuestOfflineGames,
       classicMatchesCount,
       policeThiefMatchesCount,
       modernMatchesCount,
@@ -342,6 +368,7 @@ export async function getAllUsers(req, res) {
         country: s.country || "IN",
         description: s.description || "",
         totalGames: s.totalGames || 0,
+        offlineGamesPlayed: s.offlineGamesPlayed || 0,
         totalWins: s.totalWins || 0,
         lastPlayedAt: s.lastPlayedAt || u.createdAt,
       };

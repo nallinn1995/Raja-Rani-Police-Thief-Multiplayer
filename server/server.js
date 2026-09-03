@@ -575,6 +575,30 @@ app.post("/api/guest/ping", async (req, res) => {
   }
 });
 
+// OFFLINE GAME METRIC ENDPOINT (ISOLATED - ONLY +1 COUNTER FOR ADMIN ANALYTICS)
+app.post("/api/stats/offline-game-started", async (req, res) => {
+  try {
+    const { userId, guestDeviceId } = req.body || {};
+    if (userId && mongoose.Types.ObjectId.isValid(userId)) {
+      await PlayerStats.findOneAndUpdate(
+        { userId },
+        { $inc: { offlineGamesPlayed: 1 }, $set: { lastPlayedAt: new Date() } },
+        { upsert: false }
+      );
+    } else if (guestDeviceId) {
+      await GuestSession.findOneAndUpdate(
+        { guestDeviceId },
+        { $inc: { offlineGamesPlayed: 1 }, $set: { lastSeenAt: new Date() } },
+        { upsert: false }
+      );
+    }
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("Error recording offline game metric:", err);
+    return res.status(500).json({ error: "Failed to record offline game start" });
+  }
+});
+
 app.get("/api/admin/rooms", (req, res) => {
   res.json(getActiveRoomsData(rooms));
 });

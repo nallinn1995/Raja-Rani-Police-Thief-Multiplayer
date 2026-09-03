@@ -14,6 +14,7 @@ export interface AdminUser {
   country?: string;
   description?: string;
   totalGames?: number;
+  offlineGamesPlayed?: number;
   totalWins?: number;
   password?: string;
 }
@@ -72,6 +73,10 @@ export interface OverviewStats {
   totalAdmins: number;
   totalBanned: number;
   totalMatches: number;
+  totalOnlineGames?: number;
+  totalOfflineGames?: number;
+  totalRegisteredOfflineGames?: number;
+  totalGuestOfflineGames?: number;
   classicMatchesCount?: number;
   policeThiefMatchesCount?: number;
   modernMatchesCount?: number;

@@ -36,7 +36,6 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
       await adminService.login(password.trim(), username.trim() || undefined);
       toast.success("Admin Authentication Successful!");
       onSuccess();
-      onClose();
     } catch (err: any) {
       setError(err.message || "Invalid Admin Access Key or credentials.");
     } finally {

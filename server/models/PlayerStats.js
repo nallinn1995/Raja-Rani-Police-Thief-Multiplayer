@@ -22,6 +22,7 @@ const playerStatsSchema = new mongoose.Schema(
 
     // Overall Lifetime Statistics
     totalGames: { type: Number, default: 0 },
+    offlineGamesPlayed: { type: Number, default: 0 },
     totalWins: { type: Number, default: 0 },
     totalLosses: { type: Number, default: 0 },
     totalRoundsPlayed: { type: Number, default: 0 },

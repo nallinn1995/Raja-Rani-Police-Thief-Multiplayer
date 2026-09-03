@@ -11,6 +11,9 @@ import { GameBoard } from "./components/GameBoard";
 import { RoundResult } from "./components/RoundResult";
 import { Welcome } from "./components/Welcome";
 import { AppHeader } from "./components/AppHeader";
+import { PlayTypeSelection } from "./components/PlayTypeSelection";
+import { OfflineSetup, OfflineGameConfig } from "./components/offline/OfflineSetup";
+import { OfflineGameBoard } from "./components/offline/OfflineGameBoard";
 import {
   Room,
   Player,
@@ -58,6 +61,9 @@ const socket = io(SOCKET_URL, {
 
 type AppState =
   | "welcome"
+  | "play-type"
+  | "offline-setup"
+  | "offline-playing"
   | "home"
   | "create"
   | "join"
@@ -72,6 +78,7 @@ type AppState =
 function App() {
   //const socket = useSocket();
   const [appState, setAppState] = useState<AppState>("welcome");
+  const [offlineConfig, setOfflineConfig] = useState<OfflineGameConfig | null>(null);
   const [currentUser, setCurrentUser] = useState<UserType | null>(authService.getCurrentUser());
   const [isAdminAuthed, setIsAdminAuthed] = useState<boolean>(adminService.isAdminLoggedIn());
 
@@ -856,8 +863,8 @@ useEffect(() => {
             setAppState("game-info");
           }}
           onGoHome={() => {
-            sessionStorage.setItem("appState", "home");
-            setAppState("home");
+            sessionStorage.setItem("appState", "play-type");
+            setAppState("play-type");
           }}
           onLogout={() => {
             authService.logout();
@@ -899,8 +906,8 @@ useEffect(() => {
                     setAppState("game-info");
                   }}
                   startGame={() => {
-                    sessionStorage.setItem("appState", "home");
-                    setAppState("home");
+                    sessionStorage.setItem("appState", "play-type");
+                    setAppState("play-type");
                   }}
                   onLogout={() => {
                     authService.logout();
@@ -923,12 +930,75 @@ useEffect(() => {
                 />
               );
 
+            case "play-type":
+              return (
+                <PlayTypeSelection
+                  onSelectOffline={() => {
+                    sessionStorage.setItem("appState", "offline-setup");
+                    setAppState("offline-setup");
+                  }}
+                  onSelectOnline={() => {
+                    sessionStorage.setItem("appState", "home");
+                    setAppState("home");
+                  }}
+                  onBack={() => {
+                    sessionStorage.setItem("appState", "welcome");
+                    setAppState("welcome");
+                  }}
+                  onOpenGameInfo={() => {
+                    sessionStorage.setItem("appState", "game-info");
+                    setAppState("game-info");
+                  }}
+                />
+              );
+
+            case "offline-setup":
+              return (
+                <OfflineSetup
+                  onBack={() => {
+                    sessionStorage.setItem("appState", "play-type");
+                    setAppState("play-type");
+                  }}
+                  onStartGame={(cfg) => {
+                    setOfflineConfig(cfg);
+                    apiService.recordOfflineGameStarted(currentUser?.id || currentUser?._id);
+                    sessionStorage.setItem("appState", "offline-playing");
+                    setAppState("offline-playing");
+                  }}
+                />
+              );
+
+            case "offline-playing":
+              return (
+                <OfflineGameBoard
+                  config={
+                    offlineConfig || {
+                      playerName: currentUser?.username || "You",
+                      avatar: currentUser?.avatar || "1",
+                      winCondition: "rounds",
+                      totalRounds: 3,
+                      targetScore: 3000,
+                      aiOpponents: [],
+                    }
+                  }
+                  onExit={() => {
+                    setOfflineConfig(null);
+                    sessionStorage.setItem("appState", "play-type");
+                    setAppState("play-type");
+                  }}
+                  onPlayAgain={() => {
+                    sessionStorage.setItem("appState", "offline-setup");
+                    setAppState("offline-setup");
+                  }}
+                />
+              );
+
             case "home":
               return (
                 <HomePage
                   onBack={() => {
-                    sessionStorage.setItem("appState", "welcome");
-                    setAppState("welcome");
+                    sessionStorage.setItem("appState", "play-type");
+                    setAppState("play-type");
                   }}
                   onCreateRoom={() => {
                     sessionStorage.setItem("appState", "create");
@@ -1024,8 +1094,8 @@ useEffect(() => {
                     setAppState("welcome");
                   }}
                   onStartGame={() => {
-                    sessionStorage.setItem("appState", "home");
-                    setAppState("home");
+                    sessionStorage.setItem("appState", "play-type");
+                    setAppState("play-type");
                   }}
                 />
               );
@@ -1054,6 +1124,9 @@ useEffect(() => {
                     onLogout={() => {
                       adminService.logout();
                       setIsAdminAuthed(false);
+                      window.history.pushState({}, "", "/");
+                      sessionStorage.setItem("appState", "welcome");
+                      setAppState("welcome");
                     }}
                   />
                 );
@@ -1068,6 +1141,8 @@ useEffect(() => {
                   }}
                   onSuccess={() => {
                     setIsAdminAuthed(true);
+                    sessionStorage.setItem("appState", "admin");
+                    setAppState("admin");
                   }}
                 />
               );

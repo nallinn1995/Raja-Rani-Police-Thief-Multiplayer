@@ -24,6 +24,7 @@ import {
   Award,
   Power,
   Crown,
+  Bot,
 } from "lucide-react";
 import {
   adminService,
@@ -555,6 +556,44 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               </div>
 
+              {/* Player Activity Breakdown (Online vs Offline Games) */}
+              <div className="p-4 sm:p-5 bg-slate-950/80 border border-slate-800 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
+                  <h3 className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center space-x-2">
+                    <Activity className="w-4 h-4 text-amber-400" />
+                    <span>Player Activity Breakdown</span>
+                  </h3>
+                  <span className="text-[11px] text-slate-400 hidden sm:inline">
+                    Online Multiplayer vs Local AI Play
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-3 bg-slate-900/70 border border-purple-500/30 rounded-xl flex items-center justify-between">
+                    <div>
+                      <span className="text-[11px] text-slate-400 font-semibold uppercase">Online Games Played</span>
+                      <p className="text-xl font-black text-purple-400">{overview.totalOnlineGames ?? overview.totalMatches}</p>
+                    </div>
+                    <Users className="w-6 h-6 text-purple-400/60" />
+                  </div>
+                  <div className="p-3 bg-slate-900/70 border border-amber-500/30 rounded-xl flex items-center justify-between">
+                    <div>
+                      <span className="text-[11px] text-slate-400 font-semibold uppercase">Offline Games Played</span>
+                      <p className="text-xl font-black text-amber-400">{overview.totalOfflineGames ?? 0}</p>
+                    </div>
+                    <Bot className="w-6 h-6 text-amber-400/60" />
+                  </div>
+                  <div className="p-3 bg-slate-900/70 border border-emerald-500/30 rounded-xl flex items-center justify-between">
+                    <div>
+                      <span className="text-[11px] text-slate-400 font-semibold uppercase">Total Games</span>
+                      <p className="text-xl font-black text-emerald-400">
+                        {(overview.totalOnlineGames ?? overview.totalMatches) + (overview.totalOfflineGames ?? 0)}
+                      </p>
+                    </div>
+                    <Trophy className="w-6 h-6 text-emerald-400/60" />
+                  </div>
+                </div>
+              </div>
+
               {/* Game Modes Breakdown Analytics */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="p-4 bg-slate-950/80 border border-amber-500/30 rounded-2xl space-y-2">
@@ -748,7 +787,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <th className="p-3.5">Role</th>
                       <th className="p-3.5">Level / XP</th>
                       <th className="p-3.5">Title</th>
-                      <th className="p-3.5">Games / Wins</th>
+                      <th className="p-3.5">Online Games</th>
+                      <th className="p-3.5">Offline Played</th>
                       <th className="p-3.5">Status</th>
                       <th className="p-3.5 text-right">Actions</th>
                     </tr>
@@ -756,13 +796,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <tbody className="divide-y divide-slate-800/60">
                     {loading ? (
                       <tr>
-                        <td colSpan={7} className="p-8 text-center text-slate-500">
+                        <td colSpan={8} className="p-8 text-center text-slate-500">
                           Loading user data...
                         </td>
                       </tr>
                     ) : users.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="p-8 text-center text-slate-500">
+                        <td colSpan={8} className="p-8 text-center text-slate-500">
                           No users found matching query.
                         </td>
                       </tr>
@@ -779,7 +819,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <span
                               className={`px-2 py-0.5 text-[10px] rounded-md font-bold uppercase ${
                                 u.role === "admin"
-                                  ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
                                   : "bg-slate-800 text-slate-400"
                               }`}
                             >
@@ -792,6 +832,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <td className="p-3.5 text-amber-400 font-medium">{u.title || "Rookie"}</td>
                           <td className="p-3.5 text-slate-300">
                             {u.totalGames || 0} games / <span className="text-emerald-400 font-bold">{u.totalWins || 0} W</span>
+                          </td>
+                          <td className="p-3.5">
+                            <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 font-extrabold text-[11px]">
+                              {u.offlineGamesPlayed || 0} offline
+                            </span>
                           </td>
                           <td className="p-3.5">
                             {u.isBanned ? (

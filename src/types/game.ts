@@ -1,3 +1,8 @@
+export enum PlayType {
+  OFFLINE = "OFFLINE",
+  ONLINE = "ONLINE",
+}
+
 export enum GameMode {
   CLASSIC_POINTS = "CLASSIC_POINTS",
   DETECTIVE_CHALLENGE = "DETECTIVE_CHALLENGE",

@@ -26,6 +26,10 @@ const guestSessionSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    offlineGamesPlayed: {
+      type: Number,
+      default: 0,
+    },
     matchesCompleted: {
       type: Number,
       default: 0,

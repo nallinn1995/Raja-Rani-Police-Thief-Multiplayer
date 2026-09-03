@@ -62,4 +62,19 @@ export const apiService = {
     sessionStorage.setItem("playerToken", data.playerToken);
     return data;
   },
+
+  async recordOfflineGameStarted(userId?: string) {
+    try {
+      const guestDeviceId = authService.getGuestDeviceId();
+      await authService.authFetch(`${API_BASE_URL}/api/stats/offline-game-started`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId, guestDeviceId }),
+      });
+    } catch (err) {
+      console.warn("Failed to record offline game metric:", err);
+    }
+  },
 };
