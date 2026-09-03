@@ -2,7 +2,7 @@ import React from 'react';
 import { Smartphone, Download, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
-import { InstallGuideModal } from './InstallGuideModal';
+import { InstallConfirmModal } from './InstallConfirmModal';
 
 interface PWAInstallBannerProps {
   className?: string;
@@ -14,9 +14,10 @@ export const PWAInstallBanner: React.FC<PWAInstallBannerProps> = ({
   const {
     isInstalled,
     isIOS,
-    showGuideModal,
-    triggerInstall,
-    closeGuideModal,
+    showConfirmModal,
+    requestInstallConfirmation,
+    confirmAndInstall,
+    closeConfirmModal,
   } = usePWAInstall();
 
   // Once installed, remove banner completely
@@ -68,7 +69,7 @@ export const PWAInstallBanner: React.FC<PWAInstallBannerProps> = ({
             {/* Right: Install Action Button */}
             <div className="flex-shrink-0 flex items-center gap-2 w-full sm:w-auto mt-1 sm:mt-0">
               <button
-                onClick={() => triggerInstall()}
+                onClick={requestInstallConfirmation}
                 className="w-full sm:w-auto px-4 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-[#EB9C09] via-[#F9C933] to-[#EB9C09] hover:opacity-95 text-black font-black text-xs uppercase tracking-wider shadow-[0_0_18px_rgba(249,201,51,0.5)] hover:shadow-[0_0_25px_rgba(251,226,120,0.8)] transition-all transform active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
               >
                 <Download className="w-3.5 h-3.5 text-black" />
@@ -79,10 +80,11 @@ export const PWAInstallBanner: React.FC<PWAInstallBannerProps> = ({
         </motion.div>
       </AnimatePresence>
 
-      <InstallGuideModal
-        isOpen={showGuideModal}
+      <InstallConfirmModal
+        isOpen={showConfirmModal}
         isIOS={isIOS}
-        onClose={closeGuideModal}
+        onConfirm={confirmAndInstall}
+        onClose={closeConfirmModal}
       />
     </>
   );
