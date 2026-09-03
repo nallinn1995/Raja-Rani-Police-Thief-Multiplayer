@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Smartphone, X, Download, Sparkles } from 'lucide-react';
+import React from 'react';
+import { Smartphone, Download, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
-import { IOSInstallModal } from './IOSInstallModal';
+import { InstallGuideModal } from './InstallGuideModal';
 
 interface PWAInstallBannerProps {
   className?: string;
@@ -12,63 +12,45 @@ export const PWAInstallBanner: React.FC<PWAInstallBannerProps> = ({
   className = '',
 }) => {
   const {
-    canInstall,
     isInstalled,
-    isDismissed,
-    showIOSModal,
+    isIOS,
+    showGuideModal,
     triggerInstall,
-    dismissPrompt,
-    closeIOSModal,
+    closeGuideModal,
   } = usePWAInstall();
 
-  // Subtle entrance delay: wait 2 seconds after mount to avoid initial layout shift or intrusive feel
-  const [hasInteractedDelay, setHasInteractedDelay] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setHasInteractedDelay(true);
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Do not show if not installable, already installed, dismissed by user, or still in initial delay
-  if (!canInstall || isInstalled || isDismissed || !hasInteractedDelay) {
-    return (
-      <IOSInstallModal
-        isOpen={showIOSModal}
-        onClose={closeIOSModal}
-      />
-    );
+  // Once installed, remove banner completely
+  if (isInstalled) {
+    return null;
   }
 
   return (
     <>
       <AnimatePresence>
         <motion.div
-          initial={{ opacity: 0, y: 15, scale: 0.98 }}
+          initial={{ opacity: 0, y: 10, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -10, scale: 0.95 }}
-          transition={{ duration: 0.4, ease: 'easeOut' }}
-          className={`relative group overflow-hidden rounded-2xl bg-gradient-to-r from-[#21073F]/90 via-[#190833]/95 to-[#21073F]/90 border border-[#FFD700]/45 hover:border-[#FFD700]/70 p-3.5 sm:p-4 shadow-[0_4px_25px_rgba(120,34,135,0.4)] backdrop-blur-xl transition-all duration-300 ${className}`}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+          className={`relative group overflow-hidden rounded-2xl bg-gradient-to-r from-[#21073F]/95 via-[#190833]/98 to-[#21073F]/95 border border-[#FFD700]/50 hover:border-[#FFD700]/80 p-3.5 sm:p-4 shadow-[0_4px_25px_rgba(120,34,135,0.4)] backdrop-blur-xl transition-all duration-300 ${className}`}
         >
           {/* Subtle Ambient Radial Glow */}
           <div className="absolute top-0 right-1/4 w-32 h-32 bg-[#AC41D7]/15 rounded-full blur-2xl pointer-events-none" />
-
-          {/* Dismiss button */}
-          <button
-            onClick={dismissPrompt}
-            className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 text-gray-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer z-10"
-            title="Dismiss for now"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
 
           <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
             {/* Left: App Icon / Smartphone Badge with Royal Ring */}
             <div className="flex-shrink-0 relative">
               <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-tr from-[#782287] via-[#AC41D7] to-[#F9C933] p-0.5 shadow-[0_0_15px_rgba(249,201,51,0.4)] flex items-center justify-center">
-                <div className="w-full h-full bg-[#080320] rounded-[10px] flex items-center justify-center">
-                  <Smartphone className="w-6 h-6 text-[#FBE278] group-hover:scale-110 transition-transform" />
+                <div className="w-full h-full bg-[#080320] rounded-[10px] flex items-center justify-center overflow-hidden">
+                  <img
+                    src="/icons/icon-192x192.png"
+                    alt="Raja Rani Icon"
+                    className="w-8 h-8 object-contain group-hover:scale-110 transition-transform"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                  <Smartphone className="w-6 h-6 text-[#FBE278] group-hover:scale-110 transition-transform hidden only:block" />
                 </div>
               </div>
               <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#36D978] flex items-center justify-center text-black shadow-sm">
@@ -97,9 +79,10 @@ export const PWAInstallBanner: React.FC<PWAInstallBannerProps> = ({
         </motion.div>
       </AnimatePresence>
 
-      <IOSInstallModal
-        isOpen={showIOSModal}
-        onClose={closeIOSModal}
+      <InstallGuideModal
+        isOpen={showGuideModal}
+        isIOS={isIOS}
+        onClose={closeGuideModal}
       />
     </>
   );
