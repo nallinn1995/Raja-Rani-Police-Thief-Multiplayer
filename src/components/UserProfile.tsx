@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { LogOut, ChevronDown, User as UserIcon, Shield } from 'lucide-react';
+import { LogOut, ChevronDown, User as UserIcon, Shield, Bell } from 'lucide-react';
 import { User } from '../services/authService';
 import { adminService } from '../services/adminService';
 import { getAvatarSrc } from '../utils/avatarUtils';
@@ -9,6 +9,7 @@ interface UserProfileProps {
   onLogout: () => void;
   onOpenDashboard?: () => void;
   onOpenAdminDashboard?: () => void;
+  onOpenNotificationSettings?: () => void;
 }
 
 export const UserProfile: React.FC<UserProfileProps> = ({
@@ -16,6 +17,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   onLogout,
   onOpenDashboard,
   onOpenAdminDashboard,
+  onOpenNotificationSettings,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -94,6 +96,19 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             >
               <UserIcon className="w-4 h-4 text-purple-400" />
               <span>Profile & Stats</span>
+            </button>
+          )}
+
+          {onOpenNotificationSettings && (
+            <button
+              onClick={() => {
+                setIsOpen(false);
+                onOpenNotificationSettings();
+              }}
+              className="w-full px-4 py-2.5 text-left text-sm hover:bg-purple-600/20 text-[#FBE278] flex items-center gap-2.5 transition cursor-pointer"
+            >
+              <Bell className="w-4 h-4 text-[#FBE278]" />
+              <span>Notification Settings</span>
             </button>
           )}
 

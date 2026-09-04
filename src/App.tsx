@@ -26,7 +26,9 @@ import { profileService } from "./services/profileService";
 import { AuthOverlay } from "./components/auth/AuthOverlay";
 import { adminService } from "./services/adminService";
 import { configService } from "./services/configService";
-import { NotificationPermissionBanner } from "./components/pwa/NotificationPermissionBanner";
+import { NotificationSoftPrompt } from "./components/pwa/NotificationSoftPrompt";
+import { NotificationSettingsModal } from "./components/settings/NotificationSettingsModal";
+import { useNotificationPermission } from "./hooks/useNotificationPermission";
 import { pushNotificationService } from "./services/pushNotificationService";
 
 // Lazy-loaded routes for performance & lightweight initial bundle
@@ -109,6 +111,23 @@ function App() {
   useEffect(() => {
     pushNotificationService.initForegroundListener();
   }, []);
+
+  const [showNotificationSettings, setShowNotificationSettings] = useState<boolean>(false);
+
+  const {
+    browserPermission,
+    isAppEnabled,
+    showPrompt: showNotificationSoftPrompt,
+    isProcessing: isNotificationProcessing,
+    deniedExplanation: showDeniedHelp,
+    enableNotifications,
+    dismissPrompt: dismissNotificationPrompt,
+    toggleAppNotifications,
+    recordInteraction,
+  } = useNotificationPermission({
+    currentScreen: appState,
+    hasAuthenticatedUser: !!currentUser,
+  });
 
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   // 🔄 Reconnect UI state
@@ -891,17 +910,28 @@ useEffect(() => {
             sessionStorage.setItem("appState", "admin");
             setAppState("admin");
           }}
+          onOpenNotificationSettings={() => setShowNotificationSettings(true)}
         />
       )}
 
-      {/* Push Notification Banner - Only rendered on non-gameplay screens */}
-      {["welcome", "home", "dashboard"].includes(appState) && (
-        <div className="fixed top-16 left-0 right-0 z-40 px-4 pointer-events-none flex justify-center">
-          <div className="pointer-events-auto w-full max-w-xl">
-            <NotificationPermissionBanner />
-          </div>
-        </div>
-      )}
+      {/* Royal In-App Notification Soft Prompt - Only shown on eligible non-gameplay screens after user interaction */}
+      <NotificationSoftPrompt
+        isOpen={showNotificationSoftPrompt || showDeniedHelp}
+        isProcessing={isNotificationProcessing}
+        showDeniedHelp={showDeniedHelp}
+        onEnable={enableNotifications}
+        onDismiss={() => dismissNotificationPrompt("later")}
+      />
+
+      {/* In-App Notification Settings Modal */}
+      <NotificationSettingsModal
+        isOpen={showNotificationSettings}
+        onClose={() => setShowNotificationSettings(false)}
+        browserPermission={browserPermission}
+        isAppEnabled={isAppEnabled}
+        onToggleAppNotifications={toggleAppNotifications}
+        onRequestPermission={enableNotifications}
+      />
 
       <Suspense
         fallback={
@@ -922,6 +952,7 @@ useEffect(() => {
                     setAppState("game-info");
                   }}
                   startGame={() => {
+                    recordInteraction();
                     sessionStorage.setItem("appState", "play-type");
                     setAppState("play-type");
                   }}
@@ -935,6 +966,7 @@ useEffect(() => {
                     toast.info("Logged out successfully");
                   }}
                   onOpenDashboard={() => {
+                    recordInteraction();
                     sessionStorage.setItem("appState", "dashboard");
                     setAppState("dashboard");
                   }}
@@ -943,6 +975,7 @@ useEffect(() => {
                     sessionStorage.setItem("appState", "admin");
                     setAppState("admin");
                   }}
+                  onOpenNotificationSettings={() => setShowNotificationSettings(true)}
                 />
               );
 
@@ -950,10 +983,12 @@ useEffect(() => {
               return (
                 <PlayTypeSelection
                   onSelectOffline={() => {
+                    recordInteraction();
                     sessionStorage.setItem("appState", "offline-setup");
                     setAppState("offline-setup");
                   }}
                   onSelectOnline={() => {
+                    recordInteraction();
                     sessionStorage.setItem("appState", "home");
                     setAppState("home");
                   }}
@@ -1017,10 +1052,12 @@ useEffect(() => {
                     setAppState("play-type");
                   }}
                   onCreateRoom={() => {
+                    recordInteraction();
                     sessionStorage.setItem("appState", "create");
                     setAppState("create");
                   }}
                   onJoinRoom={() => {
+                    recordInteraction();
                     setAppState("join");
                     sessionStorage.setItem("appState", "join");
                   }}
@@ -1028,6 +1065,7 @@ useEffect(() => {
                     sessionStorage.setItem("appState", "game-info");
                     setAppState("game-info");
                   }}
+                  onOpenNotificationSettings={() => setShowNotificationSettings(true)}
                 />
               );
 
@@ -1172,6 +1210,7 @@ useEffect(() => {
       {showAuthModal && (
         <AuthOverlay
           onSuccess={(user) => {
+            recordInteraction();
             setCurrentUser(user);
             setShowAuthModal(false);
           }}

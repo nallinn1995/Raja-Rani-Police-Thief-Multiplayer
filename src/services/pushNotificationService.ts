@@ -10,6 +10,8 @@ import {
 const API_BASE = import.meta.env.VITE_SERVER_URL || "";
 const INSTALLATION_STORAGE_KEY = "rr_push_installation_id";
 const PROMPT_DISMISSED_KEY = "rr_push_prompt_dismissed_time";
+const INTERACTION_STORAGE_KEY = "rr_user_interaction_count";
+const APP_PREF_STORAGE_KEY = "rr_notifications_app_enabled";
 
 export type PushPermissionStatus = "default" | "granted" | "denied" | "unsupported";
 
@@ -77,6 +79,61 @@ class PushNotificationService {
   }
 
   /**
+   * Record a meaningful interaction (e.g. clicked play, navigated lobby, selected mode)
+   */
+  recordInteraction(): number {
+    if (typeof sessionStorage === "undefined") return 1;
+    const current = parseInt(sessionStorage.getItem(INTERACTION_STORAGE_KEY) || "0", 10);
+    const updated = current + 1;
+    sessionStorage.setItem(INTERACTION_STORAGE_KEY, updated.toString());
+    return updated;
+  }
+
+  /**
+   * Get total meaningful interactions recorded in current session
+   */
+  getInteractionCount(): number {
+    if (typeof sessionStorage === "undefined") return 0;
+    return parseInt(sessionStorage.getItem(INTERACTION_STORAGE_KEY) || "0", 10);
+  }
+
+  /**
+   * Check if app-level notifications are enabled by the user (defaults to true)
+   */
+  isAppNotificationsEnabled(): boolean {
+    if (typeof localStorage === "undefined") return true;
+    const pref = localStorage.getItem(APP_PREF_STORAGE_KEY);
+    return pref !== "false";
+  }
+
+  /**
+   * Update app-level notification preference and sync with backend
+   */
+  async updateAppNotificationPreference(enabled: boolean): Promise<boolean> {
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(APP_PREF_STORAGE_KEY, enabled ? "true" : "false");
+    }
+
+    const installationId = typeof localStorage !== "undefined" ? localStorage.getItem(INSTALLATION_STORAGE_KEY) : null;
+    if (!installationId) return true;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/notifications/preferences`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          installationId,
+          notificationsEnabled: enabled,
+        }),
+      });
+      return res.ok;
+    } catch (err) {
+      console.warn("[FCM] Failed to sync notification preference:", err);
+      return false;
+    }
+  }
+
+  /**
    * Check if user previously dismissed the prompt recently (cooldown: 5 days)
    */
   isPromptDismissed(): boolean {
@@ -88,11 +145,15 @@ class PushNotificationService {
   }
 
   /**
-   * Mark the prompt dismissed locally
+   * Mark the prompt dismissed locally (cooldown begins)
    */
-  dismissPrompt(): void {
+  dismissPrompt(reason: "later" | "denied" = "later"): void {
     if (typeof localStorage !== "undefined") {
+      // If permanently denied, store longer/permanent flag; if later, 5 days
       localStorage.setItem(PROMPT_DISMISSED_KEY, Date.now().toString());
+      if (reason === "denied") {
+        localStorage.setItem("rr_push_permanently_denied", "true");
+      }
     }
   }
 
@@ -102,6 +163,7 @@ class PushNotificationService {
   clearPromptDismissal(): void {
     if (typeof localStorage !== "undefined") {
       localStorage.removeItem(PROMPT_DISMISSED_KEY);
+      localStorage.removeItem("rr_push_permanently_denied");
     }
   }
 

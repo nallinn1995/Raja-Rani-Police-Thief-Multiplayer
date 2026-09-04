@@ -11,6 +11,7 @@ interface AppHeaderProps {
   onLogout?: () => void;
   onOpenDashboard?: () => void;
   onOpenAdminDashboard?: () => void;
+  onOpenNotificationSettings?: () => void;
   onGoHome?: () => void;
 }
 
@@ -21,6 +22,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   onLogout,
   onOpenDashboard,
   onOpenAdminDashboard,
+  onOpenNotificationSettings,
   onGoHome,
 }) => {
   if (!currentUser) return null;
@@ -63,6 +65,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             onLogout={onLogout || (() => {})}
             onOpenDashboard={onOpenDashboard || (() => {})}
             onOpenAdminDashboard={onOpenAdminDashboard}
+            onOpenNotificationSettings={onOpenNotificationSettings}
           />
         </div>
       </div>

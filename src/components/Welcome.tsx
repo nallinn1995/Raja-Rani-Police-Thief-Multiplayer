@@ -15,6 +15,7 @@ interface WelcomeProps {
   onLogout?: () => void;
   onOpenDashboard?: () => void;
   onOpenAdminDashboard?: () => void;
+  onOpenNotificationSettings?: () => void;
 }
 
 export const Welcome: React.FC<WelcomeProps> = ({
@@ -25,6 +26,7 @@ export const Welcome: React.FC<WelcomeProps> = ({
   onLogout,
   onOpenDashboard,
   onOpenAdminDashboard,
+  onOpenNotificationSettings,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [config, setConfig] = useState<FullSystemConfig>(configService.getConfig());
@@ -123,6 +125,7 @@ export const Welcome: React.FC<WelcomeProps> = ({
                 onLogout={onLogout || (() => {})}
                 onOpenDashboard={onOpenDashboard || (() => {})}
                 onOpenAdminDashboard={onOpenAdminDashboard}
+                onOpenNotificationSettings={onOpenNotificationSettings}
               />
             ) : (
               <button

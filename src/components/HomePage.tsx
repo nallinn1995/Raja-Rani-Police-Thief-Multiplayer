@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, BookOpen, SlidersHorizontal } from 'lucide-react';
+import { ArrowLeft, BookOpen, SlidersHorizontal, Bell } from 'lucide-react';
 import { configService, FullSystemConfig } from '../services/configService';
 import { PWAInstallBanner } from './pwa/PWAInstallBanner';
 
@@ -8,6 +8,7 @@ interface HomePageProps {
   onJoinRoom: () => void;
   onBack?: () => void;
   onOpenGameInfo?: () => void;
+  onOpenNotificationSettings?: () => void;
 }
 
 export const HomePage: React.FC<HomePageProps> = ({
@@ -15,6 +16,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   onJoinRoom,
   onBack,
   onOpenGameInfo,
+  onOpenNotificationSettings,
 }) => {
   const [config, setConfig] = useState<FullSystemConfig>(configService.getConfig());
 
@@ -117,8 +119,18 @@ export const HomePage: React.FC<HomePageProps> = ({
 
       </div>
 
-      {/* Floating Action / Settings Button (Bottom Right) */}
-      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40">
+      {/* Floating Action / Settings Buttons (Bottom Right) */}
+      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 flex items-center gap-2.5">
+        {onOpenNotificationSettings && (
+          <button
+            onClick={onOpenNotificationSettings}
+            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#1D0C3A]/90 hover:bg-[#2C1358] border-2 border-[#FFD700]/70 text-[#FFD700] shadow-[0_0_16px_rgba(255,215,0,0.4)] transition-transform duration-200 hover:scale-110 flex items-center justify-center cursor-pointer"
+            title="Notification Settings"
+          >
+            <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFD700]" />
+          </button>
+        )}
+
         <button
           onClick={onOpenGameInfo}
           className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-tr from-purple-700 via-fuchsia-600 to-yellow-500 border-2 border-[#FFD700] text-white shadow-[0_0_20px_rgba(255,215,0,0.6)] transition-transform duration-200 hover:scale-110 flex items-center justify-center cursor-pointer"
