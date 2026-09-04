@@ -27,6 +27,12 @@ const PushInstallationSchema = new mongoose.Schema(
       default: null,
       index: true,
     },
+    guestDeviceId: {
+      type: String,
+      default: null,
+      index: true,
+      trim: true,
+    },
     platform: {
       type: String,
       enum: ["WEB"],

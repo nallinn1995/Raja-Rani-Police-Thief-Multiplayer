@@ -23,6 +23,7 @@ export interface PushInstallationData {
   permission: "GRANTED" | "DENIED" | "DEFAULT";
   notificationsEnabled: boolean;
   userAgent?: string;
+  guestDeviceId?: string | null;
 }
 
 class PushNotificationService {
@@ -199,6 +200,7 @@ class PushNotificationService {
         permission: "GRANTED",
         notificationsEnabled: true,
         userAgent: navigator.userAgent,
+        guestDeviceId: typeof localStorage !== "undefined" ? localStorage.getItem("guest_device_id") : null,
       };
 
       // Send to backend

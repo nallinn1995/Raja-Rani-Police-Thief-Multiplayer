@@ -29,6 +29,7 @@ class NotificationService {
     permission = "GRANTED",
     notificationsEnabled = true,
     userAgent = "",
+    guestDeviceId = null,
   }) {
     if (!installationId || !fcmToken) {
       throw new Error("installationId and fcmToken are required");
@@ -52,6 +53,7 @@ class NotificationService {
     if (fid) updateDoc.fid = fid;
     if (userAgent) updateDoc.userAgent = userAgent;
     if (safeUserId) updateDoc.userId = safeUserId;
+    if (guestDeviceId) updateDoc.guestDeviceId = guestDeviceId;
 
     // Idempotent upsert by installationId
     const installation = await PushInstallation.findOneAndUpdate(

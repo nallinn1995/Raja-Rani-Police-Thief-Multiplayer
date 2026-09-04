@@ -3,7 +3,7 @@ const API_BASE = import.meta.env.VITE_SERVER_URL || "";
 export interface AdminUser {
   _id: string;
   username: string;
-  role: "user" | "admin";
+  role: "user" | "admin" | "guest" | string;
   isGuest: boolean;
   isBanned?: boolean;
   createdAt: string;
@@ -17,6 +17,11 @@ export interface AdminUser {
   offlineGamesPlayed?: number;
   totalWins?: number;
   password?: string;
+  isRegistered?: boolean;
+  isGuestuser?: boolean;
+  IsPermissionEnabled?: boolean;
+  isappinstalled?: boolean;
+  guestDeviceId?: string;
 }
 
 export interface ModernAdminDashboardData {

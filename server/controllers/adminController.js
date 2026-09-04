@@ -8,6 +8,7 @@ import ModernModeStats from "../models/modernMode/ModernModeStats.js";
 import ModernModeMatch from "../models/modernMode/ModernModeMatch.js";
 import SystemConfig from "../models/SystemConfig.js";
 import GuestSession from "../models/GuestSession.js";
+import PushInstallation from "../models/PushInstallation.js";
 import { hashPassword, issueAccessToken, verifyAccessToken, getBearerToken, verifyPassword } from "../security.js";
 
 // Global dynamic system config stored in memory & backed by MongoDB
@@ -341,26 +342,105 @@ export async function getAllUsers(req, res) {
     const role = req.query.role;
     const limit = parseInt(req.query.limit) || 100;
 
-    let query = {};
+    let userQuery = {};
     if (search) {
-      query.username = { $regex: search, $options: "i" };
+      userQuery.username = { $regex: search, $options: "i" };
     }
     if (role && role !== "all") {
-      query.role = role;
+      if (role === "admin") {
+        userQuery.role = "admin";
+      } else if (role === "user" || role === "registered") {
+        userQuery.role = "user";
+        userQuery.isGuest = { $ne: true };
+      }
     }
 
-    const users = await User.find(query).sort({ createdAt: -1 }).limit(limit).lean();
+    // 1. Fetch Registered Users unless role is strictly "guest"
+    let users = [];
+    if (role !== "guest") {
+      users = await User.find(userQuery).sort({ createdAt: -1 }).limit(limit).lean();
+    }
 
-    // Attach player stats to each user
+    // Attach player stats to each registered user
     const userIds = users.map((u) => u._id);
     const statsList = await PlayerStats.find({ userId: { $in: userIds } }).lean();
     const statsMap = new Map();
     statsList.forEach((s) => statsMap.set(s.userId.toString(), s));
 
+    // 2. Fetch Guest Sessions unless role is strictly "admin" or "registered" / "user"
+    let guests = [];
+    if (role === "all" || role === "guest" || !role) {
+      let guestQuery = {};
+      if (search) {
+        guestQuery = {
+          $or: [
+            { guestDeviceId: { $regex: search, $options: "i" } },
+            { username: { $regex: search, $options: "i" } },
+          ],
+        };
+      }
+      guests = await GuestSession.find(guestQuery).sort({ lastSeenAt: -1 }).limit(limit).lean();
+    }
+
+    // 3. Fetch PushInstallations for both registered users and guest sessions
+    const guestDeviceIdsFromUsers = users.map((u) => u.guestDeviceId).filter(Boolean);
+    const guestDeviceIdsFromGuests = guests.map((g) => g.guestDeviceId).filter(Boolean);
+    const allGuestDeviceIds = Array.from(new Set([...guestDeviceIdsFromUsers, ...guestDeviceIdsFromGuests]));
+
+    const installationQuery = [];
+    if (userIds.length > 0) {
+      installationQuery.push({ userId: { $in: userIds } });
+    }
+    if (allGuestDeviceIds.length > 0) {
+      installationQuery.push({ guestDeviceId: { $in: allGuestDeviceIds } });
+    }
+
+    let installationsList = [];
+    if (installationQuery.length > 0) {
+      installationsList = await PushInstallation.find({ $or: installationQuery }).lean();
+    }
+
+    // Group installations by userId and guestDeviceId
+    const installationsByUser = new Map();
+    const installationsByGuestDevice = new Map();
+    installationsList.forEach((inst) => {
+      if (inst.userId) {
+        const uid = inst.userId.toString();
+        if (!installationsByUser.has(uid)) installationsByUser.set(uid, []);
+        installationsByUser.get(uid).push(inst);
+      }
+      if (inst.guestDeviceId) {
+        if (!installationsByGuestDevice.has(inst.guestDeviceId)) installationsByGuestDevice.set(inst.guestDeviceId, []);
+        installationsByGuestDevice.get(inst.guestDeviceId).push(inst);
+      }
+    });
+
     const enrichedUsers = users.map((u) => {
       const s = statsMap.get(u._id.toString()) || {};
+      const userInsts = [
+        ...(installationsByUser.get(u._id.toString()) || []),
+        ...(u.guestDeviceId ? installationsByGuestDevice.get(u.guestDeviceId) || [] : []),
+      ];
+
+      // Check if user has granted push permission on any of their devices/installations
+      const IsPermissionEnabled = userInsts.some(
+        (inst) => inst.permission === "GRANTED" && inst.notificationsEnabled !== false
+      );
+
+      // Check if user has installed the app (PWA standalone) on any device
+      const isappinstalled = userInsts.some(
+        (inst) => inst.appType === "PWA"
+      );
+
+      const isGuestuser = Boolean(u.isGuest);
+      const isRegistered = !u.isGuest;
+
       return {
         ...u,
+        isRegistered,
+        isGuestuser,
+        IsPermissionEnabled,
+        isappinstalled,
         level: s.level || 1,
         xp: s.xp || 0,
         title: s.title || "Rookie",
@@ -374,7 +454,48 @@ export async function getAllUsers(req, res) {
       };
     });
 
-    res.json({ success: true, count: enrichedUsers.length, users: enrichedUsers });
+    const enrichedGuests = guests.map((g) => {
+      const guestInsts = installationsByGuestDevice.get(g.guestDeviceId) || [];
+      const IsPermissionEnabled = guestInsts.some(
+        (inst) => inst.permission === "GRANTED" && inst.notificationsEnabled !== false
+      );
+      const isappinstalled = guestInsts.some(
+        (inst) => inst.appType === "PWA"
+      );
+
+      return {
+        _id: g._id,
+        guestDeviceId: g.guestDeviceId,
+        username: g.username || `Guest (${g.guestDeviceId.slice(0, 8)})`,
+        role: "guest",
+        isGuest: true,
+        isRegistered: false,
+        isGuestuser: true,
+        IsPermissionEnabled,
+        isappinstalled,
+        isBanned: false,
+        level: 1,
+        xp: 0,
+        title: "Guest Player",
+        avatar: "1",
+        country: "IN",
+        description: `Guest Device ID: ${g.guestDeviceId}`,
+        totalGames: g.gamesPlayed || g.matchesCompleted || 0,
+        offlineGamesPlayed: g.offlineGamesPlayed || 0,
+        totalWins: 0,
+        createdAt: g.firstSeenAt || g.createdAt,
+        lastPlayedAt: g.lastPlayedAt || g.lastSeenAt,
+      };
+    });
+
+    let combined = [...enrichedUsers, ...enrichedGuests];
+    combined.sort((a, b) => new Date(b.createdAt || b.lastPlayedAt || 0) - new Date(a.createdAt || a.lastPlayedAt || 0));
+
+    if (combined.length > limit) {
+      combined = combined.slice(0, limit);
+    }
+
+    res.json({ success: true, count: combined.length, users: combined });
   } catch (error) {
     console.error("Error fetching users:", error);
     res.status(500).json({ error: "Failed to fetch users" });
@@ -480,13 +601,17 @@ export async function deleteUser(req, res) {
     }
 
     const user = await User.findByIdAndDelete(id);
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
+    if (user) {
+      await PlayerStats.deleteOne({ userId: id });
+      return res.json({ success: true, message: `User ${user.username} deleted successfully.` });
     }
 
-    await PlayerStats.deleteOne({ userId: id });
-    
-    res.json({ success: true, message: `User ${user.username} deleted successfully.` });
+    const guest = await GuestSession.findByIdAndDelete(id);
+    if (guest) {
+      return res.json({ success: true, message: `Guest tester ${guest.username || guest.guestDeviceId} deleted successfully.` });
+    }
+
+    return res.status(404).json({ error: "User not found" });
   } catch (error) {
     console.error("Error deleting user:", error);
     res.status(500).json({ error: "Failed to delete user" });

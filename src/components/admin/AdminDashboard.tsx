@@ -26,6 +26,10 @@ import {
   Crown,
   Bot,
   Bell,
+  BellOff,
+  CheckCircle2,
+  Globe,
+  Smartphone,
 } from "lucide-react";
 import {
   adminService,
@@ -65,6 +69,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [userSearch, setUserSearch] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState("all");
+  const [userPushFilter, setUserPushFilter] = useState("all");
+  const [userAppFilter, setUserAppFilter] = useState("all");
   const [selectedUserForEdit, setSelectedUserForEdit] = useState<AdminUser | null>(null);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
 
@@ -775,9 +781,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   onChange={(e) => setUserRoleFilter(e.target.value)}
                   className="px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-amber-500"
                 >
-                  <option value="all">All Roles</option>
-                  <option value="user">User Role Only</option>
+                  <option value="all">All Accounts (Registered & Guests)</option>
+                  <option value="user">Registered Users Only</option>
+                  <option value="guest">Guest Users Only</option>
                   <option value="admin">Admin Role Only</option>
+                </select>
+                <select
+                  value={userPushFilter}
+                  onChange={(e) => setUserPushFilter(e.target.value)}
+                  className="px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-amber-500"
+                >
+                  <option value="all">All Push Permissions</option>
+                  <option value="enabled">Push Enabled</option>
+                  <option value="disabled">Push Disabled</option>
+                </select>
+                <select
+                  value={userAppFilter}
+                  onChange={(e) => setUserAppFilter(e.target.value)}
+                  className="px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-amber-500"
+                >
+                  <option value="all">All App Formats</option>
+                  <option value="pwa">PWA Installed</option>
+                  <option value="browser">Browser Only</option>
                 </select>
               </div>
 
@@ -788,6 +813,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <tr>
                       <th className="p-3.5">User</th>
                       <th className="p-3.5">Role</th>
+                      <th className="p-3.5">Registered</th>
+                      <th className="p-3.5">Guest User</th>
+                      <th className="p-3.5">Push Permission</th>
+                      <th className="p-3.5">App Installed</th>
                       <th className="p-3.5">Level / XP</th>
                       <th className="p-3.5">Title</th>
                       <th className="p-3.5">Online Games</th>
@@ -799,18 +828,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <tbody className="divide-y divide-slate-800/60">
                     {loading ? (
                       <tr>
-                        <td colSpan={8} className="p-8 text-center text-slate-500">
+                        <td colSpan={12} className="p-8 text-center text-slate-500">
                           Loading user data...
                         </td>
                       </tr>
                     ) : users.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="p-8 text-center text-slate-500">
+                        <td colSpan={12} className="p-8 text-center text-slate-500">
                           No users found matching query.
                         </td>
                       </tr>
                     ) : (
-                      users.map((u) => (
+                      users
+                        .filter((u) => {
+                          if (userPushFilter === "enabled" && !u.IsPermissionEnabled) return false;
+                          if (userPushFilter === "disabled" && u.IsPermissionEnabled) return false;
+                          if (userAppFilter === "pwa" && !u.isappinstalled) return false;
+                          if (userAppFilter === "browser" && u.isappinstalled) return false;
+                          return true;
+                        })
+                        .map((u) => (
                         <tr key={u._id} className="hover:bg-slate-900/60 transition-colors">
                           <td className="p-3.5 font-bold text-white flex items-center space-x-2">
                             <div className="w-7 h-7 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 font-extrabold">
@@ -822,12 +859,62 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <span
                               className={`px-2 py-0.5 text-[10px] rounded-md font-bold uppercase ${
                                 u.role === "admin"
-                                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                  ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                  : u.role === "guest"
+                                  ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
                                   : "bg-slate-800 text-slate-400"
                               }`}
                             >
                               {u.role || "user"}
                             </span>
+                          </td>
+                          {/* isRegistered */}
+                          <td className="p-3.5 whitespace-nowrap">
+                            {u.isRegistered ? (
+                              <span className="px-2 py-0.5 text-[10px] rounded-md font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 w-fit">
+                                <CheckCircle2 className="w-3 h-3" /> Yes
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 text-[10px] rounded-md font-bold bg-slate-800 text-slate-400 border border-slate-700 w-fit">
+                                No
+                              </span>
+                            )}
+                          </td>
+                          {/* isGuestuser */}
+                          <td className="p-3.5 whitespace-nowrap">
+                            {u.isGuestuser ? (
+                              <span className="px-2 py-0.5 text-[10px] rounded-md font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1 w-fit">
+                                <UserCheck className="w-3 h-3" /> Yes
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 text-[10px] rounded-md font-bold bg-slate-800 text-slate-400 border border-slate-700 w-fit">
+                                No
+                              </span>
+                            )}
+                          </td>
+                          {/* IsPermissionEnabled */}
+                          <td className="p-3.5 whitespace-nowrap">
+                            {u.IsPermissionEnabled ? (
+                              <span className="px-2 py-0.5 text-[10px] rounded-md font-bold bg-[#36D978]/20 text-[#36D978] border border-[#36D978]/30 flex items-center gap-1 w-fit">
+                                <Bell className="w-3 h-3" /> Enabled
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 text-[10px] rounded-md font-bold bg-slate-800/80 text-slate-400 border border-slate-700/60 flex items-center gap-1 w-fit">
+                                <BellOff className="w-3 h-3 text-slate-500" /> Disabled
+                              </span>
+                            )}
+                          </td>
+                          {/* isappinstalled */}
+                          <td className="p-3.5 whitespace-nowrap">
+                            {u.isappinstalled ? (
+                              <span className="px-2 py-0.5 text-[10px] rounded-md font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center gap-1 w-fit">
+                                <Smartphone className="w-3 h-3" /> PWA
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 text-[10px] rounded-md font-bold bg-slate-800 text-slate-400 border border-slate-700 flex items-center gap-1 w-fit">
+                                <Globe className="w-3 h-3 text-slate-500" /> Browser
+                              </span>
+                            )}
                           </td>
                           <td className="p-3.5 text-slate-300">
                             Lvl {u.level || 1} <span className="text-slate-500">({u.xp || 0} XP)</span>

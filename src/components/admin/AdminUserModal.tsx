@@ -34,7 +34,7 @@ export const AdminUserModal: React.FC<AdminUserModalProps> = ({
   useEffect(() => {
     if (user) {
       setUsername(user.username || "");
-      setRole(user.role || "user");
+      setRole(user.role === "admin" ? "admin" : "user");
       setLevel(user.level || 1);
       setXp(user.xp || 0);
       setTitle(user.title || "Rookie");

@@ -29,6 +29,7 @@ export async function registerPushInstallation(req, res) {
       permission,
       notificationsEnabled,
       userAgent,
+      guestDeviceId,
     } = req.body;
 
     if (!installationId || !fcmToken) {
@@ -49,6 +50,7 @@ export async function registerPushInstallation(req, res) {
       permission,
       notificationsEnabled: notificationsEnabled !== false,
       userAgent: userAgent || req.headers["user-agent"] || "",
+      guestDeviceId: guestDeviceId || null,
     });
 
     return res.json({ success: true, installation });
