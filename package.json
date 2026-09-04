@@ -13,7 +13,8 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "db:clear-except-users": "node scripts/clearDbExceptUsers.js",
-    "db:clear": "node scripts/clearDb.js"
+    "db:clear": "node scripts/clearDb.js",
+    "admin:create": "node scripts/createAdminUser.js"
   },
   "dependencies": {
     "@babylonjs/core": "^9.20.0",
