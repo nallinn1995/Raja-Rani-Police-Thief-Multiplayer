@@ -441,6 +441,57 @@ class AdminService {
     if (!res.ok) throw new Error(data.error || "Failed to update config");
     return data.config;
   }
+
+  // Push Notifications API
+  async getPushNotificationData(): Promise<{
+    metrics: {
+      totalInstallations: number;
+      enabledInstallations: number;
+      registeredUsersWithPush: number;
+      guestInstallations: number;
+      isFirebaseConfigured: boolean;
+    };
+    recent: Array<{
+      _id: string;
+      title: string;
+      body: string;
+      targetType: "ALL" | "INSTALLATION" | "USER";
+      targetId?: string | null;
+      targetCount: number;
+      successCount: number;
+      failureCount: number;
+      status: "PROCESSING" | "SENT" | "PARTIAL" | "FAILED";
+      createdBy: string;
+      deepLink?: string;
+      createdAt: string;
+      sentAt?: string;
+    }>;
+  }> {
+    const res = await fetch(`${API_BASE}/api/admin/notifications`, {
+      headers: this.getHeaders(),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to fetch push notification data");
+    return data;
+  }
+
+  async sendPushNotification(payload: {
+    title: string;
+    body: string;
+    targetType: "ALL" | "INSTALLATION" | "USER";
+    targetId?: string | null;
+    deepLink?: string;
+  }): Promise<any> {
+    const res = await fetch(`${API_BASE}/api/admin/notifications/send`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to send notification");
+    return data;
+  }
 }
 
 export const adminService = new AdminService();
+

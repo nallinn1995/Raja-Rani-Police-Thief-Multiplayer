@@ -26,6 +26,8 @@ import { profileService } from "./services/profileService";
 import { AuthOverlay } from "./components/auth/AuthOverlay";
 import { adminService } from "./services/adminService";
 import { configService } from "./services/configService";
+import { NotificationPermissionBanner } from "./components/pwa/NotificationPermissionBanner";
+import { pushNotificationService } from "./services/pushNotificationService";
 
 // Lazy-loaded routes for performance & lightweight initial bundle
 const Leaderboard = lazy(() =>
@@ -103,6 +105,11 @@ function App() {
       }
     }
   }, [currentUser?.id, currentUser?._id]);
+
+  useEffect(() => {
+    pushNotificationService.initForegroundListener();
+  }, []);
+
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   // 🔄 Reconnect UI state
   const [isReconnecting, setIsReconnecting] = useState(false);
@@ -885,6 +892,15 @@ useEffect(() => {
             setAppState("admin");
           }}
         />
+      )}
+
+      {/* Push Notification Banner - Only rendered on non-gameplay screens */}
+      {["welcome", "home", "dashboard"].includes(appState) && (
+        <div className="fixed top-16 left-0 right-0 z-40 px-4 pointer-events-none flex justify-center">
+          <div className="pointer-events-auto w-full max-w-xl">
+            <NotificationPermissionBanner />
+          </div>
+        </div>
       )}
 
       <Suspense

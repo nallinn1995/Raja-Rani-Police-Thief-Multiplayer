@@ -1,4 +1,5 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
+import { pushNotificationService } from "./pushNotificationService";
 
 export interface User {
   id?: string;
@@ -174,6 +175,9 @@ export const authService = {
   setSession(user: User, accessToken: string | null, refreshToken?: string | null) {
     sessionStorage.setItem("current_user", JSON.stringify(user));
     this.setSessionTokens(accessToken, refreshToken);
+    if (!user.isGuest) {
+      pushNotificationService.handleLogin().catch(() => {});
+    }
   },
 
   setSessionTokens(accessToken: string | null, refreshToken?: string | null) {
@@ -235,6 +239,7 @@ export const authService = {
   },
 
   logout() {
+    pushNotificationService.handleLogout().catch(() => {});
     sessionStorage.removeItem("current_user");
     sessionStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");

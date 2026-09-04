@@ -126,3 +126,71 @@ self.addEventListener('fetch', (event) => {
     );
   }
 });
+
+// ============================================================
+// 6. Push Notification Handling (FCM & Web Push)
+// ============================================================
+self.addEventListener('push', (event) => {
+  if (!event.data) {
+    return;
+  }
+
+  try {
+    const payload = event.data.json();
+    const notification = payload.notification || payload.data || {};
+    const title = notification.title || payload.data?.title || '👑 Raja Rani';
+    const body = notification.body || payload.data?.body || 'A royal battle awaits!';
+    const icon = notification.icon || payload.data?.icon || '/icons/icon-192x192.png';
+    const deepLink = payload.data?.deepLink || payload.fcmOptions?.link || '/';
+
+    const notificationOptions = {
+      body,
+      icon,
+      badge: '/icons/icon-192x192.png',
+      data: {
+        url: deepLink,
+        sentAt: payload.data?.sentAt || new Date().toISOString(),
+      },
+      vibrate: [200, 100, 200],
+      tag: 'raja-rani-push',
+      renotify: true,
+    };
+
+    event.waitUntil(self.registration.showNotification(title, notificationOptions));
+  } catch (err) {
+    console.warn('[PWA SW] Failed to parse push payload:', err);
+    // Fallback for plain text push messages
+    const rawText = event.data.text();
+    if (rawText) {
+      event.waitUntil(
+        self.registration.showNotification('👑 Raja Rani', {
+          body: rawText,
+          icon: '/icons/icon-192x192.png',
+          badge: '/icons/icon-192x192.png',
+          data: { url: '/' },
+        })
+      );
+    }
+  }
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = (event.notification.data && event.notification.data.url) || '/';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      // If a window is already open within our origin, focus it
+      for (const client of windowClients) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // Otherwise open a new window
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    })
+  );
+});
+

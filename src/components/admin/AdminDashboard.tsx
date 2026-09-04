@@ -25,6 +25,7 @@ import {
   Power,
   Crown,
   Bot,
+  Bell,
 } from "lucide-react";
 import {
   adminService,
@@ -46,8 +47,9 @@ interface AdminDashboardProps {
 
 import { DetectiveAdminTab } from "../detectiveChallenge/DetectiveAdminTab";
 import { ModernAdminTab } from "../modernMode/ModernAdminTab";
+import { AdminPushNotificationTab } from "./AdminPushNotificationTab";
 
-type TabType = "overview" | "users" | "guests" | "rooms" | "classic-admin" | "detective-challenge" | "modern-mode" | "stats" | "matches" | "system" | "ultra-cms";
+type TabType = "overview" | "users" | "guests" | "rooms" | "classic-admin" | "detective-challenge" | "modern-mode" | "stats" | "matches" | "system" | "ultra-cms" | "push-notifications";
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onBackToApp,
@@ -461,6 +463,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             { id: "modern-mode", label: "Modern Kingdom Mode", icon: Crown },
             { id: "stats", label: "All Player Directory", icon: Trophy },
             { id: "matches", label: "Match Logs", icon: History },
+            { id: "push-notifications", label: "Push Notifications", icon: Bell, badge: "NEW" },
             { id: "ultra-cms", label: "Ultra Screen CMS", icon: Sliders, badge: "POWER" },
             { id: "system", label: "Broadcast & Config", icon: Settings },
           ].map((tab) => {
@@ -1933,6 +1936,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             </div>
           )}
+
+          {activeTab === "push-notifications" && <AdminPushNotificationTab />}
         </main>
       </div>
 

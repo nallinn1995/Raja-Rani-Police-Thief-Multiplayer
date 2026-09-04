@@ -62,7 +62,16 @@ import {
   getOrInitSystemConfig,
   updateSystemConfigInDB,
   getAllGuests,
+  verifyAdminToken,
 } from "./controllers/adminController.js";
+import {
+  registerPushInstallation,
+  updatePushPreferences,
+  disassociateUserInstallation,
+  getAdminNotificationData,
+  sendAdminNotification,
+} from "./controllers/notificationController.js";
+import rateLimit from "express-rate-limit";
 import GuestTrackingService from "./services/GuestTrackingService.js";
 import {
   hashPassword,
@@ -639,6 +648,24 @@ app.put("/api/admin/config", async (req, res) => {
   }
   res.json({ success: true, config: updatedConfig });
 });
+
+// PUSH NOTIFICATION API ENDPOINTS (PHASE 1)
+const pushSendLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 30,
+  message: { error: "Too many notification requests. Please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Public client installation management
+app.post("/api/notifications/installations", registerPushInstallation);
+app.put("/api/notifications/preferences", updatePushPreferences);
+app.post("/api/notifications/disassociate", disassociateUserInstallation);
+
+// Protected Admin Notification Endpoints
+app.get("/api/admin/notifications", verifyAdminToken, getAdminNotificationData);
+app.post("/api/admin/notifications/send", verifyAdminToken, pushSendLimiter, sendAdminNotification);
 
 const io = new SocketIoServer(server, {
   cors: {
