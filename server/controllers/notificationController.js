@@ -1,13 +1,21 @@
 import notificationService from "../services/notificationService.js";
+import PushInstallation from "../models/PushInstallation.js";
+import User from "../models/User.js";
 import { verifyAccessToken, getBearerToken } from "../security.js";
 
 // Helper to extract authenticated user id if present in request
-function getOptionalUserId(req) {
+async function getOptionalUserId(req) {
   try {
     const token = getBearerToken(req);
     if (!token) return null;
     const identity = verifyAccessToken(token);
-    return identity ? identity.id || identity._id || null : null;
+    if (!identity) return null;
+    let userId = identity.sub || identity.id || identity._id || null;
+    if (userId === "bootstrap-admin") {
+      const adminUser = await User.findOne({ role: "admin" });
+      if (adminUser) userId = adminUser._id.toString();
+    }
+    return userId;
   } catch {
     return null;
   }
@@ -37,7 +45,7 @@ export async function registerPushInstallation(req, res) {
     }
 
     // Attach authenticated user if a valid bearer token is present
-    const authUserId = getOptionalUserId(req);
+    const authUserId = await getOptionalUserId(req);
 
     const installation = await notificationService.registerInstallation({
       installationId,
@@ -52,6 +60,16 @@ export async function registerPushInstallation(req, res) {
       userAgent: userAgent || req.headers["user-agent"] || "",
       guestDeviceId: guestDeviceId || null,
     });
+
+    // If authenticated and a guestDeviceId was provided, link any other unassigned installations on this device
+    if (authUserId && guestDeviceId) {
+      await PushInstallation.updateMany(
+        { guestDeviceId, userId: null },
+        { $set: { userId: authUserId } }
+      ).catch(() => {});
+
+      await User.findByIdAndUpdate(authUserId, { guestDeviceId }).catch(() => {});
+    }
 
     return res.json({ success: true, installation });
   } catch (err) {
@@ -80,6 +98,63 @@ export async function updatePushPreferences(req, res) {
   } catch (err) {
     console.error("[FCM] Failed to update push preferences:", err.message);
     return res.status(500).json({ error: "Failed to update notification preferences" });
+  }
+}
+
+/**
+ * Authenticated Client: Sync current user with their existing device installations
+ * POST /api/notifications/sync-user
+ */
+export async function syncUserInstallation(req, res) {
+  try {
+    const authUserId = await getOptionalUserId(req);
+    if (!authUserId) {
+      return res.status(401).json({ error: "Valid authentication token required to sync user" });
+    }
+
+    const { installationId, guestDeviceId, appType } = req.body;
+    let modifiedCount = 0;
+
+    // 1. If explicit installationId provided, update that installation with authUserId
+    if (installationId) {
+      const updateFields = { userId: authUserId, lastSeenAt: new Date() };
+      if (appType) updateFields.appType = appType;
+      if (guestDeviceId) updateFields.guestDeviceId = guestDeviceId;
+      const inst = await PushInstallation.findOneAndUpdate(
+        { installationId },
+        { $set: updateFields },
+        { new: true }
+      );
+      if (inst) modifiedCount++;
+    }
+
+    // 2. If guestDeviceId provided, associate all unlinked installations on this device
+    if (guestDeviceId) {
+      const updateFields = { userId: authUserId, lastSeenAt: new Date() };
+      if (appType) updateFields.appType = appType;
+      const resUpdate = await PushInstallation.updateMany(
+        { guestDeviceId, userId: null },
+        { $set: updateFields }
+      );
+      modifiedCount += resUpdate.modifiedCount || 0;
+
+      await User.findByIdAndUpdate(authUserId, { guestDeviceId }).catch(() => {});
+    }
+
+    // 3. Fallback: If only 1 installation exists with userId null and matches this request's IP or user agent
+    const userAgent = req.headers["user-agent"] || "";
+    if (userAgent) {
+      const fallbackUpdate = await PushInstallation.updateMany(
+        { userAgent, userId: null },
+        { $set: { userId: authUserId, lastSeenAt: new Date() } }
+      );
+      modifiedCount += fallbackUpdate.modifiedCount || 0;
+    }
+
+    return res.json({ success: true, userId: authUserId, modifiedCount });
+  } catch (err) {
+    console.error("[FCM] Failed to sync user installation:", err.message);
+    return res.status(500).json({ error: "Failed to sync user installation: " + err.message });
   }
 }
 

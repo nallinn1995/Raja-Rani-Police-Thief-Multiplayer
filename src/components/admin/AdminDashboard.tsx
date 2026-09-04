@@ -42,6 +42,7 @@ import {
 } from "../../services/adminService";
 import { AdminUserModal } from "./AdminUserModal";
 import { AdminStatsModal } from "./AdminStatsModal";
+import { pushNotificationService } from "../../services/pushNotificationService";
 import { toast } from "react-toastify";
 
 interface AdminDashboardProps {
@@ -197,67 +198,67 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         setMaintenanceMsg(data.systemConfig.maintenanceMessage);
       }
     } catch (err: any) {
-      toast.error(err.message || "Failed to load overview data");
+      console.error("Failed to load overview data:", err);
     }
   }, []);
 
-  const loadUsers = useCallback(async () => {
+  const loadUsers = useCallback(async (showSpinner = true) => {
     try {
-      setLoading(true);
+      if (showSpinner) setLoading(true);
       const data = await adminService.getUsers(userSearch, userRoleFilter);
       setUsers(data);
     } catch (err: any) {
-      toast.error(err.message || "Failed to load users list");
+      if (showSpinner) toast.error(err.message || "Failed to load users list");
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
   }, [userSearch, userRoleFilter]);
 
-  const loadGuests = useCallback(async () => {
+  const loadGuests = useCallback(async (showSpinner = true) => {
     try {
-      setLoading(true);
+      if (showSpinner) setLoading(true);
       const list = await adminService.getGuestSessionsList(guestSearch);
       setGuests(list);
     } catch (err: any) {
-      toast.error(err.message || "Failed to load guest testers list");
+      if (showSpinner) toast.error(err.message || "Failed to load guest testers list");
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
   }, [guestSearch]);
 
-  const loadActiveRooms = useCallback(async () => {
+  const loadActiveRooms = useCallback(async (showSpinner = true) => {
     try {
-      setLoading(true);
+      if (showSpinner) setLoading(true);
       const rooms = await adminService.getActiveRooms();
       setActiveRooms(rooms);
     } catch (err: any) {
-      toast.error(err.message || "Failed to load active rooms");
+      if (showSpinner) toast.error(err.message || "Failed to load active rooms");
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
   }, []);
 
-  const loadPlayerStats = useCallback(async () => {
+  const loadPlayerStats = useCallback(async (showSpinner = true) => {
     try {
-      setLoading(true);
+      if (showSpinner) setLoading(true);
       const stats = await adminService.getPlayerStats(statsSearch);
       setPlayerStats(stats);
     } catch (err: any) {
-      toast.error(err.message || "Failed to load player stats");
+      if (showSpinner) toast.error(err.message || "Failed to load player stats");
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
   }, [statsSearch]);
 
-  const loadMatches = useCallback(async () => {
+  const loadMatches = useCallback(async (showSpinner = true) => {
     try {
-      setLoading(true);
+      if (showSpinner) setLoading(true);
       const list = await adminService.getMatches(matchSearch, matchModeFilter);
       setMatches(list);
     } catch (err: any) {
-      toast.error(err.message || "Failed to load match history");
+      if (showSpinner) toast.error(err.message || "Failed to load match history");
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
   }, [matchSearch, matchModeFilter]);
 
@@ -267,11 +268,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   useEffect(() => {
     if (activeTab === "overview") loadOverview();
-    if (activeTab === "users") loadUsers();
-    if (activeTab === "guests") loadGuests();
-    if (activeTab === "rooms") loadActiveRooms();
-    if (activeTab === "stats") loadPlayerStats();
-    if (activeTab === "matches") loadMatches();
+    if (activeTab === "users") loadUsers(true);
+    if (activeTab === "guests") loadGuests(true);
+    if (activeTab === "rooms") loadActiveRooms(true);
+    if (activeTab === "stats") loadPlayerStats(true);
+    if (activeTab === "matches") loadMatches(true);
+  }, [activeTab, loadOverview, loadUsers, loadGuests, loadActiveRooms, loadPlayerStats, loadMatches]);
+
+  // Live Auto-Update Heartbeat (polls active tab every 6s silently without flickering)
+  useEffect(() => {
+    // Auto-associate push installation with admin session on mount
+    pushNotificationService.handleLogin().catch(() => {});
+
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      loadOverview();
+      if (activeTab === "users") loadUsers(false);
+      else if (activeTab === "guests") loadGuests(false);
+      else if (activeTab === "rooms") loadActiveRooms(false);
+      else if (activeTab === "stats") loadPlayerStats(false);
+      else if (activeTab === "matches") loadMatches(false);
+    }, 6000);
+
+    return () => clearInterval(interval);
   }, [activeTab, loadOverview, loadUsers, loadGuests, loadActiveRooms, loadPlayerStats, loadMatches]);
 
   // User Actions
@@ -421,7 +440,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-3">
           {overview && (
             <div className="hidden md:flex items-center space-x-3 text-xs bg-slate-950/70 border border-slate-800 px-3.5 py-1.5 rounded-xl">
               <div className="flex items-center space-x-1.5">
@@ -434,8 +453,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <Radio className="w-3.5 h-3.5" />
                 <span>Sockets: {overview.connectedSockets}</span>
               </div>
+              <span className="text-slate-700">|</span>
+              <div className="flex items-center space-x-1.5 text-emerald-400">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="font-semibold">Live Sync</span>
+              </div>
             </div>
           )}
+
+          <button
+            onClick={() => {
+              loadOverview();
+              if (activeTab === "users") loadUsers(true);
+              else if (activeTab === "guests") loadGuests(true);
+              else if (activeTab === "rooms") loadActiveRooms(true);
+              else if (activeTab === "stats") loadPlayerStats(true);
+              else if (activeTab === "matches") loadMatches(true);
+              toast.info("Refreshed live metrics");
+            }}
+            className="p-2 text-slate-400 hover:text-amber-400 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl transition-all"
+            title="Refresh Live Data"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+          </button>
 
           <button
             onClick={onBackToApp}
@@ -807,22 +847,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
 
               {/* Data Table */}
-              <div className="flex-1 overflow-x-auto border border-slate-800 rounded-xl bg-slate-950/40">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-950 text-slate-400 uppercase tracking-wider border-b border-slate-800">
+              <div className="flex-1 overflow-x-auto border border-slate-800 rounded-xl bg-slate-950/40 shadow-inner">
+                <table className="min-w-[1300px] w-full text-left text-xs border-collapse">
+                  <thead className="bg-slate-950 text-slate-400 uppercase tracking-wider border-b border-slate-800 sticky top-0 z-20">
                     <tr>
-                      <th className="p-3.5">User</th>
-                      <th className="p-3.5">Role</th>
-                      <th className="p-3.5">Registered</th>
-                      <th className="p-3.5">Guest User</th>
-                      <th className="p-3.5">Push Permission</th>
-                      <th className="p-3.5">App Installed</th>
-                      <th className="p-3.5">Level / XP</th>
-                      <th className="p-3.5">Title</th>
-                      <th className="p-3.5">Online Games</th>
-                      <th className="p-3.5">Offline Played</th>
-                      <th className="p-3.5">Status</th>
-                      <th className="p-3.5 text-right">Actions</th>
+                      <th className="p-3.5 whitespace-nowrap min-w-[180px]">User</th>
+                      <th className="p-3.5 whitespace-nowrap min-w-[95px]">Role</th>
+                      <th className="p-3.5 whitespace-nowrap min-w-[110px]">Registered</th>
+                      <th className="p-3.5 whitespace-nowrap min-w-[110px]">Guest User</th>
+                      <th className="p-3.5 whitespace-nowrap min-w-[140px]">Push Permission</th>
+                      <th className="p-3.5 whitespace-nowrap min-w-[125px]">App Installed</th>
+                      <th className="p-3.5 whitespace-nowrap min-w-[115px]">Level / XP</th>
+                      <th className="p-3.5 whitespace-nowrap min-w-[115px]">Title</th>
+                      <th className="p-3.5 whitespace-nowrap min-w-[125px]">Online Games</th>
+                      <th className="p-3.5 whitespace-nowrap min-w-[115px]">Offline Played</th>
+                      <th className="p-3.5 whitespace-nowrap min-w-[90px]">Status</th>
+                      <th className="p-3.5 text-right whitespace-nowrap min-w-[115px] sticky right-0 bg-slate-950/95 backdrop-blur-md z-30 border-l border-slate-800/80 shadow-[-4px_0_12px_rgba(0,0,0,0.5)]">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60">
@@ -849,13 +889,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         })
                         .map((u) => (
                         <tr key={u._id} className="hover:bg-slate-900/60 transition-colors">
-                          <td className="p-3.5 font-bold text-white flex items-center space-x-2">
-                            <div className="w-7 h-7 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 font-extrabold">
+                          <td className="p-3.5 font-bold text-white whitespace-nowrap flex items-center space-x-2">
+                            <div className="w-7 h-7 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 font-extrabold shrink-0">
                               {u.avatar || "1"}
                             </div>
-                            <span>{u.username}</span>
+                            <span className="truncate max-w-[140px]">{u.username}</span>
                           </td>
-                          <td className="p-3.5">
+                          <td className="p-3.5 whitespace-nowrap">
                             <span
                               className={`px-2 py-0.5 text-[10px] rounded-md font-bold uppercase ${
                                 u.role === "admin"
@@ -916,19 +956,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               </span>
                             )}
                           </td>
-                          <td className="p-3.5 text-slate-300">
+                          <td className="p-3.5 text-slate-300 whitespace-nowrap">
                             Lvl {u.level || 1} <span className="text-slate-500">({u.xp || 0} XP)</span>
                           </td>
-                          <td className="p-3.5 text-amber-400 font-medium">{u.title || "Rookie"}</td>
-                          <td className="p-3.5 text-slate-300">
+                          <td className="p-3.5 text-amber-400 font-medium whitespace-nowrap">{u.title || "Rookie"}</td>
+                          <td className="p-3.5 text-slate-300 whitespace-nowrap">
                             {u.totalGames || 0} games / <span className="text-emerald-400 font-bold">{u.totalWins || 0} W</span>
                           </td>
-                          <td className="p-3.5">
+                          <td className="p-3.5 whitespace-nowrap">
                             <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 font-extrabold text-[11px]">
                               {u.offlineGamesPlayed || 0} offline
                             </span>
                           </td>
-                          <td className="p-3.5">
+                          <td className="p-3.5 whitespace-nowrap">
                             {u.isBanned ? (
                               <span className="px-2 py-0.5 text-[10px] rounded-md font-bold bg-red-500/20 text-red-400 border border-red-500/30">
                                 Banned
@@ -939,7 +979,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               </span>
                             )}
                           </td>
-                          <td className="p-3.5 text-right space-x-1">
+                          <td className="p-3.5 text-right space-x-1 whitespace-nowrap sticky right-0 bg-slate-950/95 backdrop-blur-md z-10 border-l border-slate-800/80 shadow-[-4px_0_12px_rgba(0,0,0,0.5)]">
                             <button
                               onClick={() => {
                                 setSelectedUserForEdit(u);

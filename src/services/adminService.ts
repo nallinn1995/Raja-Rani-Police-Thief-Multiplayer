@@ -1,3 +1,4 @@
+import { pushNotificationService } from "./pushNotificationService";
 const API_BASE = import.meta.env.VITE_SERVER_URL || "";
 
 export interface AdminUser {
@@ -217,6 +218,7 @@ class AdminService {
   }
 
   logout() {
+    pushNotificationService.handleLogout().catch(() => {});
     sessionStorage.removeItem(this.tokenKey);
   }
 
@@ -246,6 +248,7 @@ class AdminService {
 
     if (data.token) {
       this.setAdminToken(data.token);
+      pushNotificationService.handleLogin().catch(() => {});
     }
     return data;
   }

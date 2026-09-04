@@ -29,6 +29,17 @@ export interface PushInstallationData {
 class PushNotificationService {
   private isListeningForeground = false;
 
+  constructor() {
+    if (typeof window !== "undefined") {
+      window.addEventListener("appinstalled", () => {
+        try {
+          localStorage.setItem("pwa_installed", "true");
+          this.syncUserSession().catch(() => {});
+        } catch {}
+      });
+    }
+  }
+
   /**
    * Determine device category
    */
@@ -50,7 +61,8 @@ class PushNotificationService {
     const isStandalone =
       window.matchMedia("(display-mode: standalone)").matches ||
       (navigator as any).standalone === true ||
-      document.referrer.includes("android-app://");
+      document.referrer.includes("android-app://") ||
+      (typeof localStorage !== "undefined" && localStorage.getItem("pwa_installed") === "true");
     return isStandalone ? "PWA" : "BROWSER";
   }
 
@@ -91,6 +103,31 @@ class PushNotificationService {
     if (typeof localStorage !== "undefined") {
       localStorage.removeItem(PROMPT_DISMISSED_KEY);
     }
+  }
+
+  /**
+   * Retrieve cached or generate persistent guest device ID
+   */
+  getOrCreateGuestDeviceId(): string {
+    if (typeof localStorage === "undefined") return "";
+    let id = localStorage.getItem("guest_device_id");
+    if (!id) {
+      if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+        id = crypto.randomUUID();
+      } else {
+        id = "g_" + Math.random().toString(36).substring(2, 11) + "_" + Date.now().toString(36);
+      }
+      localStorage.setItem("guest_device_id", id);
+    }
+    return id;
+  }
+
+  /**
+   * Read auth token from either regular user session or admin session
+   */
+  getAuthToken(): string | null {
+    if (typeof sessionStorage === "undefined") return null;
+    return sessionStorage.getItem("access_token") || sessionStorage.getItem("raja_rani_admin_token") || null;
   }
 
   /**
@@ -200,14 +237,14 @@ class PushNotificationService {
         permission: "GRANTED",
         notificationsEnabled: true,
         userAgent: navigator.userAgent,
-        guestDeviceId: typeof localStorage !== "undefined" ? localStorage.getItem("guest_device_id") : null,
+        guestDeviceId: this.getOrCreateGuestDeviceId(),
       };
 
       // Send to backend
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
       };
-      const authToken = typeof sessionStorage !== "undefined" ? sessionStorage.getItem("access_token") : null;
+      const authToken = this.getAuthToken();
       if (authToken) {
         headers["Authorization"] = `Bearer ${authToken}`;
       }
@@ -236,6 +273,35 @@ class PushNotificationService {
   }
 
   /**
+   * Sync existing device installation with authenticated user session
+   */
+  async syncUserSession(): Promise<boolean> {
+    const token = this.getAuthToken();
+    if (!token) return false;
+    const installationId = localStorage.getItem(INSTALLATION_STORAGE_KEY);
+    const guestDeviceId = this.getOrCreateGuestDeviceId();
+
+    try {
+      const res = await fetch(`${API_BASE}/api/notifications/sync-user`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          installationId: installationId || undefined,
+          guestDeviceId: guestDeviceId || undefined,
+          appType: this.getAppType(),
+        }),
+      });
+      return res.ok;
+    } catch (err) {
+      console.warn("[FCM] Failed to sync user session:", err);
+      return false;
+    }
+  }
+
+  /**
    * Disassociate user from installation on logout
    */
   async handleLogout(): Promise<void> {
@@ -255,12 +321,13 @@ class PushNotificationService {
   }
 
   /**
-   * Sync user on login
+   * Sync user on login or app entry
    */
   async handleLogin(): Promise<void> {
     if (this.getPermissionStatus() === "granted") {
       await this.registerFCMInstallation();
     }
+    await this.syncUserSession();
   }
 
   /**

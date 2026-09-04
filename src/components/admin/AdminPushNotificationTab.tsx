@@ -14,6 +14,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { adminService } from "../../services/adminService";
+import { pushNotificationService } from "../../services/pushNotificationService";
 import { toast } from "react-toastify";
 
 interface PushData {
@@ -55,21 +56,31 @@ export const AdminPushNotificationTab: React.FC = () => {
   const [deepLink, setDeepLink] = useState("/");
   const [isSending, setIsSending] = useState(false);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  const fetchData = useCallback(async (showSpinner = true) => {
+    if (showSpinner) setLoading(true);
     try {
       const res = await adminService.getPushNotificationData();
       setData(res);
     } catch (err: any) {
       console.error("Failed to load push notifications:", err);
-      toast.error(err.message || "Failed to load push notifications");
+      if (showSpinner) toast.error(err.message || "Failed to load push notifications");
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchData();
+    fetchData(true);
+    // Sync admin session with push installation on tab mount
+    pushNotificationService.handleLogin().catch(() => {});
+
+    // Live heartbeat auto-refresh every 6 seconds
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      fetchData(false);
+    }, 6000);
+
+    return () => clearInterval(interval);
   }, [fetchData]);
 
   const handleOpenSend = () => {

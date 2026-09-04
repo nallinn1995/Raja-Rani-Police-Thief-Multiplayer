@@ -68,6 +68,7 @@ import {
   registerPushInstallation,
   updatePushPreferences,
   disassociateUserInstallation,
+  syncUserInstallation,
   getAdminNotificationData,
   sendAdminNotification,
 } from "./controllers/notificationController.js";
@@ -662,6 +663,7 @@ const pushSendLimiter = rateLimit({
 app.post("/api/notifications/installations", registerPushInstallation);
 app.put("/api/notifications/preferences", updatePushPreferences);
 app.post("/api/notifications/disassociate", disassociateUserInstallation);
+app.post("/api/notifications/sync-user", syncUserInstallation);
 
 // Protected Admin Notification Endpoints
 app.get("/api/admin/notifications", verifyAdminToken, getAdminNotificationData);
