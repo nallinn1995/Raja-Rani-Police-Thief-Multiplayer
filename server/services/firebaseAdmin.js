@@ -11,8 +11,8 @@ export function initializeFirebaseAdmin() {
     return firebaseMessaging;
   }
 
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  let projectId = process.env.FIREBASE_PROJECT_ID ? process.env.FIREBASE_PROJECT_ID.trim().replace(/^['"]+|['"]+$/g, "") : null;
+  let clientEmail = process.env.FIREBASE_CLIENT_EMAIL ? process.env.FIREBASE_CLIENT_EMAIL.trim().replace(/^['"]+|['"]+$/g, "") : null;
   let privateKey = process.env.FIREBASE_PRIVATE_KEY;
 
   if (!projectId || !clientEmail || !privateKey) {
@@ -24,6 +24,15 @@ export function initializeFirebaseAdmin() {
   }
 
   try {
+    // Strip accidental wrapping quotes (single or double) from hosting dashboard inputs (e.g. Render/Heroku)
+    privateKey = privateKey.trim();
+    while (
+      (privateKey.startsWith('"') && privateKey.endsWith('"')) ||
+      (privateKey.startsWith("'") && privateKey.endsWith("'"))
+    ) {
+      privateKey = privateKey.slice(1, -1).trim();
+    }
+
     // Handle both raw multiline PEM strings and escaped newlines (\n) from .env
     if (privateKey.includes("\\n")) {
       privateKey = privateKey.replace(/\\n/g, "\n");
