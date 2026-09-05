@@ -58,6 +58,22 @@ const PushInstallationSchema = new mongoose.Schema(
       default: true,
       index: true,
     },
+    preferences: {
+      friends: { type: Boolean, default: true },
+      rooms: { type: Boolean, default: true },
+      achievements: { type: Boolean, default: true },
+      levelUp: { type: Boolean, default: true },
+      gameEvents: { type: Boolean, default: true },
+      reminders: { type: Boolean, default: true },
+      news: { type: Boolean, default: true },
+      promotions: { type: Boolean, default: true },
+    },
+    quietHours: {
+      enabled: { type: Boolean, default: false },
+      start: { type: String, default: "22:00" }, // "HH:mm"
+      end: { type: String, default: "08:00" }, // "HH:mm"
+      timezone: { type: String, default: "Asia/Kolkata" },
+    },
     userAgent: {
       type: String,
       default: "",

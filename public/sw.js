@@ -150,6 +150,8 @@ self.addEventListener('push', (event) => {
       data: {
         url: deepLink,
         sentAt: payload.data?.sentAt || new Date().toISOString(),
+        notificationId: payload.data?.notificationId || null,
+        campaignId: payload.data?.campaignId || null,
       },
       vibrate: [200, 100, 200],
       tag: 'raja-rani-push',
@@ -177,6 +179,20 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const targetUrl = (event.notification.data && event.notification.data.url) || '/';
+  const notificationId = event.notification.data && event.notification.data.notificationId;
+  const campaignId = event.notification.data && event.notification.data.campaignId;
+
+  // Track OPENED event asynchronously
+  fetch('/api/notifications/track', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      notificationId,
+      campaignId,
+      eventType: 'OPENED',
+      metadata: { targetUrl },
+    }),
+  }).catch(() => {});
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {

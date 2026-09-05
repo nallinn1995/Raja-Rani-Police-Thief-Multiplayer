@@ -10,6 +10,7 @@ import ModernModeStats from "../models/modernMode/ModernModeStats.js";
 import ModernModeMatch from "../models/modernMode/ModernModeMatch.js";
 import ModernModeAchievement from "../models/modernMode/ModernModeAchievement.js";
 import { calculateClassicXP, calculateLevel } from "../config/xpConfig.js";
+import gameNotificationService from "../services/gameNotificationService.js";
 
 // Helper for title calculation
 function calculateTitle(stats) {
@@ -196,6 +197,15 @@ export async function recordMatchResults(matchData) {
           isLevelUp: newLevelInfo.level > oldLevelInfo.level,
           currentLevelInfo: newLevelInfo,
         };
+
+        if (p.levelUpInfo.isLevelUp) {
+          gameNotificationService.dispatchLevelUp({
+            userId: user._id,
+            username: user.username,
+            newLevel: newLevelInfo.level,
+            oldLevel: oldLevelInfo.level,
+          });
+        }
 
         // Lifetime Overall
         stats.totalGames = (stats.totalGames || 0) + 1;
@@ -472,11 +482,19 @@ async function checkAchievements(userId, stats, playerMatchData = {}) {
 
   for (const ach of achievements) {
     try {
-      await Achievement.updateOne(
+      const res = await Achievement.updateOne(
         { userId, code: ach.code },
         { $setOnInsert: { ...ach, userId, unlockedAt: new Date() } },
         { upsert: true }
       );
+      if (res.upsertedCount > 0) {
+        gameNotificationService.dispatchAchievementUnlocked({
+          userId,
+          username: playerMatchData?.name || "Player",
+          achievementName: ach.title || ach.code,
+          achievementCode: ach.code,
+        });
+      }
     } catch (e) {
       // ignore duplicates
     }

@@ -1029,7 +1029,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <p className="text-xs text-slate-400">Anonymous visitor tracking from WhatsApp & direct links without forced registration</p>
                 </div>
                 <button
-                  onClick={loadGuests}
+                  onClick={() => loadGuests()}
                   className="p-2 text-slate-400 hover:text-amber-400 bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors"
                   title="Refresh Guest List"
                 >
@@ -1122,7 +1122,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <p className="text-xs text-slate-400">Monitor in-memory game rooms, kick problem players, or terminate stuck rooms</p>
                 </div>
                 <button
-                  onClick={loadActiveRooms}
+                  onClick={() => loadActiveRooms()}
                   className="p-2 text-slate-400 hover:text-amber-400 bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors"
                   title="Refresh Rooms"
                 >

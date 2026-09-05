@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Bell, BellOff, ShieldAlert, CheckCircle2, X, Sparkles, ExternalLink } from "lucide-react";
+import { Bell, ShieldAlert, CheckCircle2, X, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PushPermissionStatus } from "../../services/pushNotificationService";
 

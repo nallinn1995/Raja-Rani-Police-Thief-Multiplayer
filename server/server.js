@@ -72,6 +72,32 @@ import {
   getAdminNotificationData,
   sendAdminNotification,
 } from "./controllers/notificationController.js";
+import {
+  getCampaigns,
+  getCampaignById,
+  createCampaign,
+  updateCampaign,
+  pauseCampaign,
+  resumeCampaign,
+  cancelCampaign,
+  archiveCampaign,
+  getCampaignRuns,
+  getTemplates,
+  createTemplate,
+  updateTemplate,
+  duplicateTemplate,
+  deleteTemplate,
+} from "./controllers/campaignController.js";
+import {
+  trackNotificationEvent,
+  getNotificationAnalytics,
+  exportAnalyticsCsv,
+  getAutomaticEvents,
+  updateAutomaticEvent,
+  estimateAudience,
+} from "./controllers/notificationAnalyticsController.js";
+import campaignScheduler from "./services/campaignScheduler.js";
+import gameNotificationService from "./services/gameNotificationService.js";
 import rateLimit from "express-rate-limit";
 import GuestTrackingService from "./services/GuestTrackingService.js";
 import {
@@ -102,7 +128,10 @@ console.log(`🔌 Attempting MongoDB connection to: ${safeUri}`);
 
 mongoose
   .connect(MONGODB_URI, { serverSelectionTimeoutMS: 5000 })
-  .then(() => console.log("✅ Connected to MongoDB"))
+  .then(() => {
+    console.log("✅ Connected to MongoDB");
+    campaignScheduler.startScheduler();
+  })
   .catch((err) => console.error("❌ MongoDB connection error:", err.message));
 
 // Example API endpoint
@@ -669,6 +698,56 @@ app.post("/api/notifications/sync-user", syncUserInstallation);
 app.get("/api/admin/notifications", verifyAdminToken, getAdminNotificationData);
 app.post("/api/admin/notifications/send", verifyAdminToken, pushSendLimiter, sendAdminNotification);
 
+// Phase 2 Protected Admin Notification Campaigns
+app.get("/api/admin/notifications/campaigns", verifyAdminToken, getCampaigns);
+app.post("/api/admin/notifications/campaigns", verifyAdminToken, createCampaign);
+app.get("/api/admin/notifications/campaigns/:id", verifyAdminToken, getCampaignById);
+app.patch("/api/admin/notifications/campaigns/:id", verifyAdminToken, updateCampaign);
+app.post("/api/admin/notifications/campaigns/:id/pause", verifyAdminToken, pauseCampaign);
+app.post("/api/admin/notifications/campaigns/:id/resume", verifyAdminToken, resumeCampaign);
+app.post("/api/admin/notifications/campaigns/:id/cancel", verifyAdminToken, cancelCampaign);
+app.delete("/api/admin/notifications/campaigns/:id", verifyAdminToken, archiveCampaign);
+app.get("/api/admin/notifications/campaigns/:id/runs", verifyAdminToken, getCampaignRuns);
+
+// Phase 2 Protected Admin Notification Templates
+app.get("/api/admin/notifications/templates", verifyAdminToken, getTemplates);
+app.post("/api/admin/notifications/templates", verifyAdminToken, createTemplate);
+app.patch("/api/admin/notifications/templates/:id", verifyAdminToken, updateTemplate);
+app.post("/api/admin/notifications/templates/:id/duplicate", verifyAdminToken, duplicateTemplate);
+app.delete("/api/admin/notifications/templates/:id", verifyAdminToken, deleteTemplate);
+
+// Phase 3 Notification Analytics, Tracking, and Automatic Event Controls
+app.post("/api/notifications/track", trackNotificationEvent);
+app.get("/api/admin/notifications/analytics", verifyAdminToken, getNotificationAnalytics);
+app.get("/api/admin/notifications/analytics/export", verifyAdminToken, exportAnalyticsCsv);
+app.get("/api/admin/notifications/automatic-events", verifyAdminToken, getAutomaticEvents);
+app.put("/api/admin/notifications/automatic-events/:eventType", verifyAdminToken, updateAutomaticEvent);
+app.post("/api/admin/notifications/audience/estimate", verifyAdminToken, estimateAudience);
+
+// Room invitation endpoint
+app.post("/api/rooms/:roomCode/invite", (req, res) => {
+  try {
+    const { roomCode } = req.params;
+    const { recipientUserId, senderName } = req.body;
+    const upperCode = roomCode.toUpperCase();
+    const room = rooms.get(upperCode);
+    if (!room) {
+      return res.status(404).json({ error: "Room not found or expired" });
+    }
+    if (!recipientUserId) {
+      return res.status(400).json({ error: "recipientUserId is required" });
+    }
+    gameNotificationService.dispatchRoomInvitation({
+      senderName: senderName || "A friend",
+      recipientUserId,
+      roomCode: upperCode,
+    });
+    return res.json({ success: true, message: "Invitation dispatched" });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to send room invite" });
+  }
+});
+
 const io = new SocketIoServer(server, {
   cors: {
     origin: process.env.CLIENT_URL || "http://localhost:5173",
@@ -676,6 +755,8 @@ const io = new SocketIoServer(server, {
     credentials: true,
   },
 });
+
+gameNotificationService.setSocketServer(io);
 
 // Game state storage
 const rooms = new Map();
@@ -874,8 +955,13 @@ app.post(
       })),
     });
 
-    // Start game if room is full
+    // Start game if room is full and notify players
     if (room.players.length === 4) {
+      const userIds = room.players.map((p) => p.userId).filter(Boolean);
+      gameNotificationService.dispatchRoomReady({
+        roomCode: roomCode.toUpperCase(),
+        recipientUserIds: userIds,
+      });
       setTimeout(() => startGame(roomCode), 2000);
     }
   }
@@ -911,6 +997,12 @@ io.on("connection", (socket) => {
     player.socketId = socket.id;
     player.disconnected = false;
     playerSockets.set(socket.id, { roomCode: upperCode, playerId });
+
+    if (player.userId) {
+      gameNotificationService.registerUserSocket(player.userId, socket.id);
+      socket.data = socket.data || {};
+      socket.data.userId = player.userId;
+    }
 
     console.log(
       `✅ Player ${playerId} connected/reconnected to room ${upperCode}`
@@ -1307,6 +1399,9 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     console.log("Client disconnected:", socket.id);
+    if (socket.data?.userId) {
+      gameNotificationService.unregisterUserSocket(socket.data.userId, socket.id);
+    }
 
     const playerInfo = playerSockets.get(socket.id);
     if (!playerInfo) return;

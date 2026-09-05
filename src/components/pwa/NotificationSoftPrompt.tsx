@@ -1,5 +1,5 @@
 import React from "react";
-import { Bell, Sparkles, X, ShieldAlert, CheckCircle2 } from "lucide-react";
+import { Bell, Sparkles, X, ShieldAlert } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface NotificationSoftPromptProps {

@@ -84,12 +84,17 @@ export async function registerPushInstallation(req, res) {
  */
 export async function updatePushPreferences(req, res) {
   try {
-    const { installationId, notificationsEnabled } = req.body;
-    if (!installationId || typeof notificationsEnabled !== "boolean") {
-      return res.status(400).json({ error: "installationId and boolean notificationsEnabled are required" });
+    const { installationId, notificationsEnabled, preferences, quietHours } = req.body;
+    if (!installationId) {
+      return res.status(400).json({ error: "installationId is required" });
     }
 
-    const updated = await notificationService.updatePreferences(installationId, notificationsEnabled);
+    const updated = await notificationService.updatePreferences(
+      installationId,
+      notificationsEnabled,
+      preferences,
+      quietHours
+    );
     if (!updated) {
       return res.status(404).json({ error: "Installation not found" });
     }

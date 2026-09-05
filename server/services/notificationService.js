@@ -111,19 +111,27 @@ class NotificationService {
   }
 
   /**
-   * Update master notification preference
+   * Update master notification preference and optional category preferences / quiet hours
    */
-  async updatePreferences(installationId, notificationsEnabled) {
+  async updatePreferences(installationId, notificationsEnabled, categoryPreferences = null, quietHours = null) {
     if (!installationId) throw new Error("installationId is required");
+
+    const updateSet = {
+      lastSeenAt: new Date(),
+    };
+    if (typeof notificationsEnabled === "boolean") {
+      updateSet.notificationsEnabled = notificationsEnabled;
+    }
+    if (categoryPreferences && typeof categoryPreferences === "object") {
+      updateSet.preferences = categoryPreferences;
+    }
+    if (quietHours && typeof quietHours === "object") {
+      updateSet.quietHours = quietHours;
+    }
 
     return await PushInstallation.findOneAndUpdate(
       { installationId },
-      {
-        $set: {
-          notificationsEnabled: Boolean(notificationsEnabled),
-          lastSeenAt: new Date(),
-        },
-      },
+      { $set: updateSet },
       { new: true }
     );
   }
@@ -181,6 +189,7 @@ class NotificationService {
     targetId = null,
     deepLink = "/",
     icon = "/icons/icon-192x192.png",
+    image = null,
     createdBy = "admin",
   }) {
     if (!title || !body) {
@@ -200,12 +209,23 @@ class NotificationService {
       }
     }
 
+    const normalizedTargetType =
+      targetType === "ALL_ENABLED"
+        ? "ALL"
+        : targetType === "SPECIFIC_USER"
+        ? "USER"
+        : targetType === "SPECIFIC_INSTALLATION"
+        ? "INSTALLATION"
+        : targetType;
+
     // Create pending audit log
     const logDoc = await NotificationLog.create({
       title: trimmedTitle,
       body: trimmedBody,
-      targetType,
-      targetId,
+      targetType: ["ALL", "INSTALLATION", "USER"].includes(normalizedTargetType)
+        ? normalizedTargetType
+        : "ALL",
+      targetId: Array.isArray(targetId) ? targetId.join(",") : targetId,
       deepLink: safeDeepLink,
       status: "PROCESSING",
       createdBy,
@@ -225,19 +245,27 @@ class NotificationService {
 
     // Resolve target installations
     let installations = [];
-    if (targetType === "INSTALLATION") {
+    if (normalizedTargetType === "INSTALLATION") {
       if (!targetId) throw new Error("targetId (installationId) is required for INSTALLATION target");
-      const inst = await PushInstallation.findOne({
-        $or: [{ installationId: targetId }, { fid: targetId }, { fcmToken: targetId }],
+      const ids = Array.isArray(targetId) ? targetId : [targetId];
+      installations = await PushInstallation.find({
+        $or: [{ installationId: { $in: ids } }, { fid: { $in: ids } }, { fcmToken: { $in: ids } }],
         notificationsEnabled: true,
       });
-      if (inst) installations = [inst];
-    } else if (targetType === "USER") {
-      if (!targetId || !mongoose.Types.ObjectId.isValid(targetId)) {
+    } else if (normalizedTargetType === "USER") {
+      const ids = Array.isArray(targetId) ? targetId : [targetId];
+      const validIds = ids.filter((id) => mongoose.Types.ObjectId.isValid(id));
+      if (validIds.length === 0) {
         throw new Error("Valid userId is required for USER target");
       }
       installations = await PushInstallation.find({
-        userId: targetId,
+        userId: { $in: validIds },
+        notificationsEnabled: true,
+        permission: "GRANTED",
+      });
+    } else if (targetType === "REGISTERED_USERS") {
+      installations = await PushInstallation.find({
+        userId: { $ne: null },
         notificationsEnabled: true,
         permission: "GRANTED",
       });
@@ -285,6 +313,7 @@ class NotificationService {
         notification: {
           title: trimmedTitle,
           body: trimmedBody,
+          ...(image ? { image } : {}),
         },
         webpush: {
           headers: {
@@ -297,6 +326,7 @@ class NotificationService {
             badge: "/icons/icon-192x192.png",
             tag: "raja-rani-push",
             renotify: true,
+            ...(image ? { image } : {}),
             data: {
               url: safeDeepLink,
             },
@@ -309,6 +339,7 @@ class NotificationService {
           title: trimmedTitle,
           body: trimmedBody,
           deepLink: safeDeepLink,
+          ...(image ? { image } : {}),
           sentAt: new Date().toISOString(),
         },
         tokens: batchTokens,
