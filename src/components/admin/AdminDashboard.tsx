@@ -678,17 +678,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <span>Detective Challenge</span>
                     </h3>
                     <span className="px-2 py-0.5 text-[10px] font-extrabold bg-cyan-500/20 text-cyan-300 rounded">
-                      Police vs Thief
+                      Detective Mode
                     </span>
                   </div>
                   <div className="text-xs text-slate-300 space-y-1 pt-1">
                     <p className="flex justify-between">
                       <span className="text-slate-400">Total Matches Logged:</span>
-                      <strong className="text-white">{overview.policeThiefMatchesCount || 0}</strong>
+                      <strong className="text-white">{overview.detectiveMatchesCount ?? overview.policeThiefMatchesCount ?? 0}</strong>
                     </p>
                     <p className="flex justify-between">
                       <span className="text-slate-400">Active Live Rooms:</span>
-                      <strong className="text-cyan-400">{overview.policeThiefRoomsCount || 0}</strong>
+                      <strong className="text-cyan-400">{overview.detectiveRoomsCount ?? overview.policeThiefRoomsCount ?? 0}</strong>
                     </p>
                     <p className="flex justify-between">
                       <span className="text-slate-400">Detective Records:</span>

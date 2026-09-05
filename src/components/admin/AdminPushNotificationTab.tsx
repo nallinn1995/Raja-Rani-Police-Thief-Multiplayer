@@ -29,7 +29,6 @@ import {
   BarChart3,
   Download,
   Sliders,
-  Filter,
 } from "lucide-react";
 import {
   adminService,
@@ -1396,8 +1395,8 @@ export const AdminPushNotificationTab: React.FC = () => {
                   >
                     <option value="ALL">All Game Modes (Any Active Player)</option>
                     <option value="classic">Classic Mode Players</option>
-                    <option value="police-thief">Police-Thief Mode Players</option>
-                    <option value="modern">Modern / Detective Role Players</option>
+                    <option value="detective">Detective Mode Players</option>
+                    <option value="modern">Modern Mode Players</option>
                   </select>
                 </div>
 

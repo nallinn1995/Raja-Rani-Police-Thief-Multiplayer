@@ -61,8 +61,8 @@ const ROLE_CONFIGS: Record<string, { title: string; badgeStyle: string; borderSt
   },
   thief: {
     title: "Thief",
-    badgeStyle:
-      "bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 text-slate-950 shadow-[0_0_15px_rgba(16,185,129,0.8)] border border-emerald-300",
+    badgeStyle: "bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 text-slate-950 shadow-[0_0_15px_rgba(16,185,129,0.8)] border border-emerald-300",
+    borderStyle: ""
   },
 };
 
@@ -314,19 +314,16 @@ export const GameBoard: React.FC<GameBoardProps> = ({
             <div className="flex items-center space-x-3 sm:space-x-4">
               {room.gameState === "guessing" && (
                 <div
-                  className={`flex items-center space-x-2 bg-red-50 px-4 py-2 rounded-full border ${
-                    timeLeft <= 10 ? "border-red-400" : "border-red-200"
-                  } shadow-sm`}
+                  className={`flex items-center space-x-2 bg-red-50 px-4 py-2 rounded-full border ${timeLeft <= 10 ? "border-red-400" : "border-red-200"
+                    } shadow-sm`}
                 >
                   <Heart
-                    className={`w-5 h-5 text-red-500 ${
-                      timeLeft <= 10 ? "animate-ping" : "animate-pulse"
-                    }`}
+                    className={`w-5 h-5 text-red-500 ${timeLeft <= 10 ? "animate-ping" : "animate-pulse"
+                      }`}
                   />
                   <span
-                    className={`font-bold ${
-                      timeLeft <= 10 ? "text-red-600 animate-pulse" : "text-red-500"
-                    }`}
+                    className={`font-bold ${timeLeft <= 10 ? "text-red-600 animate-pulse" : "text-red-500"
+                      }`}
                   >
                     {timeLeft}s
                   </span>
@@ -389,11 +386,11 @@ export const GameBoard: React.FC<GameBoardProps> = ({
             const playerRole = getPlayerRole(player.id);
             const isRoleRevealed = Boolean(
               playerRole &&
-                (player.id === currentPlayerId ||
-                  (room.gameState === "police-reveal" && player.id === policeId) ||
-                  (room.gameState === "guessing" && player.id === policeId) ||
-                  room.gameState === "results" ||
-                  room.gameState === "finished")
+              (player.id === currentPlayerId ||
+                (room.gameState === "police-reveal" && player.id === policeId) ||
+                (room.gameState === "guessing" && player.id === policeId) ||
+                room.gameState === "results" ||
+                room.gameState === "finished")
             );
 
             const canClick =
@@ -410,11 +407,9 @@ export const GameBoard: React.FC<GameBoardProps> = ({
               return (
                 <div
                   key={player.id}
-                  className={`relative h-64 sm:h-72 w-full rounded-3xl overflow-hidden border-2 ${
-                    styleInfo.borderStyle
-                  } transition-all duration-300 transform ${
-                    canClick ? "cursor-pointer hover:scale-105" : ""
-                  }`}
+                  className={`relative h-64 sm:h-72 w-full rounded-3xl overflow-hidden border-2 ${styleInfo.borderStyle
+                    } transition-all duration-300 transform ${canClick ? "cursor-pointer hover:scale-105" : ""
+                    }`}
                   onClick={canClick ? () => onMakeGuess(player.id) : undefined}
                 >
                   {/* Looping Muted Role Video */}
@@ -479,11 +474,10 @@ export const GameBoard: React.FC<GameBoardProps> = ({
             return (
               <div
                 key={player.id}
-                className={`relative h-64 sm:h-72 w-full bg-[#0B031E] border-2 border-purple-500/40 hover:border-cyan-400/60 rounded-3xl shadow-[0_0_25px_rgba(168,85,247,0.25)] hover:shadow-[0_0_35px_rgba(34,211,238,0.4)] transition-all duration-300 overflow-hidden flex flex-col items-center justify-between p-4 sm:p-5 select-none ${
-                  canClick
+                className={`relative h-64 sm:h-72 w-full bg-[#0B031E] border-2 border-purple-500/40 hover:border-cyan-400/60 rounded-3xl shadow-[0_0_25px_rgba(168,85,247,0.25)] hover:shadow-[0_0_35px_rgba(34,211,238,0.4)] transition-all duration-300 overflow-hidden flex flex-col items-center justify-between p-4 sm:p-5 select-none ${canClick
                     ? "cursor-pointer hover:scale-105 border-fuchsia-400 shadow-[0_0_35px_rgba(217,70,239,0.5)]"
                     : ""
-                }`}
+                  }`}
                 onClick={canClick ? () => onMakeGuess(player.id) : undefined}
               >
                 {/* Sci-Fi Contour Tech Background */}
@@ -507,11 +501,10 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                     {[0, 1, 2, 3, 4].map((i) => (
                       <div
                         key={i}
-                        className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                          isPlayerSpeaking
+                        className={`w-2 h-2 rounded-full transition-all duration-300 ${isPlayerSpeaking
                             ? "bg-[#F06292] shadow-[0_0_10px_#F06292] scale-125 animate-bounce"
                             : "bg-fuchsia-400/50 shadow-[0_0_5px_rgba(236,72,153,0.3)] opacity-60"
-                        }`}
+                          }`}
                         style={{
                           animationDelay: `${i * 0.12}s`,
                           animationDuration: "0.6s",
@@ -552,9 +545,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({
               <p className="text-yellow-300 font-medium tracking-wide">
                 {policeId === currentPlayerId
                   ? "Click on a player card to make your guess!"
-                  : `Waiting for ${
-                      room.players.find((p) => p.id === policeId)?.name
-                    } to make their guess...`}
+                  : `Waiting for ${room.players.find((p) => p.id === policeId)?.name
+                  } to make their guess...`}
               </p>
             </div>
           )}

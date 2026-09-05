@@ -217,12 +217,11 @@ export async function getOverviewStats(roomsMap, io) {
     const totalGuestMatches = guestAggregate[0]?.totalMatches || 0;
     const totalGuestGamesStarted = guestAggregate[0]?.totalGames || 0;
     
-    const classicMatchesCount = await MatchHistory.countDocuments({ gameMode: { $ne: "POLICE_THIEF" } });
+    const classicMatchesCount = await MatchHistory.countDocuments();
     const dcMatchDocs = await DetectiveChallengeMatch.countDocuments();
-    const mhPoliceDocs = await MatchHistory.countDocuments({ gameMode: "POLICE_THIEF" });
-    const policeThiefMatchesCount = dcMatchDocs + mhPoliceDocs;
+    const detectiveMatchesCount = dcMatchDocs;
     const modernMatchesCount = await ModernModeMatch.countDocuments();
-    const totalMatches = classicMatchesCount + policeThiefMatchesCount + modernMatchesCount;
+    const totalMatches = classicMatchesCount + detectiveMatchesCount + modernMatchesCount;
 
     const totalStatsRecords = await PlayerStats.countDocuments();
     const totalDcStatsRecords = await DetectiveChallengeStats.countDocuments();
@@ -252,7 +251,7 @@ export async function getOverviewStats(roomsMap, io) {
     
     let activeRoomsCount = 0;
     let classicRoomsCount = 0;
-    let policeThiefRoomsCount = 0;
+    let detectiveRoomsCount = 0;
     let modernRoomsCount = 0;
     let totalPlayersInRooms = 0;
     if (roomsMap) {
@@ -261,8 +260,8 @@ export async function getOverviewStats(roomsMap, io) {
         if (room && room.players) {
           totalPlayersInRooms += room.players.length;
         }
-        if (room?.gameMode === "POLICE_THIEF" || room?.gameMode === "DETECTIVE_CHALLENGE") {
-          policeThiefRoomsCount++;
+        if (room?.gameMode === "DETECTIVE_CHALLENGE" || String(room?.id || "").startsWith("DC_")) {
+          detectiveRoomsCount++;
         } else if (room?.gameMode === "MODERN_MODE" || String(room?.id || "").startsWith("MODERN_")) {
           modernRoomsCount++;
         } else {
@@ -289,14 +288,16 @@ export async function getOverviewStats(roomsMap, io) {
       totalRegisteredOfflineGames,
       totalGuestOfflineGames,
       classicMatchesCount,
-      policeThiefMatchesCount,
+      detectiveMatchesCount,
+      policeThiefMatchesCount: detectiveMatchesCount,
       modernMatchesCount,
       totalStatsRecords,
       totalDcStatsRecords,
       totalModernStatsRecords,
       activeRoomsCount,
       classicRoomsCount,
-      policeThiefRoomsCount,
+      detectiveRoomsCount,
+      policeThiefRoomsCount: detectiveRoomsCount,
       modernRoomsCount,
       totalPlayersInRooms,
       connectedSockets,
@@ -878,16 +879,13 @@ export async function getMatchesList(req, res) {
       let query = {};
       if (searchRegex) {
         query = {
-          gameMode: { $ne: "POLICE_THIEF" },
           $or: [{ roomCode: searchRegex }, { winnerUsername: searchRegex }, { "players.username": searchRegex }],
         };
-      } else {
-        query = { gameMode: { $ne: "POLICE_THIEF" } };
       }
       classicMatches = await MatchHistory.find(query).sort({ createdAt: -1 }).limit(limit).lean();
     }
 
-    if (!gameMode || gameMode === "all" || gameMode === "POLICE_THIEF" || gameMode === "DETECTIVE_CHALLENGE") {
+    if (!gameMode || gameMode === "all" || gameMode === "DETECTIVE_CHALLENGE") {
       let query = {};
       if (searchRegex) {
         query = {

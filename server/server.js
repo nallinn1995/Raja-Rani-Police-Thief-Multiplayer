@@ -34,13 +34,6 @@ import {
   recordMatchResult as recordDetectiveMatch,
 } from "./controllers/detectiveChallenge/detectiveChallengeController.js";
 import {
-  getPoliceThiefProfile,
-  getPoliceThiefLeaderboard,
-  getPoliceThiefAdminDashboard,
-  recordRoundResult as recordPoliceThiefRound,
-  recordMatchResult as recordPoliceThiefMatch,
-} from "./controllers/policeThiefController.js";
-import {
   adminLogin,
   getOverviewStats,
   getAllUsers,
@@ -574,13 +567,6 @@ app.get("/api/detective-challenge/leaderboard", getDetectiveLeaderboard);
 app.post("/api/detective-challenge/round", recordDetectiveRound);
 app.post("/api/detective-challenge/match", recordDetectiveMatch);
 app.get("/api/admin/detective-challenge/dashboard", getDetectiveAdminDashboard);
-
-// POLICE THIEF ENDPOINTS
-app.get("/api/police-thief/profile/:userId", getPoliceThiefProfile);
-app.get("/api/police-thief/leaderboard", getPoliceThiefLeaderboard);
-app.post("/api/police-thief/round", recordPoliceThiefRound);
-app.post("/api/police-thief/match", recordPoliceThiefMatch);
-app.get("/api/admin/police-thief/dashboard", getPoliceThiefAdminDashboard);
 
 // ADMIN API ENDPOINTS
 app.post("/api/admin/login", adminLogin);

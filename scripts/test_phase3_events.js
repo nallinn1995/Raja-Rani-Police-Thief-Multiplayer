@@ -59,14 +59,14 @@ async function runTests() {
   const testFilter = {
     levelMin: 10,
     levelMax: 50,
-    gameMode: "police-thief",
+    gameMode: "detective",
     lastPlayedDays: 7,
   };
   const statsQuery = notificationAudienceService.buildStatsQuery(testFilter);
   console.log("Generated Mongo query for audience:", JSON.stringify(statsQuery, null, 2));
   assert.strictEqual(statsQuery.level.$gte, 10);
   assert.strictEqual(statsQuery.level.$lte, 50);
-  assert(statsQuery["policeMode.gamesPlayed"] !== undefined);
+  assert(Array.isArray(statsQuery.$or) && statsQuery.$or.length === 2);
   assert(statsQuery.lastPlayedAt.$lte !== undefined);
   console.log("✅ Audience Query Builder passed");
 

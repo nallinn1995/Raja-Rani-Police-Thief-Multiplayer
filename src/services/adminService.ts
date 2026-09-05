@@ -84,6 +84,7 @@ export interface OverviewStats {
   totalRegisteredOfflineGames?: number;
   totalGuestOfflineGames?: number;
   classicMatchesCount?: number;
+  detectiveMatchesCount?: number;
   policeThiefMatchesCount?: number;
   modernMatchesCount?: number;
   totalStatsRecords: number;
@@ -91,6 +92,7 @@ export interface OverviewStats {
   totalModernStatsRecords?: number;
   activeRoomsCount: number;
   classicRoomsCount?: number;
+  detectiveRoomsCount?: number;
   policeThiefRoomsCount?: number;
   modernRoomsCount?: number;
   totalPlayersInRooms: number;

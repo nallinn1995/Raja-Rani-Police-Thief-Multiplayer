@@ -55,12 +55,10 @@ class NotificationAudienceService {
           query["classicMode.gamesPlayed"] = { $gt: 0 };
           break;
         case "DETECTIVE":
-          query["detectiveMode.gamesPlayed"] = { $gt: 0 };
-          break;
         case "POLICE":
         case "POLICE-THIEF":
         case "POLICE_THIEF":
-          query["policeMode.gamesPlayed"] = { $gt: 0 };
+          query.$or = [{ "detectiveMode.gamesPlayed": { $gt: 0 } }, { "policeMode.gamesPlayed": { $gt: 0 } }];
           break;
         case "MODERN":
           query["modernMode.gamesPlayed"] = { $gt: 0 };

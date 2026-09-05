@@ -15,7 +15,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
   onPlayAgain,
   onBackToHome,
 }) => {
-  const isPoliceMode = gameMode === GameMode.DETECTIVE_CHALLENGE || (gameMode as string) === 'POLICE_THIEF';
+  const isDetectiveMode = gameMode === GameMode.DETECTIVE_CHALLENGE;
   const getRankIcon = (rank: number) => {
     switch (rank) {
       case 1:
@@ -77,7 +77,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
 
       <div className="relative z-10 max-w-md w-full bg-[#1D0C3A]/95 backdrop-blur-xl rounded-[calc(2rem-2px)] shadow-[0_0_40px_rgba(147,51,234,0.3)] border border-[#3A1C61] p-4 sm:p-6 md:p-8">
         <div className="text-center mb-6 sm:mb-8">
-          {isPoliceMode ? (
+          {isDetectiveMode ? (
             <Shield className="w-16 h-16 text-blue-400 mx-auto mb-4 animate-bounce drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]" />
           ) : (
             <img src="/assets/images/trophy.png" className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-4 object-contain animate-bounce drop-shadow-[0_0_25px_rgba(250,204,21,0.8)]" alt="Trophy" />
@@ -86,7 +86,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
             Game Over!
           </h1>
           <p className="text-fuchsia-300 tracking-wide font-medium text-sm sm:text-base">
-            {isPoliceMode ? 'Police vs Thief Final Results' : 'Final Leaderboard'}
+            {isDetectiveMode ? 'Detective Challenge Final Results' : 'Final Leaderboard'}
           </p>
         </div>
 
@@ -116,7 +116,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                   </div>
                 </div>
 
-                {isPoliceMode ? (
+                {isDetectiveMode ? (
                   <div className="text-right text-xs space-y-0.5 flex-shrink-0 shrink-0 ml-2">
                     <p className="font-bold text-blue-400 whitespace-nowrap">
                       {player.correctCatches || 0} Correct / {player.wrongGuesses || 0} Wrong

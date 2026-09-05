@@ -33,6 +33,42 @@ interface VoiceChatManagerProps {
 
 type AudioOutputMode = "speaker" | "headset" | "bluetooth";
 
+interface OutputOption {
+  id: AudioOutputMode;
+  label: string;
+  sublabel: string;
+  icon: React.ComponentType<{ className?: string }>;
+  gradient: string;
+  badgeColor: string;
+}
+
+const OUTPUT_OPTIONS: OutputOption[] = [
+  {
+    id: "speaker",
+    label: "Speaker",
+    sublabel: "Built-in / Device Speaker",
+    icon: Speaker,
+    gradient: "from-amber-400 to-amber-600",
+    badgeColor: "bg-amber-400 text-amber-950",
+  },
+  {
+    id: "headset",
+    label: "Headset",
+    sublabel: "Wired / USB Headphones",
+    icon: Headphones,
+    gradient: "from-cyan-400 to-blue-600",
+    badgeColor: "bg-cyan-400 text-cyan-950",
+  },
+  {
+    id: "bluetooth",
+    label: "Bluetooth",
+    sublabel: "AirPods / Wireless Earbuds",
+    icon: Bluetooth,
+    gradient: "from-purple-400 to-fuchsia-600",
+    badgeColor: "bg-purple-400 text-purple-950",
+  },
+];
+
 // Public STUN and OpenRelay TURN servers for NAT traversal & mobile cross-network voice chat
 const RTC_CONFIG: RTCConfiguration = {
   iceServers: [
@@ -181,7 +217,7 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
     const unlockAudio = () => {
       audioElementsRef.current.forEach((audioElement) => {
         if (audioElement && audioElement.paused) {
-          audioElement.play().catch(() => {});
+          audioElement.play().catch(() => { });
         }
       });
     };
@@ -360,7 +396,7 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
             if (typeof (pc as any).restartIce === "function") {
               try {
                 (pc as any).restartIce();
-              } catch {}
+              } catch { }
             } else {
               // Re-create connection with small backoff
               const timer = setTimeout(() => {
@@ -646,7 +682,7 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
       if (animTimer) clearTimeout(animTimer);
       if (silenceTimeout) clearTimeout(silenceTimeout);
       if (audioCtx && audioCtx.state !== "closed") {
-        audioCtx.close().catch(() => {});
+        audioCtx.close().catch(() => { });
       }
     };
   }, [localStreamRef.current, socket, room?.id, currentPlayerId]);
@@ -758,19 +794,17 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
           {/* Music Toggle Button (Always available) */}
           <button
             onClick={toggleMusic}
-            className={`p-3 rounded-full shadow-lg transition-all transform hover:scale-110 active:scale-95 border-2 border-white/60 flex items-center justify-center relative ${
-              isMusicPlaying
+            className={`p-3 rounded-full shadow-lg transition-all transform hover:scale-110 active:scale-95 border-2 border-white/60 flex items-center justify-center relative ${isMusicPlaying
                 ? "bg-gradient-to-br from-fuchsia-500 to-purple-600 text-white shadow-[0_0_15px_rgba(192,38,211,0.5)] ring-2 ring-fuchsia-300/40"
                 : "bg-gray-800/90 text-gray-400 hover:text-white"
-            }`}
+              }`}
             title={isMusicPlaying ? "Mute Background Music" : "Play Background Music"}
           >
             <Music
-              className={`w-5 h-5 transition-all ${
-                isMusicPlaying
+              className={`w-5 h-5 transition-all ${isMusicPlaying
                   ? "animate-pulse text-yellow-300 drop-shadow-[0_0_8px_rgba(253,224,71,0.8)]"
                   : "text-gray-400 opacity-60"
-              }`}
+                }`}
             />
             {!isMusicPlaying && (
               <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -786,13 +820,12 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
               <div className="relative">
                 <button
                   onClick={() => setIsOutputMenuOpen((prev) => !prev)}
-                  className={`p-3 rounded-full shadow-lg transition-all transform hover:scale-110 active:scale-95 border-2 flex items-center justify-center ${
-                    outputMode === "bluetooth"
+                  className={`p-3 rounded-full shadow-lg transition-all transform hover:scale-110 active:scale-95 border-2 flex items-center justify-center ${outputMode === "bluetooth"
                       ? "bg-gradient-to-br from-purple-500 to-indigo-600 text-white border-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.6)]"
                       : outputMode === "headset"
-                      ? "bg-gradient-to-br from-cyan-500 to-blue-600 text-white border-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.6)]"
-                      : "bg-gradient-to-br from-amber-500 to-orange-600 text-white border-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.6)]"
-                  }`}
+                        ? "bg-gradient-to-br from-cyan-500 to-blue-600 text-white border-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.6)]"
+                        : "bg-gradient-to-br from-amber-500 to-orange-600 text-white border-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.6)]"
+                    }`}
                   title={`Audio Output: ${outputMode.toUpperCase()} (Click to select Speaker, Headset, or Bluetooth)`}
                 >
                   {outputMode === "bluetooth" && <Bluetooth className="w-5 h-5 animate-pulse" />}
@@ -827,11 +860,10 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
                               key={opt.id}
                               type="button"
                               onClick={() => changeOutputMode(opt.id)}
-                              className={`w-full flex items-center justify-between p-2.5 rounded-xl border-2 transition-all cursor-pointer text-left ${
-                                isSelected
+                              className={`w-full flex items-center justify-between p-2.5 rounded-xl border-2 transition-all cursor-pointer text-left ${isSelected
                                   ? "bg-[#2D0A54] border-[#FBE278] shadow-[0_0_15px_rgba(251,226,120,0.35)] text-white"
                                   : "bg-[#1D0638] border-purple-900/60 text-gray-300 hover:bg-[#28084A] hover:text-white"
-                              }`}
+                                }`}
                             >
                               <div className="flex items-center gap-2.5 min-w-0">
                                 <div
@@ -873,11 +905,10 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
                   <button
                     onClick={toggleMute}
                     disabled={isMicAcquiring}
-                    className={`p-3 rounded-full shadow-lg transition-all transform hover:scale-110 active:scale-95 border-2 border-white/60 flex items-center justify-center ${
-                      isMuted
+                    className={`p-3 rounded-full shadow-lg transition-all transform hover:scale-110 active:scale-95 border-2 border-white/60 flex items-center justify-center ${isMuted
                         ? "bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.5)]"
                         : "bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-[0_0_15px_rgba(34,197,94,0.5)] ring-2 ring-emerald-300"
-                    }`}
+                      }`}
                     title={isMuted ? "Unmute Microphone (Click to speak)" : "Mute Microphone"}
                   >
                     {isMuted ? (
@@ -890,11 +921,10 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
                   {/* Speaker Mute Button */}
                   <button
                     onClick={toggleSpeaker}
-                    className={`p-3 rounded-full shadow-lg transition-all transform hover:scale-110 active:scale-95 border-2 border-white/60 flex items-center justify-center ${
-                      isSpeakerMuted
+                    className={`p-3 rounded-full shadow-lg transition-all transform hover:scale-110 active:scale-95 border-2 border-white/60 flex items-center justify-center ${isSpeakerMuted
                         ? "bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.5)]"
                         : "bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]"
-                    }`}
+                      }`}
                     title={isSpeakerMuted ? "Unmute Peer Voice Audio" : "Mute Peer Voice Audio"}
                   >
                     {isSpeakerMuted ? (
@@ -913,11 +943,10 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
       {/* Main Single Floating Toggle Action Button */}
       <button
         onClick={() => setIsOpen((prev) => !prev)}
-        className={`p-3.5 rounded-full shadow-2xl transition-all duration-300 transform hover:scale-110 active:scale-95 border-2 border-white/80 flex items-center justify-center relative ${
-          isOpen
+        className={`p-3.5 rounded-full shadow-2xl transition-all duration-300 transform hover:scale-110 active:scale-95 border-2 border-white/80 flex items-center justify-center relative ${isOpen
             ? "bg-gradient-to-br from-purple-600 via-fuchsia-600 to-pink-600 text-white ring-4 ring-purple-500/40 shadow-[0_0_30px_rgba(168,85,247,0.8)]"
             : "bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white hover:shadow-[0_0_25px_rgba(168,85,247,0.6)]"
-        }`}
+          }`}
         title="Toggle Audio & Voice Controls"
         aria-label="Toggle audio controls"
       >
