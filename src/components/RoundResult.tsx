@@ -110,19 +110,19 @@ export const RoundResult: React.FC<RoundResultProps> = ({ result, isHost, onNext
               .map((player, index) => (
                 <div
                   key={player.id}
-                  className={`flex items-center justify-between p-3 rounded-xl shadow-md transition-all duration-300 ${
+                  className={`flex items-center justify-between gap-3 p-3 rounded-xl shadow-md transition-all duration-300 ${
                     index === 0 ? 'bg-gradient-to-r from-[#5A2D0C] to-[#2E1805] border border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.2)]' : 'bg-[#11052C] border border-[#3A1C61]'
                   }`}
                 >
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     {index < 3 ? (
                       <img
                         src={`/assets/images/rank${index + 1}.png`}
                         alt={`Rank ${index + 1}`}
-                        className="w-8 h-8 object-contain drop-shadow-md shrink-0"
+                        className="w-8 h-8 object-contain drop-shadow-md shrink-0 flex-shrink-0"
                       />
                     ) : (
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold drop-shadow-md ${
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold drop-shadow-md shrink-0 flex-shrink-0 ${
                         player.role === 'Raja' ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' :
                         player.role === 'Rani' ? 'bg-gradient-to-br from-pink-400 to-pink-600' :
                         player.role === 'Police' ? 'bg-gradient-to-br from-blue-400 to-blue-600' : 'bg-gradient-to-br from-green-400 to-green-600'
@@ -130,13 +130,24 @@ export const RoundResult: React.FC<RoundResultProps> = ({ result, isHost, onNext
                         {index + 1}
                       </div>
                     )}
-                    <div>
-                      <p className={`font-bold tracking-wide ${index === 0 ? 'text-yellow-400' : 'text-gray-200'}`}>{player.name}</p>
-                      <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">{player.role}</p>
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className={`font-bold text-sm sm:text-base tracking-wide break-words line-clamp-2 leading-tight ${index === 0 ? 'text-yellow-400' : 'text-gray-200'}`}
+                        style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
+                        title={player.name}
+                      >
+                        {player.name}
+                      </p>
+                      <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mt-0.5">{player.role}</p>
                     </div>
                   </div>
 
-                  <span className={`font-black text-xl title-font ${index === 0 ? 'text-yellow-400 drop-shadow-md' : 'text-white'}`}>{player.score}</span>
+                  <div className="text-right flex-shrink-0 shrink-0 ml-2">
+                    <span className={`font-black text-lg sm:text-xl title-font leading-none block ${index === 0 ? 'text-yellow-400 drop-shadow-md' : 'text-white'}`}>
+                      {player.score}
+                    </span>
+                    <span className="text-[10px] uppercase tracking-wider opacity-70">pts</span>
+                  </div>
                 </div>
               ))
             }

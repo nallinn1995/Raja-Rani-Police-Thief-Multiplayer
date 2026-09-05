@@ -20,6 +20,29 @@ interface WaitingRoomProps {
   onSendMessage: (message: string) => void;
 }
 
+const WAITING_ROOM_PARTICLES = [
+  { id: 0, width: '3px', height: '3px', top: '12%', left: '18%', animationDuration: '3.2s', animationDelay: '0.5s', opacity: 0.8 },
+  { id: 1, width: '2px', height: '2px', top: '25%', left: '75%', animationDuration: '4.1s', animationDelay: '1.2s', opacity: 0.6 },
+  { id: 2, width: '4px', height: '4px', top: '40%', left: '10%', animationDuration: '2.8s', animationDelay: '0.2s', opacity: 0.75 },
+  { id: 3, width: '2px', height: '2px', top: '55%', left: '88%', animationDuration: '3.5s', animationDelay: '1.8s', opacity: 0.5 },
+  { id: 4, width: '3px', height: '3px', top: '70%', left: '22%', animationDuration: '4.5s', animationDelay: '0.8s', opacity: 0.9 },
+  { id: 5, width: '2px', height: '2px', top: '85%', left: '65%', animationDuration: '3.0s', animationDelay: '1.5s', opacity: 0.65 },
+  { id: 6, width: '3px', height: '3px', top: '15%', left: '45%', animationDuration: '3.8s', animationDelay: '0.3s', opacity: 0.7 },
+  { id: 7, width: '4px', height: '4px', top: '32%', left: '92%', animationDuration: '4.2s', animationDelay: '1.1s', opacity: 0.85 },
+  { id: 8, width: '2px', height: '2px', top: '48%', left: '35%', animationDuration: '2.9s', animationDelay: '0.7s', opacity: 0.6 },
+  { id: 9, width: '3px', height: '3px', top: '62%', left: '78%', animationDuration: '3.6s', animationDelay: '1.4s', opacity: 0.75 },
+  { id: 10, width: '2px', height: '2px', top: '78%', left: '8%', animationDuration: '4.0s', animationDelay: '0.4s', opacity: 0.55 },
+  { id: 11, width: '3px', height: '3px', top: '92%', left: '48%', animationDuration: '3.3s', animationDelay: '1.7s', opacity: 0.8 },
+  { id: 12, width: '2px', height: '2px', top: '8%', left: '82%', animationDuration: '3.9s', animationDelay: '0.9s', opacity: 0.6 },
+  { id: 13, width: '4px', height: '4px', top: '28%', left: '28%', animationDuration: '4.4s', animationDelay: '0.1s', opacity: 0.85 },
+  { id: 14, width: '2px', height: '2px', top: '65%', left: '5%', animationDuration: '2.7s', animationDelay: '1.3s', opacity: 0.7 },
+  { id: 15, width: '3px', height: '3px', top: '82%', left: '90%', animationDuration: '3.7s', animationDelay: '0.6s', opacity: 0.75 },
+  { id: 16, width: '2px', height: '2px', top: '5%', left: '30%', animationDuration: '4.3s', animationDelay: '1.6s', opacity: 0.5 },
+  { id: 17, width: '3px', height: '3px', top: '95%', left: '25%', animationDuration: '3.1s', animationDelay: '0.2s', opacity: 0.85 },
+  { id: 18, width: '2px', height: '2px', top: '38%', left: '60%', animationDuration: '3.4s', animationDelay: '1.0s', opacity: 0.65 },
+  { id: 19, width: '3px', height: '3px', top: '75%', left: '52%', animationDuration: '4.6s', animationDelay: '0.5s', opacity: 0.7 },
+];
+
 export const WaitingRoom: React.FC<WaitingRoomProps> = ({ 
   room, 
   currentPlayerId, 
@@ -64,20 +87,20 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
     >
       {/* Dark Royal Vignette & Shadow Overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#0A021A]/70 via-transparent to-[#0A021A]/85 pointer-events-none" />
-      {/* Background Particles/Stars */}
+      {/* Background Particles/Stars - Static positions to prevent shaking */}
       <div className="absolute inset-0 pointer-events-none opacity-40">
-        {[...Array(20)].map((_, i) => (
+        {WAITING_ROOM_PARTICLES.map((p) => (
           <div
-            key={i}
+            key={p.id}
             className="absolute rounded-full bg-white animate-pulse"
             style={{
-              width: Math.random() * 3 + 1 + 'px',
-              height: Math.random() * 3 + 1 + 'px',
-              top: Math.random() * 100 + '%',
-              left: Math.random() * 100 + '%',
-              animationDuration: Math.random() * 3 + 2 + 's',
-              animationDelay: Math.random() * 2 + 's',
-              opacity: Math.random() * 0.7 + 0.3,
+              width: p.width,
+              height: p.height,
+              top: p.top,
+              left: p.left,
+              animationDuration: p.animationDuration,
+              animationDelay: p.animationDelay,
+              opacity: p.opacity,
             }}
           />
         ))}

@@ -14,12 +14,21 @@ import { SpeakerWaveIcon, SpeakerXMarkIcon } from "@heroicons/react/24/solid";
 import { Socket } from "socket.io-client";
 import { Room, Player } from "../types/game";
 
+export interface VoiceControlsState {
+  isMuted: boolean;
+  isSpeakerMuted: boolean;
+  isMicAcquiring: boolean;
+  toggleMute: () => void;
+  toggleSpeaker: () => void;
+}
+
 interface VoiceChatManagerProps {
   socket?: Socket | null;
   room?: Room | null;
   currentPlayerId?: string;
   isMusicPlaying: boolean;
   toggleMusic: () => void;
+  onVoiceControlsChange?: (controls: VoiceControlsState | null) => void;
 }
 
 type AudioOutputMode = "speaker" | "headset" | "bluetooth";
@@ -54,6 +63,7 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
   currentPlayerId,
   isMusicPlaying,
   toggleMusic,
+  onVoiceControlsChange,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
@@ -642,7 +652,7 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
   }, [localStreamRef.current, socket, room?.id, currentPlayerId]);
 
   const toggleMute = async () => {
-    const targetMuted = !isMuted;
+    const targetMuted = !isMutedRef.current;
 
     // If player is un-muting and microphone stream is not yet acquired, request it on this click
     if (!targetMuted && !localStreamRef.current) {
@@ -672,7 +682,7 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
   };
 
   const toggleSpeaker = () => {
-    const newSpeakerState = !isSpeakerMuted;
+    const newSpeakerState = !isSpeakerMutedRef.current;
     setIsSpeakerMuted(newSpeakerState);
     isSpeakerMutedRef.current = newSpeakerState;
     audioElementsRef.current.forEach((audio) => {
@@ -680,38 +690,59 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
     });
   };
 
-  const OUTPUT_OPTIONS = [
-    {
-      id: "speaker" as const,
-      label: "Speaker",
-      sublabel: "Built-in / Device Speaker",
-      icon: Speaker,
-      gradient: "from-amber-400 to-amber-600",
-      activeBorder: "border-amber-400 bg-amber-950/40 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.4)]",
-      badgeColor: "bg-amber-400 text-amber-950",
-    },
-    {
-      id: "headset" as const,
-      label: "Headset",
-      sublabel: "Wired / USB Headphones",
-      icon: Headphones,
-      gradient: "from-cyan-400 to-blue-600",
-      activeBorder: "border-cyan-400 bg-cyan-950/40 text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.4)]",
-      badgeColor: "bg-cyan-400 text-cyan-950",
-    },
-    {
-      id: "bluetooth" as const,
-      label: "Bluetooth",
-      sublabel: "AirPods / Wireless Earbuds",
-      icon: Bluetooth,
-      gradient: "from-purple-400 to-fuchsia-600",
-      activeBorder: "border-purple-400 bg-purple-950/40 text-purple-300 shadow-[0_0_20px_rgba(168,85,247,0.4)]",
-      badgeColor: "bg-purple-400 text-purple-950",
-    },
-  ];
+  const toggleMuteRef = useRef(toggleMute);
+  toggleMuteRef.current = toggleMute;
+
+  const toggleSpeakerRef = useRef(toggleSpeaker);
+  toggleSpeakerRef.current = toggleSpeaker;
+
+  // Stable handlers that never change reference
+  const stableToggleMute = useCallback(() => {
+    toggleMuteRef.current();
+  }, []);
+
+  const stableToggleSpeaker = useCallback(() => {
+    toggleSpeakerRef.current();
+  }, []);
 
   // Show voice controls whenever the player is in any room
   const hasRoomVoice = Boolean(room && socket && currentPlayerId);
+  const isClassicMode = !room?.gameMode || room.gameMode === "CLASSIC" || room.gameMode === "CLASSIC_POINTS" || room.gameMode === "classic";
+
+  // Notify parent of live voice controls for header display ONLY when values actually change
+  const lastReportedVoiceStateRef = useRef<{
+    hasRoomVoice: boolean;
+    isMuted: boolean;
+    isSpeakerMuted: boolean;
+    isMicAcquiring: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!onVoiceControlsChange) return;
+
+    const prev = lastReportedVoiceStateRef.current;
+    const hasChanged =
+      !prev ||
+      prev.hasRoomVoice !== hasRoomVoice ||
+      prev.isMuted !== isMuted ||
+      prev.isSpeakerMuted !== isSpeakerMuted ||
+      prev.isMicAcquiring !== isMicAcquiring;
+
+    if (hasChanged) {
+      lastReportedVoiceStateRef.current = { hasRoomVoice, isMuted, isSpeakerMuted, isMicAcquiring };
+      if (hasRoomVoice) {
+        onVoiceControlsChange({
+          isMuted,
+          isSpeakerMuted,
+          isMicAcquiring,
+          toggleMute: stableToggleMute,
+          toggleSpeaker: stableToggleSpeaker,
+        });
+      } else {
+        onVoiceControlsChange(null);
+      }
+    }
+  }, [hasRoomVoice, isMuted, isSpeakerMuted, isMicAcquiring, stableToggleMute, stableToggleSpeaker, onVoiceControlsChange]);
 
   return (
     <div className="fixed bottom-6 right-6 z-[70] flex flex-col items-end">
@@ -835,40 +866,45 @@ export const VoiceChatManager: React.FC<VoiceChatManagerProps> = ({
                 )}
               </div>
 
-              {/* Mic Button */}
-              <button
-                onClick={toggleMute}
-                disabled={isMicAcquiring}
-                className={`p-3 rounded-full shadow-lg transition-all transform hover:scale-110 active:scale-95 border-2 border-white/60 flex items-center justify-center ${
-                  isMuted
-                    ? "bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.5)]"
-                    : "bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-[0_0_15px_rgba(34,197,94,0.5)] ring-2 ring-emerald-300"
-                }`}
-                title={isMuted ? "Unmute Microphone (Click to speak)" : "Mute Microphone"}
-              >
-                {isMuted ? (
-                  <MicOff className="w-5 h-5" />
-                ) : (
-                  <Mic className="w-5 h-5 animate-pulse text-white" />
-                )}
-              </button>
+              {/* Mic & Speaker buttons - in classic mode, hidden from bottom toggle as they are displayed on the top header */}
+              {!isClassicMode && (
+                <>
+                  {/* Mic Button */}
+                  <button
+                    onClick={toggleMute}
+                    disabled={isMicAcquiring}
+                    className={`p-3 rounded-full shadow-lg transition-all transform hover:scale-110 active:scale-95 border-2 border-white/60 flex items-center justify-center ${
+                      isMuted
+                        ? "bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.5)]"
+                        : "bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-[0_0_15px_rgba(34,197,94,0.5)] ring-2 ring-emerald-300"
+                    }`}
+                    title={isMuted ? "Unmute Microphone (Click to speak)" : "Mute Microphone"}
+                  >
+                    {isMuted ? (
+                      <MicOff className="w-5 h-5" />
+                    ) : (
+                      <Mic className="w-5 h-5 animate-pulse text-white" />
+                    )}
+                  </button>
 
-              {/* Speaker Mute Button */}
-              <button
-                onClick={toggleSpeaker}
-                className={`p-3 rounded-full shadow-lg transition-all transform hover:scale-110 active:scale-95 border-2 border-white/60 flex items-center justify-center ${
-                  isSpeakerMuted
-                    ? "bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.5)]"
-                    : "bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]"
-                }`}
-                title={isSpeakerMuted ? "Unmute Peer Voice Audio" : "Mute Peer Voice Audio"}
-              >
-                {isSpeakerMuted ? (
-                  <SpeakerXMarkIcon className="w-5 h-5" />
-                ) : (
-                  <SpeakerWaveIcon className="w-5 h-5" />
-                )}
-              </button>
+                  {/* Speaker Mute Button */}
+                  <button
+                    onClick={toggleSpeaker}
+                    className={`p-3 rounded-full shadow-lg transition-all transform hover:scale-110 active:scale-95 border-2 border-white/60 flex items-center justify-center ${
+                      isSpeakerMuted
+                        ? "bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.5)]"
+                        : "bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]"
+                    }`}
+                    title={isSpeakerMuted ? "Unmute Peer Voice Audio" : "Mute Peer Voice Audio"}
+                  >
+                    {isSpeakerMuted ? (
+                      <SpeakerXMarkIcon className="w-5 h-5" />
+                    ) : (
+                      <SpeakerWaveIcon className="w-5 h-5" />
+                    )}
+                  </button>
+                </>
+              )}
             </>
           )}
         </div>

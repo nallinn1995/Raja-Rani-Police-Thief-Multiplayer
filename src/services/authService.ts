@@ -126,7 +126,10 @@ export const authService = {
 
       const data = await response.json();
       if (data.token && data.refreshToken) {
-        this.setSessionTokens(data.token, data.refreshToken);
+        this.setSessionTokens(data.token, data.refreshToken, true);
+        if (data.user) {
+          this.setCurrentUser(data.user);
+        }
         return true;
       }
       return false;
@@ -173,17 +176,26 @@ export const authService = {
   },
 
   setSession(user: User, accessToken: string | null, refreshToken?: string | null) {
+    if (!user.isGuest) {
+      localStorage.setItem("current_user", JSON.stringify(user));
+    } else {
+      localStorage.removeItem("current_user");
+    }
     sessionStorage.setItem("current_user", JSON.stringify(user));
-    this.setSessionTokens(accessToken, refreshToken);
+    this.setSessionTokens(accessToken, refreshToken, !user.isGuest);
     if (!user.isGuest) {
       pushNotificationService.handleLogin().catch(() => {});
     }
   },
 
-  setSessionTokens(accessToken: string | null, refreshToken?: string | null) {
+  setSessionTokens(accessToken: string | null, refreshToken?: string | null, persist: boolean = true) {
     if (accessToken) {
+      if (persist) {
+        localStorage.setItem("access_token", accessToken);
+      }
       sessionStorage.setItem("access_token", accessToken);
     } else {
+      localStorage.removeItem("access_token");
       sessionStorage.removeItem("access_token");
     }
 
@@ -199,12 +211,20 @@ export const authService = {
   },
 
   getCurrentUser(): User | null {
+    const local = localStorage.getItem("current_user");
+    if (local) {
+      try {
+        return JSON.parse(local);
+      } catch (e) {
+        console.error("Failed to parse current_user from localStorage", e);
+      }
+    }
     const data = sessionStorage.getItem("current_user");
     return data ? JSON.parse(data) : null;
   },
 
   getAccessToken(): string | null {
-    return sessionStorage.getItem("access_token");
+    return localStorage.getItem("access_token") || sessionStorage.getItem("access_token");
   },
 
   getRefreshToken(): string | null {
@@ -240,8 +260,10 @@ export const authService = {
 
   logout() {
     pushNotificationService.handleLogout().catch(() => {});
+    localStorage.removeItem("current_user");
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
     sessionStorage.removeItem("current_user");
     sessionStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
   },
 };

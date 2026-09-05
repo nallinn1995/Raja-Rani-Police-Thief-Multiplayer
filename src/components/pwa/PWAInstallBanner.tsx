@@ -38,7 +38,7 @@ export const PWAInstallBanner: React.FC<PWAInstallBannerProps> = ({
           {/* Subtle Ambient Radial Glow */}
           <div className="absolute top-0 right-1/4 w-32 h-32 bg-[#AC41D7]/15 rounded-full blur-2xl pointer-events-none" />
 
-          <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
+          <div className="flex flex-row items-center gap-3 sm:gap-4">
             {/* Left: App Icon / Smartphone Badge with Royal Ring */}
             <div className="flex-shrink-0 relative">
               <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-tr from-[#782287] via-[#AC41D7] to-[#F9C933] p-0.5 shadow-[0_0_15px_rgba(249,201,51,0.4)] flex items-center justify-center">
@@ -59,22 +59,20 @@ export const PWAInstallBanner: React.FC<PWAInstallBannerProps> = ({
               </div>
             </div>
 
-            {/* Center: Text Details */}
-            <div className="flex-1 text-center sm:text-left pr-0 sm:pr-4">
-              <p className="text-xs sm:text-sm font-bold text-[#FBE278] leading-snug drop-shadow-sm font-sans">
+            {/* Right: Text on top, and center-aligned Install App button below */}
+            <div className="flex-1 flex flex-col items-center justify-center gap-2 sm:gap-2.5 min-w-0 text-center">
+              <p className="text-xs sm:text-sm font-bold text-[#FBE278] leading-snug drop-shadow-sm font-sans text-center">
                 Install this game on your Phone or Desktop for faster access and Play anywhere
               </p>
-            </div>
-
-            {/* Right: Install Action Button */}
-            <div className="flex-shrink-0 flex items-center gap-2 w-full sm:w-auto mt-1 sm:mt-0">
-              <button
-                onClick={requestInstallConfirmation}
-                className="w-full sm:w-auto px-4 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-[#EB9C09] via-[#F9C933] to-[#EB9C09] hover:opacity-95 text-black font-black text-xs uppercase tracking-wider shadow-[0_0_18px_rgba(249,201,51,0.5)] hover:shadow-[0_0_25px_rgba(251,226,120,0.8)] transition-all transform active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
-              >
-                <Download className="w-3.5 h-3.5 text-black" />
-                <span>Install App</span>
-              </button>
+              <div className="flex justify-center w-full">
+                <button
+                  onClick={requestInstallConfirmation}
+                  className="w-auto px-5 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-[#EB9C09] via-[#F9C933] to-[#EB9C09] hover:opacity-95 text-black font-black text-xs uppercase tracking-wider shadow-[0_0_18px_rgba(249,201,51,0.5)] hover:shadow-[0_0_25px_rgba(251,226,120,0.8)] transition-all transform active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+                >
+                  <Download className="w-3.5 h-3.5 text-black" />
+                  <span>Install App</span>
+                </button>
+              </div>
             </div>
           </div>
         </motion.div>

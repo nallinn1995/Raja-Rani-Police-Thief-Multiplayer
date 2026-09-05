@@ -188,6 +188,9 @@ class PushNotificationService {
    * Read auth token from either regular user session or admin session
    */
   getAuthToken(): string | null {
+    if (typeof localStorage !== "undefined" && localStorage.getItem("access_token")) {
+      return localStorage.getItem("access_token");
+    }
     if (typeof sessionStorage === "undefined") return null;
     return sessionStorage.getItem("access_token") || sessionStorage.getItem("raja_rani_admin_token") || null;
   }

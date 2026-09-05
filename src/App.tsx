@@ -20,7 +20,7 @@ import {
   ChatMessage,
   RoundResult as RoundResultType,
 } from "./types/game";
-import { VoiceChatManager } from "./components/VoiceChatManager";
+import { VoiceChatManager, VoiceControlsState } from "./components/VoiceChatManager";
 import { authService, User as UserType } from "./services/authService";
 import { profileService } from "./services/profileService";
 import { AuthOverlay } from "./components/auth/AuthOverlay";
@@ -85,6 +85,30 @@ function App() {
   const [offlineConfig, setOfflineConfig] = useState<OfflineGameConfig | null>(null);
   const [currentUser, setCurrentUser] = useState<UserType | null>(authService.getCurrentUser());
   const [isAdminAuthed, setIsAdminAuthed] = useState<boolean>(adminService.isAdminLoggedIn());
+  const [voiceControls, setVoiceControls] = useState<VoiceControlsState | null>(null);
+
+  const handleVoiceControlsChange = useCallback((controls: VoiceControlsState | null) => {
+    setVoiceControls((prev) => {
+      if (!prev && !controls) return null;
+      if (
+        prev &&
+        controls &&
+        prev.isMuted === controls.isMuted &&
+        prev.isSpeakerMuted === controls.isSpeakerMuted &&
+        prev.isMicAcquiring === controls.isMicAcquiring
+      ) {
+        return prev;
+      }
+      return controls;
+    });
+  }, []);
+
+  // Proactively refresh active login session in background for registered / Google users on app launch
+  useEffect(() => {
+    if (currentUser && !currentUser.isGuest && authService.getRefreshToken()) {
+      authService.refreshSession().catch(() => {});
+    }
+  }, []);
 
   useEffect(() => {
     if (currentUser && !currentUser.isGuest) {
@@ -693,9 +717,12 @@ useEffect(() => {
   const handlePlayAgain = () => {
     sessionStorage.removeItem("roomCode");
     sessionStorage.removeItem("playerId");
+    sessionStorage.removeItem("playerToken");
+    sessionStorage.removeItem("cardsState");
+    sessionStorage.removeItem("lastRoundResult");
+    sessionStorage.removeItem("pendingJoinRoomCode");
     currentRoomRef.current = null;
     currentPlayerRef.current = null;
-    sessionStorage.clear();
     setAppState("home");
     sessionStorage.setItem("appState", "home");
     setRoom(null);
@@ -713,10 +740,14 @@ useEffect(() => {
   const handleBackToHome = () => {
     sessionStorage.removeItem("roomCode");
     sessionStorage.removeItem("playerId");
+    sessionStorage.removeItem("playerToken");
+    sessionStorage.removeItem("cardsState");
+    sessionStorage.removeItem("lastRoundResult");
+    sessionStorage.removeItem("pendingJoinRoomCode");
     currentRoomRef.current = null;
     currentPlayerRef.current = null;
-    sessionStorage.clear();
-     setAppState("welcome");
+    setAppState("welcome");
+    sessionStorage.setItem("appState", "welcome");
 
     setRoom(null);
     setCurrentPlayerId("");
@@ -868,6 +899,7 @@ useEffect(() => {
         currentPlayerId={currentPlayerId}
         isMusicPlaying={isMusicPlaying}
         toggleMusic={toggleMusic}
+        onVoiceControlsChange={handleVoiceControlsChange}
       />
 
       {/* Royal Kingdom Cinematic Background Music */}
@@ -884,6 +916,9 @@ useEffect(() => {
       {appState !== "welcome" && currentUser && (
         <AppHeader
           currentUser={currentUser}
+          room={room}
+          appState={appState}
+          voiceControls={voiceControls}
           onOpenGameInfo={() => {
             sessionStorage.setItem("appState", "game-info");
             setAppState("game-info");
