@@ -709,17 +709,18 @@ export const Welcome: React.FC<WelcomeProps> = ({
               </div>
             </motion.div>
 
-            {/* Mode 2: DETECTIVE CHALLENGE */}
+            {/* Mode 2: DETECTIVE MYSTERY ROOM (DOOR OF MYSTERY) */}
             <motion.div 
               whileHover={{ y: -6, scale: 1.02 }}
               transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+              onClick={handlePlayNow}
               className="relative bg-gradient-to-b from-[#21073F]/95 via-[#190632]/95 to-[#14072E]/95 border border-[#27B9E8]/50 hover:border-[#27B9E8] rounded-2xl p-4 sm:p-6 flex flex-row items-center space-x-3.5 sm:space-x-4 shadow-[0_0_20px_rgba(39,185,232,0.2)] hover:shadow-[0_0_35px_rgba(39,185,232,0.6)] transition-all duration-300 group cursor-pointer"
             >
               <div className="w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0 flex items-center justify-center relative">
                 <div className="absolute inset-0 rounded-full bg-[#27B9E8]/15 blur-lg group-hover:bg-[#27B9E8]/30 transition-all duration-300 pointer-events-none" />
                 <motion.img 
                   src="/assets/images/Landing Page/glass.png" 
-                  alt="Detective Challenge Magnifying Glass" 
+                  alt="Detective Mystery Room" 
                   className="w-9 h-9 sm:w-12 sm:h-12 object-contain relative z-10 filter drop-shadow-[0_0_10px_rgba(39,185,232,0.6)]"
                   animate={{ scale: [1, 1.08, 1], rotate: [0, 4, 0] }}
                   transition={{ duration: 3.4, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
@@ -727,12 +728,23 @@ export const Welcome: React.FC<WelcomeProps> = ({
               </div>
 
               <div className="text-left flex-1">
-                <h4 className="text-xs sm:text-base font-extrabold text-[#27B9E8] uppercase tracking-wider mb-1">
-                  DETECTIVE CHALLENGE
-                </h4>
-                <p className="text-[11px] sm:text-sm text-white/90 font-medium leading-relaxed">
-                  Find the culprit using clues, evidence and your detective skills.
+                <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                  <h4 className="text-xs sm:text-base font-extrabold text-[#27B9E8] uppercase tracking-wider">
+                    DETECTIVE MYSTERY ROOM
+                  </h4>
+                  <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-400/30">
+                    THE DOOR OF MYSTERY
+                  </span>
+                </div>
+                <p className="text-[11px] sm:text-xs text-white/90 font-medium leading-relaxed mb-2">
+                  10 ancient doors hiding 1 Thief, 4 Safe chambers, 3 Trapped bombs, 1 Secret Clue & 1 Extra Life. Decipher riddles, manage 3 lives, and beat the 60s clock!
                 </p>
+                <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap text-[9px] sm:text-[10px] text-cyan-200/90 font-semibold">
+                  <span className="bg-white/5 px-2 py-0.5 rounded-full border border-cyan-500/30">🚪 10 Doors</span>
+                  <span className="bg-white/5 px-2 py-0.5 rounded-full border border-cyan-500/30">❤️ 3 Lives</span>
+                  <span className="bg-white/5 px-2 py-0.5 rounded-full border border-cyan-500/30">⏱️ 60s Timer</span>
+                  <span className="bg-white/5 px-2 py-0.5 rounded-full border border-cyan-500/30">💡 Clue Riddles</span>
+                </div>
               </div>
             </motion.div>
 

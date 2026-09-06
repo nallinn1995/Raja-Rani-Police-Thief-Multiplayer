@@ -94,3 +94,102 @@ export interface DetectiveChallengeStats {
   level: number;
   xp: number;
 }
+
+// ==========================================
+// DOOR OF MYSTERY TYPES
+// ==========================================
+
+export type DetectiveDoorOutcome = "SAFE" | "BOMB" | "THIEF" | "CLUE" | "LIFE";
+export type DetectivePlayerStatus = "INVESTIGATING" | "CAUGHT" | "ELIMINATED" | "TIMEOUT";
+
+export interface DetectiveDoorResultPayload {
+  doorId: number;
+  result: DetectiveDoorOutcome;
+  clue?: string | null;
+  livesRemaining: number;
+  attempts: number;
+  safeDoorsFound: number;
+  bombsTriggered: number;
+  status: DetectivePlayerStatus;
+  investigationTimeMs?: number | null;
+}
+
+export interface DetectivePlayerPublicState {
+  id: string;
+  name: string;
+  avatar?: string;
+  lives: number;
+  attempts: number;
+  bombsTriggered: number;
+  safeDoorsFound: number;
+  status: DetectivePlayerStatus;
+  investigationTimeMs?: number | null;
+}
+
+export interface DetectivePublicGameState {
+  roomCode: string;
+  status: "ACTIVE" | "FINISHED";
+  startedAt: number;
+  endsAt: number;
+  remainingSeconds: number;
+  totalDoors: number;
+  totalBombs: number;
+  totalSafe?: number;
+  totalClues?: number;
+  totalLife?: number;
+  players: DetectivePlayerPublicState[];
+}
+
+export interface DetectiveLeaderboardEntry {
+  rank: number;
+  id: string;
+  name: string;
+  avatar?: string;
+  status: DetectivePlayerStatus;
+  finalScore: number;
+  investigationTimeSec: number | null;
+  accuracyPercent: number;
+  livesRemaining: number;
+  attempts: number;
+  bombsTriggered: number;
+  safeDoorsFound: number;
+  breakdown: {
+    accuracyScore: number;
+    timeScore: number;
+    livesScore: number;
+    efficiencyScore: number;
+  };
+}
+
+export interface DetectiveGameFinishedPayload {
+  roomCode: string;
+  leaderboard: DetectiveLeaderboardEntry[];
+  champion?: {
+    id: string;
+    name: string;
+    finalScore: number;
+    status: DetectivePlayerStatus;
+  } | null;
+  secretLayout: {
+    thiefDoor: number;
+    bombDoors: number[];
+  };
+}
+
+export interface DetectiveReconnectSyncPayload {
+  publicState: DetectivePublicGameState;
+  myState?: {
+    id: string;
+    lives: number;
+    attempts: number;
+    safeDoorsFound: number;
+    bombsTriggered: number;
+    status: DetectivePlayerStatus;
+    investigationTimeMs?: number | null;
+    clue?: string | null;
+    revealedDoors: {
+      doorId: number;
+      result: DetectiveDoorOutcome;
+    }[];
+  } | null;
+}

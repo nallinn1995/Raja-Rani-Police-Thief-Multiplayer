@@ -1,13 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { detectiveChallengeService } from "../../services/detectiveChallengeService";
-import { Trophy, Timer, Target, Users, Activity, BarChart2 } from "lucide-react";
+import { adminService } from "../../services/adminService";
+import { Trophy, Timer, Target, Users, Activity, BarChart2, Trash2 } from "lucide-react";
+import { toast } from "react-toastify";
 
 export const DetectiveAdminTab: React.FC = () => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
-  useEffect(() => {
+  const loadDashboard = useCallback(() => {
     setLoading(true);
     detectiveChallengeService
       .getAdminDashboard()
@@ -20,6 +22,37 @@ export const DetectiveAdminTab: React.FC = () => {
       })
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    loadDashboard();
+  }, [loadDashboard]);
+
+  const handleDeleteLeaderboard = async (item: any) => {
+    const id = item._id || item.userId;
+    if (!window.confirm(`Are you sure you want to delete ${item.username}'s Detective Challenge leaderboard record?`)) {
+      return;
+    }
+    try {
+      await detectiveChallengeService.deleteDetectiveLeaderboardRecord(id);
+      toast.success(`Deleted ${item.username}'s detective record.`);
+      loadDashboard();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete detective record");
+    }
+  };
+
+  const handleDeleteMatch = async (matchId: string) => {
+    if (!window.confirm("Are you sure you want to delete this Detective Challenge match record?")) {
+      return;
+    }
+    try {
+      await adminService.deleteMatch(matchId);
+      toast.success("Detective Challenge match record deleted.");
+      loadDashboard();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete match record");
+    }
+  };
 
   if (loading) {
     return (
@@ -39,6 +72,7 @@ export const DetectiveAdminTab: React.FC = () => {
 
   const metrics = data.metrics || {};
   const topLeaderboard = data.topLeaderboard || [];
+  const recentMatches = data.recentMatches || [];
   const matchesPerDay = data.matchesPerDay || [];
 
   return (
@@ -103,30 +137,126 @@ export const DetectiveAdminTab: React.FC = () => {
         </div>
       </div>
 
+      {/* Recent Detective Challenge Matches Table */}
+      <div className="bg-[#14082e]/90 border border-purple-800/50 rounded-3xl overflow-hidden">
+        <div className="p-5 border-b border-purple-900/50 flex items-center justify-between">
+          <h3 className="font-extrabold text-white text-base flex items-center gap-2">
+            <Activity className="w-5 h-5 text-cyan-400" />
+            <span>Recent Detective Challenge Matches</span>
+          </h3>
+          <span className="text-xs text-purple-400 font-semibold">Latest 10 Games</span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs text-slate-300">
+            <thead className="bg-[#0e0422] text-purple-300 uppercase tracking-wider font-extrabold border-b border-purple-900/40">
+              <tr>
+                <th className="p-3.5">Room Code</th>
+                <th className="p-3.5">Champion Detective</th>
+                <th className="p-3.5 text-center">Detectives</th>
+                <th className="p-3.5">Date</th>
+                <th className="p-3.5 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-purple-900/30 font-medium">
+              {recentMatches.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="p-6 text-center text-purple-400/60">
+                    No Detective Challenge matches recorded yet.
+                  </td>
+                </tr>
+              ) : (
+                recentMatches.map((m: any) => (
+                  <tr key={m._id} className="hover:bg-purple-950/40 transition-colors">
+                    <td className="p-3.5 font-bold text-cyan-400">{m.roomCode}</td>
+                    <td className="p-3.5 font-bold text-emerald-400">{m.championUsername || "None"}</td>
+                    <td className="p-3.5 text-center text-purple-200">{m.players?.length || 0} Detectives</td>
+                    <td className="p-3.5 text-purple-300/70">
+                      {new Date(m.endedAt || m.createdAt).toLocaleString()}
+                    </td>
+                    <td className="p-3.5 text-right">
+                      <button
+                        onClick={() => handleDeleteMatch(m._id)}
+                        className="p-1.5 text-red-400 hover:text-red-300 bg-purple-950/80 hover:bg-red-500/20 rounded-lg transition-colors"
+                        title="Delete Match Record"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       {/* Top Detectives Leaderboard Table */}
-      <div className="p-6 rounded-3xl bg-[#14082e]/90 border border-purple-800/50 space-y-4">
-        <h3 className="font-extrabold text-white text-base flex items-center gap-2">
-          <Trophy className="w-5 h-5 text-amber-400" />
-          <span>Top Detectives (Highest Accuracy)</span>
-        </h3>
+      <div className="bg-[#14082e]/90 border border-purple-800/50 rounded-3xl overflow-hidden">
+        <div className="p-5 border-b border-purple-900/50 flex items-center justify-between">
+          <h3 className="font-extrabold text-white text-base flex items-center gap-2">
+            <Trophy className="w-5 h-5 text-amber-400" />
+            <span>Top Detectives (Highest Accuracy)</span>
+          </h3>
+          <span className="text-xs text-amber-400 font-semibold">Ranked Leaderboard</span>
+        </div>
 
-        <div className="space-y-2">
-          {topLeaderboard.map((item: any) => (
-            <div key={item.rank} className="p-3.5 rounded-xl bg-[#0e0422] border border-purple-900/40 flex items-center justify-between text-xs">
-              <div className="flex items-center space-x-3">
-                <span className="w-6 h-6 rounded-lg bg-amber-400 text-slate-950 font-black text-xs flex items-center justify-center">
-                  #{item.rank}
-                </span>
-                <span className="font-extrabold text-white">{item.username}</span>
-                <span className="text-[10px] text-purple-300 bg-purple-950 px-2 py-0.5 rounded">{item.title}</span>
-              </div>
-
-              <div className="flex items-center space-x-4">
-                <span className="text-emerald-400 font-bold">Accuracy: {item.metrics?.accuracy}%</span>
-                <span className="text-cyan-300 font-bold">Wins: {item.metrics?.totalWins}</span>
-              </div>
-            </div>
-          ))}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs text-slate-300">
+            <thead className="bg-[#0e0422] text-purple-300 uppercase tracking-wider font-extrabold border-b border-purple-900/40">
+              <tr>
+                <th className="p-3.5 text-center w-14">Rank</th>
+                <th className="p-3.5">Detective</th>
+                <th className="p-3.5">Title</th>
+                <th className="p-3.5 text-center">Accuracy</th>
+                <th className="p-3.5 text-center">Wins</th>
+                <th className="p-3.5 text-center">Correct Catches</th>
+                <th className="p-3.5 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-purple-900/30 font-medium">
+              {topLeaderboard.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="p-6 text-center text-purple-400/60">
+                    No detective leaderboard entries found.
+                  </td>
+                </tr>
+              ) : (
+                topLeaderboard.map((item: any) => (
+                  <tr key={item.rank} className="hover:bg-purple-950/40 transition-colors">
+                    <td className="p-3.5 text-center">
+                      <span className="w-6 h-6 rounded-lg bg-amber-400 text-slate-950 font-black text-xs inline-flex items-center justify-center">
+                        #{item.rank}
+                      </span>
+                    </td>
+                    <td className="p-3.5 font-extrabold text-white">{item.username}</td>
+                    <td className="p-3.5">
+                      <span className="text-[10px] text-purple-300 bg-purple-950 px-2 py-0.5 rounded border border-purple-800/40">
+                        {item.title}
+                      </span>
+                    </td>
+                    <td className="p-3.5 text-center font-bold text-emerald-400">
+                      {item.metrics?.accuracy || 0}%
+                    </td>
+                    <td className="p-3.5 text-center font-bold text-cyan-300">
+                      {item.metrics?.totalWins || 0}
+                    </td>
+                    <td className="p-3.5 text-center font-mono text-purple-200">
+                      {item.metrics?.correctCount || 0}
+                    </td>
+                    <td className="p-3.5 text-right">
+                      <button
+                        onClick={() => handleDeleteLeaderboard(item)}
+                        className="p-1.5 text-red-400 hover:text-red-300 bg-purple-950/80 hover:bg-red-500/20 rounded-lg transition-colors"
+                        title="Delete Detective Record"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

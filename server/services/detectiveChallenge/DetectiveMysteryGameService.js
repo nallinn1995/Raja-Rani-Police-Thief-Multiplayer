@@ -3,16 +3,20 @@ import User from "../../models/User.js";
 import DetectiveChallengeMatch from "../../models/detectiveChallenge/DetectiveChallengeMatch.js";
 import DetectiveChallengeStats from "../../models/detectiveChallenge/DetectiveChallengeStats.js";
 import MatchHistory from "../../models/MatchHistory.js";
+import PlayerStats from "../../models/PlayerStats.js";
 import { DetectiveChallengeStatsService } from "./DetectiveChallengeStatsService.js";
 import { DetectiveChallengeService } from "./DetectiveChallengeService.js";
 import GuestTrackingService from "../GuestTrackingService.js";
 import gameNotificationService from "../gameNotificationService.js";
+import { checkAchievements } from "../../controllers/statsController.js";
 
 export const DETECTIVE_CONFIG = {
-  TOTAL_DOORS: 12,
-  BOMB_DOORS: 3,
+  TOTAL_DOORS: 10,
   THIEF_DOORS: 1,
-  SAFE_DOORS: 8,
+  SAFE_DOORS: 4,
+  BOMB_DOORS: 3,
+  CLUE_DOORS: 1,
+  LIFE_DOORS: 1,
   STARTING_LIVES: 3,
   GAME_DURATION: 60, // seconds
 };
@@ -23,7 +27,7 @@ const activeGames = new Map();
 export class DetectiveMysteryGameService {
   /**
    * Generates a fresh random door mapping on the server.
-   * Exactly 1 Thief door, 3 Bomb doors, and 8 Safe doors across 12 doors.
+   * Exactly 10 doors: 1 Thief, 4 Safe, 3 Bombs, 1 Clue, 1 Life.
    */
   static generateDoors() {
     const doorIds = Array.from({ length: DETECTIVE_CONFIG.TOTAL_DOORS }, (_, i) => i + 1);
@@ -36,6 +40,8 @@ export class DetectiveMysteryGameService {
 
     const thiefDoor = doorIds[0];
     const bombDoors = new Set(doorIds.slice(1, 1 + DETECTIVE_CONFIG.BOMB_DOORS));
+    const clueDoor = doorIds[1 + DETECTIVE_CONFIG.BOMB_DOORS];
+    const lifeDoor = doorIds[1 + DETECTIVE_CONFIG.BOMB_DOORS + DETECTIVE_CONFIG.CLUE_DOORS];
 
     const mapping = new Map();
     for (let i = 1; i <= DETECTIVE_CONFIG.TOTAL_DOORS; i++) {
@@ -43,14 +49,47 @@ export class DetectiveMysteryGameService {
         mapping.set(i, "THIEF");
       } else if (bombDoors.has(i)) {
         mapping.set(i, "BOMB");
+      } else if (i === clueDoor) {
+        mapping.set(i, "CLUE");
+      } else if (i === lifeDoor) {
+        mapping.set(i, "LIFE");
       } else {
         mapping.set(i, "SAFE");
       }
     }
 
+    // Dynamic row/column riddle for the Thief in 5x2 matrix
+    // Row 1: doors 1-5, Row 2: doors 6-10
+    const thiefRow = thiefDoor <= 5 ? 1 : 2;
+    // Column 1..5: (door - 1) % 5 + 1
+    const thiefCol = ((thiefDoor - 1) % 5) + 1;
+    const colOtherDoor = thiefRow === 1 ? thiefDoor + 5 : thiefDoor - 5;
+    const d1Str = thiefDoor < 10 ? `0${thiefDoor}` : `${thiefDoor}`;
+    const d2Str = colOtherDoor < 10 ? `0${colOtherDoor}` : `${colOtherDoor}`;
+
+    const riddles = [
+      thiefRow === 1
+        ? "The Thief is hiding on the First Row (Doors 01–05)!"
+        : "The Thief is hiding on the Second Row (Doors 06–10)!",
+      thiefRow === 1
+        ? "Footsteps echo from the Northern Chamber (First Row)!"
+        : "Shadows detected along the Southern Chamber (Second Row)!",
+      `Suspicious activity spotted in Column ${thiefCol} (Doors ${d1Str} or ${d2Str})!`,
+      thiefCol <= 2
+        ? "The Thief was glimpsed fleeing towards the Left Wing (Columns 1–2)!"
+        : thiefCol === 3
+        ? "Mysterious echoes resonate from the Center Column (Column 3)!"
+        : "A cold draft blows from the Right Wing (Columns 4–5)!",
+    ];
+
+    const riddle = riddles[Math.floor(Math.random() * riddles.length)];
+
     return {
       thiefDoor,
       bombDoors: Array.from(bombDoors),
+      clueDoor,
+      lifeDoor,
+      riddle,
       mapping,
     };
   }
@@ -144,6 +183,9 @@ export class DetectiveMysteryGameService {
       remainingSeconds,
       totalDoors: DETECTIVE_CONFIG.TOTAL_DOORS,
       totalBombs: DETECTIVE_CONFIG.BOMB_DOORS,
+      totalSafe: DETECTIVE_CONFIG.SAFE_DOORS,
+      totalClues: DETECTIVE_CONFIG.CLUE_DOORS,
+      totalLife: DETECTIVE_CONFIG.LIFE_DOORS,
       players: playersList,
     };
   }
@@ -210,6 +252,7 @@ export class DetectiveMysteryGameService {
       player.revealedDoors.set(numDoorId, outcome);
 
       let investigationTimeMs = null;
+      let clue = null;
 
       if (outcome === "SAFE") {
         player.safeDoorsFound += 1;
@@ -219,6 +262,10 @@ export class DetectiveMysteryGameService {
         if (player.lives === 0) {
           player.status = "ELIMINATED";
         }
+      } else if (outcome === "LIFE") {
+        player.lives += 1; // grant extra life
+      } else if (outcome === "CLUE") {
+        clue = game.secretLayout.riddle;
       } else if (outcome === "THIEF") {
         player.status = "CAUGHT";
         player.caughtAt = Date.now();
@@ -230,6 +277,7 @@ export class DetectiveMysteryGameService {
       socket.emit("detective:doorResult", {
         doorId: numDoorId,
         result: outcome,
+        clue,
         livesRemaining: player.lives,
         attempts: player.attempts,
         safeDoorsFound: player.safeDoorsFound,
@@ -462,12 +510,19 @@ export class DetectiveMysteryGameService {
 
       for (const e of leaderboardEntries) {
         const p = e.player;
-        let resolvedUserId = null;
+        let userDoc = null;
 
         if (p.userId && mongoose.Types.ObjectId.isValid(p.userId)) {
-          resolvedUserId = p.userId;
+          userDoc = await User.findById(p.userId);
+        }
+        if (!userDoc && p.userId) {
+          userDoc = await User.findOne({ supabaseUid: p.userId });
+        }
+        if (!userDoc && p.name) {
+          userDoc = await User.findOne({ username: new RegExp(`^${String(p.name).trim()}$`, "i") });
         }
 
+        const resolvedUserId = userDoc ? userDoc._id : null;
         const isChampion = e.rank === 1 && p.status === "CAUGHT";
 
         dbPlayers.push({
@@ -498,37 +553,59 @@ export class DetectiveMysteryGameService {
         }
 
         // Update registered user stats & XP
-        if (resolvedUserId) {
+        if (userDoc) {
           try {
-            const user = await User.findById(resolvedUserId);
-            if (user) {
-              await DetectiveChallengeStatsService.updatePlayerStats(
-                user,
-                {
-                  isChampion,
-                  correctCount: p.status === "CAUGHT" ? 1 : 0,
-                  wrongCount: p.bombsTriggered,
-                  accuracy: e.accuracyPercent,
-                  fastestGuess: e.investigationTimeSec || 0,
-                  score: e.finalScore,
-                },
-                matchDuration
-              );
+            await DetectiveChallengeStatsService.updatePlayerStats(
+              userDoc,
+              {
+                isChampion,
+                correctCount: p.status === "CAUGHT" ? 1 : 0,
+                wrongCount: p.bombsTriggered,
+                accuracy: e.accuracyPercent,
+                fastestGuess: e.investigationTimeSec || 0,
+                score: e.finalScore,
+              },
+              matchDuration
+            );
 
-              // Evaluate Detective Achievements
-              await DetectiveChallengeService.evaluateAchievements(
-                user._id,
-                await DetectiveChallengeStats.findOne({ userId: user._id }) || {},
-                {
-                  accuracy: e.accuracyPercent,
-                  correctCount: p.status === "CAUGHT" ? 1 : 0,
-                  livesRemaining: p.lives,
-                  bombsTriggered: p.bombsTriggered,
-                  fastestGuess: e.investigationTimeSec,
-                  finalScore: e.finalScore,
-                }
-              );
-            }
+            // Synchronize overall PlayerStats
+            await PlayerStats.updateOne(
+              { userId: userDoc._id },
+              {
+                $set: { username: userDoc.username, lastPlayedAt: new Date() },
+                $inc: {
+                  totalGames: 1,
+                  totalWins: isChampion ? 1 : 0,
+                  totalLosses: isChampion ? 0 : 1,
+                  totalTimePlayed: matchDuration,
+                  totalScore: Math.round(e.finalScore || 0),
+                  "policeMode.gamesPlayed": 1,
+                  "policeMode.detectiveWins": isChampion ? 1 : 0,
+                },
+              },
+              { upsert: true }
+            ).catch(() => {});
+
+            // Evaluate Detective Achievements
+            const updatedPlayerStats = (await PlayerStats.findOne({ userId: userDoc._id })) || {};
+            await checkAchievements(userDoc._id, updatedPlayerStats, {
+              fastestCatch: e.investigationTimeSec,
+              accuracy: e.accuracyPercent,
+              correctCount: p.status === "CAUGHT" ? 1 : 0,
+            }).catch(() => {});
+
+            await DetectiveChallengeService.evaluateAchievements(
+              userDoc._id,
+              (await DetectiveChallengeStats.findOne({ userId: userDoc._id })) || {},
+              {
+                accuracy: e.accuracyPercent,
+                correctCount: p.status === "CAUGHT" ? 1 : 0,
+                livesRemaining: p.lives,
+                bombsTriggered: p.bombsTriggered,
+                fastestGuess: e.investigationTimeSec,
+                finalScore: e.finalScore,
+              }
+            );
           } catch (statErr) {
             console.error(`[DetectiveMystery] Error updating stats for ${p.name}:`, statErr);
           }
@@ -567,8 +644,8 @@ export class DetectiveMysteryGameService {
         totalRounds: 1,
         duration: matchDuration,
         winnerUsername: champion ? champion.player.name : "None",
-        players: leaderboardEntries.map((e) => ({
-          userId: e.player.userId || null,
+        players: leaderboardEntries.map((e, idx) => ({
+          userId: dbPlayers[idx]?.userId || (mongoose.Types.ObjectId.isValid(e.player.userId) ? e.player.userId : null),
           username: e.player.name,
           score: Math.round(e.finalScore * 10),
           rank: e.rank,
@@ -619,6 +696,7 @@ export class DetectiveMysteryGameService {
         bombsTriggered: player.bombsTriggered,
         status: player.status,
         investigationTimeMs: player.investigationTimeMs,
+        clue: player && player.revealedDoors && Array.from(player.revealedDoors.values()).includes("CLUE") ? game.secretLayout.riddle : null,
         revealedDoors: Array.from(player.revealedDoors.entries()).map(([doorId, result]) => ({
           doorId,
           result,

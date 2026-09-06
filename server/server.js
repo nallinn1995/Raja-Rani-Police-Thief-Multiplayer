@@ -792,7 +792,7 @@ app.post(
     body("playerName").trim().escape(),
     body("totalRounds").isInt({ min: 1, max: 10 }),
   ],
-  (req, res) => {
+  async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
@@ -802,7 +802,16 @@ app.post(
 
     const token = getBearerToken(req);
     const identity = verifyAccessToken(token);
-    const verifiedUserId = identity?.sub && identity.sub === userId ? userId : null;
+    let verifiedUserId = identity?.sub || null;
+    if (!verifiedUserId && userId && mongoose.Types.ObjectId.isValid(userId)) {
+      verifiedUserId = userId;
+    }
+    if (!verifiedUserId && playerName) {
+      const existingUser = await User.findOne({ username: new RegExp(`^${String(playerName).trim()}$`, "i") });
+      if (existingUser && !existingUser.isGuest) {
+        verifiedUserId = existingUser._id.toString();
+      }
+    }
     const resolvedGuestDeviceId = !verifiedUserId ? (guestDeviceId || null) : null;
 
     if (resolvedGuestDeviceId) {
@@ -873,7 +882,7 @@ app.post(
 app.post(
   "/api/rooms/:roomCode/join",
   [body("playerName").trim().escape()],
-  (req, res) => {
+  async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
@@ -884,7 +893,16 @@ app.post(
 
     const token = getBearerToken(req);
     const identity = verifyAccessToken(token);
-    const verifiedUserId = identity?.sub && identity.sub === userId ? userId : null;
+    let verifiedUserId = identity?.sub || null;
+    if (!verifiedUserId && userId && mongoose.Types.ObjectId.isValid(userId)) {
+      verifiedUserId = userId;
+    }
+    if (!verifiedUserId && playerName) {
+      const existingUser = await User.findOne({ username: new RegExp(`^${String(playerName).trim()}$`, "i") });
+      if (existingUser && !existingUser.isGuest) {
+        verifiedUserId = existingUser._id.toString();
+      }
+    }
     const resolvedGuestDeviceId = !verifiedUserId ? (guestDeviceId || null) : null;
 
     const room = rooms.get(roomCode.toUpperCase());
@@ -952,6 +970,7 @@ app.post(
 
     // Notify all players in the room
     io.to(roomCode).emit("player-joined", {
+      maxPlayers: room.maxPlayers,
       players: room.players.map((p) => ({
         id: p.id,
         name: p.name,
@@ -1025,6 +1044,7 @@ io.on("connection", (socket) => {
         currentRound: room.currentRound,
         gameState: room.gameState,
         gameMode: room.gameMode,
+        maxPlayers: room.maxPlayers,
         winCondition: room.winCondition,
         targetScore: room.targetScore,
         cardsState: room.cardsState,

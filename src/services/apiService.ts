@@ -11,6 +11,7 @@ export const apiService = {
       winCondition?: string;
       targetScore?: number;
       policeTurnsPerPlayer?: number;
+      maxPlayers?: number;
     },
     userId?: string
   ) {
@@ -27,6 +28,7 @@ export const apiService = {
         userId,
         guestDeviceId,
         gameMode: options?.gameMode,
+        maxPlayers: options?.maxPlayers,
         winCondition: options?.winCondition,
         targetScore: options?.targetScore,
         policeTurnsPerPlayer: options?.policeTurnsPerPlayer,

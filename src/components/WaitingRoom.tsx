@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Share2, Crown, MessageCircle, Copy } from 'lucide-react';
+import { Socket } from 'socket.io-client';
+import { Users, Share2, Crown, MessageCircle, Copy, Play, Shield, BookOpen } from 'lucide-react';
 import { Player, ChatMessage } from '../types/game';
 import { Chat } from './Chat';
 import { toast } from "react-toastify";
-
+import { DetectiveRulesModal } from './detectiveChallenge/DetectiveRulesModal';
 
 interface WaitingRoomProps {
+  socket?: Socket;
   room: {
     id: string;
     name: string;
     totalRounds: number;
     gameMode?: string;
+    maxPlayers?: number;
     winCondition?: string;
     targetScore?: number;
     players: Player[];
@@ -18,6 +21,7 @@ interface WaitingRoomProps {
   currentPlayerId: string;
   messages: ChatMessage[];
   onSendMessage: (message: string) => void;
+  onStartDetectiveGame?: () => void;
 }
 
 const WAITING_ROOM_PARTICLES = [
@@ -44,14 +48,64 @@ const WAITING_ROOM_PARTICLES = [
 ];
 
 export const WaitingRoom: React.FC<WaitingRoomProps> = ({ 
+  socket,
   room, 
   currentPlayerId, 
   messages, 
-  onSendMessage 
+  onSendMessage,
+  onStartDetectiveGame,
 }) => {
   const [showChat, setShowChat] = useState(false);
   const [unreadMsgs, setUnreadMsgs] = useState(0);
   const [lastReadMessageCount, setLastReadMessageCount] = useState(0);
+
+  // Detective Challenge Rules State
+  const isDetectiveChallenge = (room as any).gameMode === 'DETECTIVE_CHALLENGE';
+  const isModernMode = (room as any).gameMode === 'MODERN_MODE';
+  const maxPlayers = room.maxPlayers || (isModernMode ? 6 : (isDetectiveChallenge ? 1 : 4));
+  const isHost = room.players.find((p) => p.id === currentPlayerId)?.isHost;
+  const isRoomFull = room.players.length >= maxPlayers;
+
+  const [showDetectiveRules, setShowDetectiveRules] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+  const [readyCount, setReadyCount] = useState(0);
+  const [allReady, setAllReady] = useState(false);
+
+  // Socket listener for Detective Rules State
+  useEffect(() => {
+    if (!socket || !isDetectiveChallenge) return;
+
+    socket.emit('detective:requestRulesState', { roomCode: room.id });
+
+    const handleRulesState = (data: { readyCount: number; readyPlayerIds: string[]; totalPlayers: number }) => {
+      setReadyCount(data.readyCount);
+      setIsReady(data.readyPlayerIds.includes(currentPlayerId));
+      const targetCount = data.totalPlayers || room.players.length;
+      setAllReady(data.readyCount >= targetCount && targetCount >= 1);
+    };
+
+    socket.on('detective:rulesState', handleRulesState);
+
+    return () => {
+      socket.off('detective:rulesState', handleRulesState);
+    };
+  }, [socket, isDetectiveChallenge, room.id, currentPlayerId, room.players.length]);
+
+  // Automatically show rules modal once all players have joined
+  useEffect(() => {
+    if (isDetectiveChallenge && isRoomFull) {
+      setShowDetectiveRules(true);
+    }
+  }, [isDetectiveChallenge, isRoomFull]);
+
+  const handleToggleReady = (ready: boolean) => {
+    setIsReady(ready);
+    socket?.emit('detective:toggleRulesReady', {
+      roomCode: room.id,
+      playerId: currentPlayerId,
+      isReady: ready,
+    });
+  };
 
   useEffect(() => {
     if (!showChat) {
@@ -74,11 +128,7 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
   const copyRoomCode = () => {
     navigator.clipboard.writeText(room.id);
     toast.success("Code Copied");
-
-    // Could add a toast notification here
   };
-
-  const maxPlayers = (room as any).gameMode === 'MODERN_MODE' ? 6 : 4;
 
   return (
     <div
@@ -108,6 +158,14 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
 
       <div className="bg-[#1D0C3A]/95 backdrop-blur-xl rounded-[calc(2rem-2px)] p-6 sm:p-8 border border-[#3A1C61] w-full max-w-md shadow-[0_0_40px_rgba(147,51,234,0.3)] relative z-10">
         <div className="text-center mb-8">
+          <div className="flex items-center justify-center space-x-2 mb-2">
+            {isDetectiveChallenge && (
+              <span className="px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 text-xs font-black tracking-widest uppercase flex items-center gap-1.5 shadow-[0_0_15px_rgba(34,211,238,0.3)]">
+                <Shield className="w-3.5 h-3.5" />
+                THE DOOR OF MYSTERY
+              </span>
+            )}
+          </div>
           <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#fff6d6] via-[#ffd700] to-[#b8860b] mb-4 title-font tracking-wide" style={{ filter: 'drop-shadow(2px 2px 2px rgba(0,0,0,0.8))' }}>{room.name}</h1>
           <div className="flex items-center justify-center space-x-3 mb-4">
             <span className="text-gray-300 font-sans tracking-wide">Room Code:</span>
@@ -120,7 +178,9 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
              <Copy className="w-6 h-6 cursor-pointer text-fuchsia-400 hover:text-fuchsia-300 transition-colors drop-shadow-md" onClick={copyRoomCode} />
           </div>
           <p className="text-gray-400 font-sans tracking-wider">
-            {room.winCondition === 'target_score' ? (
+            {isDetectiveChallenge ? (
+              <span className="text-cyan-300 font-bold">1 Round Investigation • 10 Mystery Doors (5x2)</span>
+            ) : room.winCondition === 'target_score' ? (
               <>Target Score: <span className="text-yellow-400 font-bold">{(room.targetScore || 5000).toLocaleString()} pts</span></>
             ) : (
               <>Rounds: <span className="text-yellow-400 font-bold">{room.totalRounds}</span></>
@@ -161,11 +221,19 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-inner ${
                     index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' : 
                     index === 1 ? 'bg-gradient-to-br from-blue-400 to-blue-600' : 
-                    index === 2 ? 'bg-gradient-to-br from-green-400 to-green-600' : 'bg-gradient-to-br from-red-400 to-red-600'
+                    index === 2 ? 'bg-gradient-to-br from-green-400 to-green-600' : 
+                    index === 3 ? 'bg-gradient-to-br from-red-400 to-red-600' :
+                    index === 4 ? 'bg-gradient-to-br from-purple-400 to-purple-600' :
+                    'bg-gradient-to-br from-cyan-400 to-cyan-600'
                   }`}>
-                    {player.name.charAt(0).toUpperCase()}
+                    {isDetectiveChallenge ? "🕵️" : player.name.charAt(0).toUpperCase()}
                   </div>
-                  <span className={`font-bold tracking-wide ${player.id === currentPlayerId ? 'text-white' : 'text-gray-200'}`}>{player.name}</span>
+                  <div>
+                    <span className="font-semibold text-white tracking-wide block">{player.name}</span>
+                    {isDetectiveChallenge && (
+                      <span className="text-[10px] text-cyan-300 font-bold uppercase tracking-wider block">Detective</span>
+                    )}
+                  </div>
                 </div>
                 {player.isHost && (
                   <Crown className="w-5 h-5 text-yellow-400 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]" />
@@ -182,26 +250,51 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
           </div>
         </div>
 
+        {/* Share Button */}
         <button
           onClick={shareRoom}
           className="w-full relative group mt-2"
         >
           <div className="absolute -inset-0.5 bg-gradient-to-r from-green-400 to-emerald-600 rounded-2xl blur opacity-60 group-hover:opacity-100 transition duration-200"></div>
-          <div className="relative w-full bg-gradient-to-r from-[#064E3B] to-[#065F46] border border-[#10B981]/50 text-white font-bold py-4 px-6 rounded-2xl transition-all duration-300 transform group-hover:scale-105 shadow-xl flex items-center justify-center space-x-2">
+          <div className="relative w-full bg-gradient-to-r from-[#064E3B] to-[#065F46] border border-[#10B981]/50 text-white font-bold py-4 px-6 rounded-2xl transition-all duration-300 transform group-hover:scale-105 shadow-xl flex items-center justify-center space-x-2 cursor-pointer">
             <Share2 className="w-5 h-5 text-emerald-300" />
             <span className="tracking-wide">Share via WhatsApp</span>
           </div>
         </button>
 
-        {room.players.length < maxPlayers && (
+        {/* Waiting indicator */}
+        {!isRoomFull && (
           <div className="mt-6 text-center">
-            <div className="inline-flex items-center space-x-3 text-fuchsia-300 drop-shadow-sm">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-fuchsia-400"></div>
-              <span className="font-medium tracking-wide">Waiting for {maxPlayers} Players... ({room.players.length}/{maxPlayers})</span>
+            <div className={`inline-flex items-center space-x-3 drop-shadow-sm ${isDetectiveChallenge ? 'text-cyan-300' : 'text-fuchsia-300'}`}>
+              <div className={`animate-spin rounded-full h-5 w-5 border-b-2 ${isDetectiveChallenge ? 'border-cyan-400' : 'border-fuchsia-400'}`}></div>
+              <span className="font-medium tracking-wide">
+                Waiting for {maxPlayers} {isDetectiveChallenge ? (maxPlayers === 1 ? 'Detective' : 'Detectives') : 'Players'} to join... ({room.players.length}/{maxPlayers})
+              </span>
             </div>
+            {isDetectiveChallenge && (
+              <p className="text-xs text-cyan-400/80 mt-2 font-medium">
+                Investigation rules briefing will appear as soon as all {maxPlayers} detectives have joined.
+              </p>
+            )}
           </div>
         )}
       </div>
+
+      {/* Rules Modal for Detective Challenge (Uncloseable, All Must Confirm) */}
+      {showDetectiveRules && (
+        <DetectiveRulesModal
+          isHost={!!isHost}
+          readyCount={readyCount}
+          totalPlayers={room.players.length}
+          isReady={isReady}
+          allReady={allReady}
+          onToggleReady={handleToggleReady}
+          onStartGame={() => {
+            setShowDetectiveRules(false);
+            onStartDetectiveGame?.();
+          }}
+        />
+      )}
 
       {showChat && (
         <Chat

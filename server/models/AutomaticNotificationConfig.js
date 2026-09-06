@@ -17,6 +17,8 @@ const AutomaticNotificationConfigSchema = new mongoose.Schema(
         "ACHIEVEMENT_UNLOCKED",
         "LEVEL_UP",
         "XP_GAINED",
+        "GAME_WON",
+        "DETECTIVE_VICTORY",
         "DAILY_RETURN",
         "INACTIVE_3D",
         "INACTIVE_7D",

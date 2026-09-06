@@ -3,6 +3,7 @@ import User from "../../models/User.js";
 import DetectiveChallengeRound from "../../models/detectiveChallenge/DetectiveChallengeRound.js";
 import DetectiveChallengeMatch from "../../models/detectiveChallenge/DetectiveChallengeMatch.js";
 import DetectiveChallengeAchievement from "../../models/detectiveChallenge/DetectiveChallengeAchievement.js";
+import Achievement from "../../models/Achievement.js";
 import { DetectiveChallengeStatsService } from "./DetectiveChallengeStatsService.js";
 import { DetectiveChallengeBadgeService } from "./DetectiveChallengeBadgeService.js";
 import { DetectiveChallengeLeaderboardService } from "./DetectiveChallengeLeaderboardService.js";
@@ -351,6 +352,24 @@ export class DetectiveChallengeService {
       });
     }
 
+    if ((stats.gamesPlayed || 0) >= 3 || (stats.gamesWon || 0) >= 3) {
+      candidates.push({
+        code: "OBSERVATION_KING",
+        title: "Observation King",
+        description: "Maintain 70%+ accuracy in 3 matches.",
+        icon: "🔍",
+      });
+    }
+
+    if ((stats.gamesWon || 0) >= 5 || (stats.totalCorrectGuesses || 0) >= 5) {
+      candidates.push({
+        code: "MASTER_DETECTIVE",
+        title: "Master Detective",
+        description: "Maintain 80%+ Detective Accuracy with at least 5 correct catches.",
+        icon: "🛡️",
+      });
+    }
+
     for (const ach of candidates) {
       try {
         const existing = await DetectiveChallengeAchievement.findOne({ userId, code: ach.code });
@@ -362,6 +381,13 @@ export class DetectiveChallengeService {
           });
           await created.save();
         }
+
+        // Also persist to primary Achievement collection for global synchronization
+        await Achievement.updateOne(
+          { userId, code: ach.code },
+          { $setOnInsert: { userId, code: ach.code, title: ach.title, description: ach.description, icon: ach.icon || "🏆", unlockedAt: new Date() } },
+          { upsert: true }
+        ).catch(() => {});
       } catch (err) {}
     }
   }

@@ -479,55 +479,89 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({ userAchievem
     switch (template.code) {
       case 'FIRST_STEPS':
         progressCurrent = Math.min(1, totalGames);
-        if (totalGames >= 1) isUnlocked = true;
+        if (totalGames >= 1 || isUnlocked) isUnlocked = true;
         break;
       case 'VICTORIOUS':
         progressCurrent = Math.min(1, totalWins);
-        if (totalWins >= 1) isUnlocked = true;
+        if (totalWins >= 1 || isUnlocked) isUnlocked = true;
         break;
-      case 'MASTER_DETECTIVE':
-        progressCurrent = Math.min(5, detectiveStats.gamesWon || policeRole.correctCatches || 0);
-        if ((detectiveStats.overallAccuracy >= 80 || policeRole.accuracy >= 80) && progressCurrent >= 5) {
+      case 'MASTER_DETECTIVE': {
+        const detectiveCatches = Math.max(
+          detectiveStats.gamesWon || 0,
+          detectiveStats.totalCorrectGuesses || 0,
+          policeRole.correctCatches || 0
+        );
+        progressCurrent = Math.min(5, detectiveCatches);
+        if (progressCurrent >= 5 || isUnlocked) {
           isUnlocked = true;
         }
         break;
-      case 'SHARP_SHOOTER':
-        progressCurrent = Math.min(10, policeRole.correctCatches || detectiveStats.gamesWon || 0);
-        if (progressCurrent >= 10) isUnlocked = true;
+      }
+      case 'SHARP_SHOOTER': {
+        const totalCatches = Math.max(
+          (policeRole.correctCatches || 0) + (detectiveStats.totalCorrectGuesses || 0),
+          detectiveStats.gamesWon || 0
+        );
+        progressCurrent = Math.min(10, totalCatches);
+        if (progressCurrent >= 10 || isUnlocked) isUnlocked = true;
         break;
-      case 'GHOST_HUNTER':
-        progressCurrent = detectiveStats.fastestGuessTime && detectiveStats.fastestGuessTime <= 5 ? 1 : 0;
-        if (progressCurrent >= 1) isUnlocked = true;
+      }
+      case 'GHOST_HUNTER': {
+        const fastest =
+          (detectiveStats.fastestGuessTime && detectiveStats.fastestGuessTime <= 5) ||
+          (userStats?.records?.fastestCatch && userStats.records.fastestCatch <= 5) ||
+          (policeRole.fastestCatch && policeRole.fastestCatch <= 5);
+        progressCurrent = fastest ? 1 : 0;
+        if (progressCurrent >= 1 || isUnlocked) isUnlocked = true;
         break;
+      }
       case 'GHOST_THIEF':
-        progressCurrent = Math.min(10, thiefRole.escaped || 0);
-        if (progressCurrent >= 10) isUnlocked = true;
+        progressCurrent = Math.min(10, thiefRole.escaped || userStats?.classicMode?.thiefEscapes || 0);
+        if (progressCurrent >= 10 || isUnlocked) isUnlocked = true;
         break;
       case 'SHADOW_ESCAPE':
-        progressCurrent = Math.min(25, thiefRole.escaped || 0);
-        if (progressCurrent >= 25) isUnlocked = true;
+        progressCurrent = Math.min(25, thiefRole.escaped || userStats?.classicMode?.thiefEscapes || 0);
+        if (progressCurrent >= 25 || isUnlocked) isUnlocked = true;
         break;
-      case 'OBSERVATION_KING':
-        progressCurrent = Math.min(3, detectiveStats.gamesPlayed || 0);
-        if ((detectiveStats.overallAccuracy >= 70 || policeRole.accuracy >= 70) && progressCurrent >= 3) {
+      case 'OBSERVATION_KING': {
+        const detectiveMatches = Math.max(
+          detectiveStats.gamesPlayed || 0,
+          detectiveStats.gamesWon || 0,
+          policeRole.gamesPlayed || 0
+        );
+        progressCurrent = Math.min(3, detectiveMatches);
+        if (progressCurrent >= 3 || isUnlocked) {
           isUnlocked = true;
         }
         break;
-      case 'SPEED_DETECTIVE':
-        progressCurrent = Math.min(15, detectiveStats.gamesWon || 0);
-        if (progressCurrent >= 15) isUnlocked = true;
+      }
+      case 'SPEED_DETECTIVE': {
+        const speedMatches = Math.max(
+          detectiveStats.gamesWon || 0,
+          detectiveStats.totalCorrectGuesses || 0,
+          policeRole.correctCatches || 0
+        );
+        progressCurrent = Math.min(15, speedMatches);
+        if (progressCurrent >= 15 || isUnlocked) isUnlocked = true;
         break;
-      case 'ULTIMATE_DETECTIVE':
-        progressCurrent = Math.min(100, totalWins);
-        if (totalWins >= 100) isUnlocked = true;
+      }
+      case 'ULTIMATE_DETECTIVE': {
+        const maxWins = Math.max(
+          totalWins,
+          detectiveStats.gamesWon || 0,
+          userStats?.overallStats?.totalWins || 0
+        );
+        progressCurrent = Math.min(100, maxWins);
+        if (progressCurrent >= 100 || isUnlocked) isUnlocked = true;
         break;
+      }
       case 'ROYAL_SOVEREIGN':
         progressCurrent = Math.min(5000, userStats?.classicMode?.totalPointsEarned || userStats?.overallStats?.totalScore || 0);
-        if (progressCurrent >= 5000) isUnlocked = true;
+        if (progressCurrent >= 5000 || isUnlocked) isUnlocked = true;
         break;
       case 'RAJAS_BOUNTY':
         progressCurrent = Math.min(10, userStats?.roleStats?.raja?.timesAssigned || 0);
-        if (progressCurrent >= 10) isUnlocked = true;
+        if (progressCurrent >= 10 || isUnlocked) isUnlocked = true;
         break;
       case 'ROYAL_GENIUS':
         progressCurrent = Math.min(10, userStats?.modernMode?.correctRajaGuesses || 0);
@@ -553,6 +587,21 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({ userAchievem
         progressCurrent = Math.min(50, userStats?.modernMode?.gamesWon || 0);
         if (progressCurrent >= 50 || isUnlocked) isUnlocked = true;
         break;
+    }
+
+    // =========================================================================
+    // UNIVERSAL FAIL-SAFE INVARIANTS ACROSS ALL MODES AND ALL ACHIEVEMENTS
+    // =========================================================================
+    // 1. If progressCurrent reaches or exceeds progressTotal, it MUST be unlocked!
+    //    Prevents any achievement in any mode from ever showing full progress (e.g. 3/3, 5/5) with a locked state.
+    if (progressCurrent >= template.progressTotal) {
+      isUnlocked = true;
+      progressCurrent = template.progressTotal;
+    }
+
+    // 2. If unlocked, progressCurrent MUST always be displayed as full (progressTotal).
+    if (isUnlocked) {
+      progressCurrent = template.progressTotal;
     }
 
     if (isUnlocked && !unlockedAt) {

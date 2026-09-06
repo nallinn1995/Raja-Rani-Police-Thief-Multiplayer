@@ -206,3 +206,24 @@ export async function getDetectiveAdminDashboard(req, res) {
     res.status(500).json({ error: "Failed to fetch Detective Challenge admin analytics" });
   }
 }
+
+export async function deleteDetectiveLeaderboardRecord(req, res) {
+  try {
+    const { id } = req.params;
+    let deleted = null;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      deleted = await DetectiveChallengeStats.findByIdAndDelete(id);
+    }
+    if (!deleted) {
+      deleted = await DetectiveChallengeStats.findOneAndDelete({ userId: id });
+    }
+    if (!deleted) {
+      return res.status(404).json({ error: "Detective leaderboard record not found" });
+    }
+    await DetectiveChallengeLeaderboardService.refreshLeaderboard("highest_accuracy", 10);
+    res.json({ success: true, message: "Detective leaderboard record deleted successfully." });
+  } catch (err) {
+    console.error("deleteDetectiveLeaderboardRecord error:", err);
+    res.status(500).json({ error: "Failed to delete detective leaderboard record" });
+  }
+}

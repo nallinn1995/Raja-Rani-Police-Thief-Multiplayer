@@ -217,7 +217,9 @@ export async function getOverviewStats(roomsMap, io) {
     const totalGuestMatches = guestAggregate[0]?.totalMatches || 0;
     const totalGuestGamesStarted = guestAggregate[0]?.totalGames || 0;
     
-    const classicMatchesCount = await MatchHistory.countDocuments();
+    const classicMatchesCount = await MatchHistory.countDocuments({
+      gameMode: { $nin: ["DETECTIVE_CHALLENGE", "MODERN_MODE"] }
+    });
     const dcMatchDocs = await DetectiveChallengeMatch.countDocuments();
     const detectiveMatchesCount = dcMatchDocs;
     const modernMatchesCount = await ModernModeMatch.countDocuments();
@@ -598,6 +600,11 @@ export async function deleteUser(req, res) {
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
+      // Check if it matches a guest device ID
+      const guest = await GuestSession.findOneAndDelete({ guestDeviceId: id });
+      if (guest) {
+        return res.json({ success: true, message: `Guest tester ${guest.username || guest.guestDeviceId} deleted successfully.` });
+      }
       return res.status(400).json({ error: "Invalid user ID" });
     }
 
@@ -612,10 +619,30 @@ export async function deleteUser(req, res) {
       return res.json({ success: true, message: `Guest tester ${guest.username || guest.guestDeviceId} deleted successfully.` });
     }
 
-    return res.status(404).json({ error: "User not found" });
+    return res.status(404).json({ error: "User or guest not found" });
   } catch (error) {
     console.error("Error deleting user:", error);
     res.status(500).json({ error: "Failed to delete user" });
+  }
+}
+
+export async function deleteGuest(req, res) {
+  try {
+    const { id } = req.params;
+    let guest = null;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      guest = await GuestSession.findByIdAndDelete(id);
+    }
+    if (!guest) {
+      guest = await GuestSession.findOneAndDelete({ guestDeviceId: id });
+    }
+    if (!guest) {
+      return res.status(404).json({ error: "Guest session not found" });
+    }
+    return res.json({ success: true, message: `Guest tester ${guest.username || guest.guestDeviceId} deleted successfully.` });
+  } catch (error) {
+    console.error("Failed to delete guest:", error);
+    res.status(500).json({ error: "Failed to delete guest session" });
   }
 }
 
@@ -862,6 +889,30 @@ export async function resetPlayerStatsRecord(req, res) {
   }
 }
 
+export async function deletePlayerStatsRecord(req, res) {
+  try {
+    const { id } = req.params;
+    let stats = null;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      stats = await PlayerStats.findByIdAndDelete(id);
+    }
+    if (!stats) {
+      stats = await PlayerStats.findOneAndDelete({ userId: id });
+    }
+    if (!stats) {
+      return res.status(404).json({ error: "Player stats record not found" });
+    }
+    if (stats.userId) {
+      await DetectiveChallengeStats.deleteMany({ userId: stats.userId });
+      await ModernModeStats.deleteMany({ userId: stats.userId });
+    }
+    res.json({ success: true, message: "Player statistics record deleted successfully." });
+  } catch (error) {
+    console.error("Error deleting stats record:", error);
+    res.status(500).json({ error: "Failed to delete stats record" });
+  }
+}
+
 // 6. Match History Management
 export async function getMatchesList(req, res) {
   try {
@@ -875,17 +926,19 @@ export async function getMatchesList(req, res) {
     let dcMatches = [];
     let modernMatches = [];
 
-    if (!gameMode || gameMode === "all" || gameMode === "CLASSIC_POINTS") {
-      let query = {};
+    const mode = (gameMode || "all").toLowerCase().trim();
+
+    if (mode === "all" || mode === "classic" || mode === "classic_points") {
+      let query = {
+        gameMode: { $nin: ["DETECTIVE_CHALLENGE", "MODERN_MODE"] }
+      };
       if (searchRegex) {
-        query = {
-          $or: [{ roomCode: searchRegex }, { winnerUsername: searchRegex }, { "players.username": searchRegex }],
-        };
+        query.$or = [{ roomCode: searchRegex }, { winnerUsername: searchRegex }, { "players.username": searchRegex }];
       }
       classicMatches = await MatchHistory.find(query).sort({ createdAt: -1 }).limit(limit).lean();
     }
 
-    if (!gameMode || gameMode === "all" || gameMode === "DETECTIVE_CHALLENGE") {
+    if (mode === "all" || mode === "detective" || mode === "detective_challenge") {
       let query = {};
       if (searchRegex) {
         query = {
@@ -902,15 +955,16 @@ export async function getMatchesList(req, res) {
         players: (m.players || []).map((p) => ({
           userId: p.userId,
           username: p.username || p.name || "Player",
-          score: p.correctCount !== undefined ? `${p.correctCount} correct` : (p.score || 0),
+          score: p.finalScore !== undefined ? Math.round(p.finalScore) : (p.correctCount !== undefined ? `${p.correctCount} correct` : (p.score || 0)),
           rank: p.rank || 1,
           isWinner: p.isChampion || false,
         })),
+        duration: m.duration || 0,
         details: `${m.players?.length || 0} Detectives`,
       }));
     }
 
-    if (!gameMode || gameMode === "all" || gameMode === "MODERN_MODE") {
+    if (mode === "all" || mode === "modern" || mode === "modern_mode") {
       let query = {};
       if (searchRegex) {
         query = {
@@ -932,6 +986,7 @@ export async function getMatchesList(req, res) {
           isWinner: p.isWinner || false,
           role: p.role,
         })),
+        duration: m.matchDuration || 0,
         details: `6 Kingdom Roles`,
       }));
     }
@@ -954,7 +1009,13 @@ export async function deleteMatchRecord(req, res) {
       return res.status(400).json({ error: "Invalid match ID" });
     }
 
-    const match = await MatchHistory.findByIdAndDelete(id);
+    let match = await MatchHistory.findByIdAndDelete(id);
+    if (!match) {
+      match = await DetectiveChallengeMatch.findByIdAndDelete(id);
+    }
+    if (!match) {
+      match = await ModernModeMatch.findByIdAndDelete(id);
+    }
     if (!match) {
       return res.status(404).json({ error: "Match record not found" });
     }
@@ -969,7 +1030,9 @@ export async function deleteMatchRecord(req, res) {
 export async function clearAllMatches(req, res) {
   try {
     await MatchHistory.deleteMany({});
-    res.json({ success: true, message: "All match history logs cleared." });
+    await DetectiveChallengeMatch.deleteMany({});
+    await ModernModeMatch.deleteMany({});
+    res.json({ success: true, message: "All match history logs cleared across all game modes." });
   } catch (error) {
     console.error("Error clearing match history:", error);
     res.status(500).json({ error: "Failed to clear match history" });
@@ -1038,6 +1101,7 @@ export async function getModernModeAdminData(req, res) {
       recentMatches,
       topLeaderboard: topLeaderboard.map((item, idx) => ({
         rank: idx + 1,
+        _id: item._id,
         userId: item.userId,
         username: item.username,
         level: item.level || 1,
@@ -1060,5 +1124,25 @@ export async function getModernModeAdminData(req, res) {
   } catch (error) {
     console.error("Error fetching modern mode admin data:", error);
     res.status(500).json({ error: "Failed to fetch Modern Mode dashboard data" });
+  }
+}
+
+export async function deleteModernLeaderboardRecord(req, res) {
+  try {
+    const { id } = req.params;
+    let deleted = null;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      deleted = await ModernModeStats.findByIdAndDelete(id);
+    }
+    if (!deleted) {
+      deleted = await ModernModeStats.findOneAndDelete({ userId: id });
+    }
+    if (!deleted) {
+      return res.status(404).json({ error: "Modern mode leaderboard entry not found" });
+    }
+    res.json({ success: true, message: "Modern mode leaderboard entry deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting modern leaderboard record:", error);
+    res.status(500).json({ error: "Failed to delete modern leaderboard entry" });
   }
 }

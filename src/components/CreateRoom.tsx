@@ -16,6 +16,7 @@ interface CreateRoomProps {
       winCondition?: string;
       targetScore?: number;
       policeTurnsPerPlayer?: number;
+      maxPlayers?: number;
     },
     userId?: string
   ) => Promise<{ roomCode: string; playerId: string; playerToken?: string }>;
@@ -28,6 +29,7 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onBack, onRoomCreated, c
     return currentUser?.username || '';
   });
   const [gameMode, setGameMode] = useState<GameMode>(GameMode.CLASSIC_POINTS);
+  const [detectiveMaxPlayers, setDetectiveMaxPlayers] = useState<number>(1);
 
   // Game mode availability from admin config
   const [detectiveEnabled, setDetectiveEnabled] = useState(
@@ -101,6 +103,7 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onBack, onRoomCreated, c
           gameMode,
           winCondition: isConfigurableMode ? winCondition : undefined,
           targetScore: isConfigurableMode && winCondition === 'target_score' ? targetScore : undefined,
+          maxPlayers: gameMode === GameMode.DETECTIVE_CHALLENGE ? detectiveMaxPlayers : (gameMode === GameMode.MODERN_MODE ? 6 : 4),
         },
         currentUser?.id || currentUser?._id
       );
@@ -231,7 +234,7 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onBack, onRoomCreated, c
                   {detectiveEnabled ? (
                     <>
                       <span>Detective</span>
-                      <span className="text-[9px] px-1 py-0.2 rounded bg-cyan-500 text-slate-950 font-black">4P</span>
+                      <span className="text-[9px] px-1 py-0.2 rounded bg-cyan-500 text-slate-950 font-black">1-6P</span>
                     </>
                   ) : (
                     <span className="text-[9px] font-black text-orange-400">{detectiveButtonText}</span>
@@ -292,13 +295,13 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onBack, onRoomCreated, c
                     </h4>
                     <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-950/80 border border-purple-500/50 text-purple-200 uppercase">
                       {gameMode === GameMode.CLASSIC_POINTS && "Classic"}
-                      {gameMode === GameMode.DETECTIVE_CHALLENGE && "4 Players"}
+                      {gameMode === GameMode.DETECTIVE_CHALLENGE && "1-6 Players"}
                       {gameMode === GameMode.MODERN_MODE && "6 Players"}
                     </span>
                   </div>
                   <p className="text-[11px] text-gray-300 leading-tight mt-0.5 font-sans">
                     {gameMode === GameMode.CLASSIC_POINTS && "Traditional paper game with custom score points & turn-based guessing."}
-                    {gameMode === GameMode.DETECTIVE_CHALLENGE && "4 Detectives, 3 suspect cards, and secret Thief speed accusation."}
+                    {gameMode === GameMode.DETECTIVE_CHALLENGE && "The Door of Mystery: 10 Doors, 1 Thief, 4 Safe, 3 Bombs, 1 Clue, 1 Life, 60s Timer."}
                     {gameMode === GameMode.MODERN_MODE && "6 Secret Roles, Mantri Shield, Thief Loot, and Villager Witness Statement."}
                   </p>
                 </div>
@@ -318,53 +321,43 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onBack, onRoomCreated, c
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <div className="w-9 h-9 rounded-xl bg-purple-950 border border-yellow-400/40 flex items-center justify-center shrink-0 p-1">
-                    <img src="/assets/images/trophy.png" className="w-full h-full object-contain" alt="Trophy" />
+                  <div className="w-9 h-9 rounded-xl bg-purple-950 border border-purple-400/40 flex items-center justify-center shrink-0">
+                    <img src="/assets/images/trophy.png" className="w-5 h-5 object-contain" alt="Trophy" />
                   </div>
-                  <span className="px-2 py-0.5 rounded-full bg-purple-950 border border-purple-600 text-[10px] font-bold text-purple-300 uppercase">
-                    Classic
+                  <span className="px-2 py-0.5 rounded-full bg-yellow-400 text-black text-[10px] font-black uppercase">
+                    4P
                   </span>
                 </div>
                 <div>
                   <h3 className="font-bold text-sm text-white">Classic Points</h3>
                   <p className="text-xs text-gray-300 leading-normal font-sans mt-1">
-                    Traditional paper game with custom score points &amp; turn-based guessing.
+                    Traditional paper slips with custom score points & turn-based guessing.
                   </p>
                 </div>
               </button>
 
-              {/* Detective Challenge - with Coming Soon overlay when disabled */}
+              {/* Detective Challenge */}
               <button
                 type="button"
-                onClick={() => detectiveEnabled && setGameMode(GameMode.DETECTIVE_CHALLENGE)}
-                disabled={!detectiveEnabled}
+                onClick={() => setGameMode(GameMode.DETECTIVE_CHALLENGE)}
                 className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition-all duration-300 relative overflow-hidden ${
-                  !detectiveEnabled
-                    ? 'bg-[#0a0a1a]/90 border-[#2A1040] cursor-not-allowed opacity-70'
-                    : gameMode === GameMode.DETECTIVE_CHALLENGE
-                    ? 'bg-gradient-to-b from-cyan-900/90 to-blue-950/90 border-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.4)] ring-2 ring-cyan-400/50'
-                    : 'bg-[#11052C]/90 border-[#4A2078] hover:border-cyan-500 opacity-75 hover:opacity-100'
+                  gameMode === GameMode.DETECTIVE_CHALLENGE
+                    ? 'bg-gradient-to-b from-cyan-950/90 to-blue-950/90 border-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.35)] ring-2 ring-cyan-400/50'
+                    : 'bg-[#11052C]/90 border-[#4A2078] hover:border-cyan-400 opacity-75 hover:opacity-100'
                 }`}
               >
-                {/* Coming Soon Overlay */}
-                {!detectiveEnabled && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black/55 backdrop-blur-[2px] rounded-2xl">
-                    <Lock className="w-5 h-5 text-orange-400 mb-1" />
-                    <span className="text-xs font-extrabold text-orange-400 tracking-wider uppercase">{detectiveButtonText}</span>
-                  </div>
-                )}
                 <div className="flex items-center justify-between mb-2">
                   <div className="w-9 h-9 rounded-xl bg-cyan-950 border border-cyan-400/40 flex items-center justify-center shrink-0">
                     <Shield className="w-5 h-5 text-cyan-300" />
                   </div>
                   <span className="px-2 py-0.5 rounded-full bg-cyan-500 text-slate-950 text-[10px] font-black uppercase">
-                    4P
+                    1-6P
                   </span>
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-white">Detective</h3>
+                  <h3 className="font-bold text-sm text-white">The Door of Mystery</h3>
                   <p className="text-xs text-gray-300 leading-normal font-sans mt-1">
-                    4 Detectives, 3 suspect cards, and secret Thief speed accusation.
+                    10 Doors, 1 Thief, 4 Safe, 3 Bombs, 1 Clue, 1 Life, 60s timer.
                   </p>
                 </div>
               </button>
@@ -406,6 +399,46 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onBack, onRoomCreated, c
               </button>
             </div>
           </div>
+
+          {/* DETECTIVE CHALLENGE SETTINGS: 1 to 6 Players Slider */}
+          {gameMode === GameMode.DETECTIVE_CHALLENGE && (
+            <div className="p-3 sm:p-5 bg-gradient-to-br from-[#0b1329]/95 via-[#11052C]/95 to-[#0b1f3a]/95 rounded-xl sm:rounded-2xl border border-cyan-500/50 space-y-2.5 sm:space-y-4 shadow-xl">
+              <div className="flex items-center justify-between font-sans">
+                <label className="text-xs sm:text-sm font-bold text-cyan-200 flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-cyan-400" />
+                  <span>How Many Detectives Can Join?</span>
+                </label>
+                <span className="text-cyan-300 font-black text-xs sm:text-sm font-mono bg-cyan-950/90 px-3 py-1 rounded-lg border border-cyan-400/50 shadow-sm tabular-nums">
+                  {detectiveMaxPlayers} {detectiveMaxPlayers === 1 ? 'Detective (Solo)' : 'Detectives'}
+                </span>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="6"
+                step="1"
+                value={detectiveMaxPlayers}
+                onChange={(e) => setDetectiveMaxPlayers(parseInt(e.target.value))}
+                className="custom-gem-slider w-full"
+              />
+              <div className="flex justify-between text-[10px] sm:text-xs text-cyan-300/80 font-mono font-bold">
+                <span className={detectiveMaxPlayers === 1 ? 'text-yellow-300 font-black' : ''}>1 (Default)</span>
+                <span className={detectiveMaxPlayers === 2 ? 'text-yellow-300 font-black' : ''}>2</span>
+                <span className={detectiveMaxPlayers === 3 ? 'text-yellow-300 font-black' : ''}>3</span>
+                <span className={detectiveMaxPlayers === 4 ? 'text-yellow-300 font-black' : ''}>4</span>
+                <span className={detectiveMaxPlayers === 5 ? 'text-yellow-300 font-black' : ''}>5</span>
+                <span className={detectiveMaxPlayers === 6 ? 'text-yellow-300 font-black' : ''}>6 Max</span>
+              </div>
+              <div className="p-2.5 bg-black/40 rounded-xl border border-cyan-500/30 text-[11px] text-cyan-100 flex flex-wrap items-center justify-between gap-1.5">
+                <span>🚪 10 Doors (5x2)</span>
+                <span>🛡️ 4 Safe</span>
+                <span>💣 3 Bombs</span>
+                <span>🔍 1 Clue</span>
+                <span>❤️ 1 Life</span>
+                <span>⏱️ 60s</span>
+              </div>
+            </div>
+          )}
 
           {/* WIN CONDITION & ROUNDS SETTINGS (For Classic Points & Modern Mode) */}
           {(gameMode === GameMode.CLASSIC_POINTS || gameMode === GameMode.MODERN_MODE) && (

@@ -14,6 +14,8 @@ import { AppHeader } from "./components/AppHeader";
 import { PlayTypeSelection } from "./components/PlayTypeSelection";
 import { OfflineSetup, OfflineGameConfig } from "./components/offline/OfflineSetup";
 import { OfflineGameBoard } from "./components/offline/OfflineGameBoard";
+import { DoorOfMysteryGameView } from "./components/detectiveChallenge/DoorOfMysteryGameView";
+import { DetectivePublicGameState } from "./types/detectiveChallenge";
 import {
   Room,
   Player,
@@ -174,6 +176,7 @@ function App() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const isReconnectingRef = useRef(false);
   const RECONNECT_TIMEOUT_MS = 30000; // 30 seconds default (you can change)
+  const [detectivePublicState, setDetectivePublicState] = useState<DetectivePublicGameState | null>(null);
 
 
   // refs for timers so we can clear them
@@ -297,10 +300,16 @@ useEffect(() => {
       }
     };
 
-    const onPlayerJoined = (data: { players: Player[] }) => {
-      if (room) {
-        setRoom({ ...room, players: data.players });
-      }
+    const onPlayerJoined = (data: { players: Player[]; maxPlayers?: number }) => {
+      setRoom((prev) =>
+        prev
+          ? {
+              ...prev,
+              players: data.players,
+              ...(data.maxPlayers ? { maxPlayers: data.maxPlayers } : {}),
+            }
+          : null
+      );
     };
 
     const onGameStarted = (data: Room | null) => {
@@ -491,12 +500,28 @@ useEffect(() => {
       configService.updateConfig(newConfig);
     };
 
+    const onDetectiveGameStarted = (data: DetectivePublicGameState) => {
+      setDetectivePublicState(data);
+      setAppState("playing");
+      sessionStorage.setItem("appState", "playing");
+    };
+
+    const onDetectiveReconnectSync = (data: { publicState: DetectivePublicGameState }) => {
+      if (data?.publicState) {
+        setDetectivePublicState(data.publicState);
+        setAppState("playing");
+        sessionStorage.setItem("appState", "playing");
+      }
+    };
+
     // --- Register Listeners ---
     socket.on("connect", onConnect);
     socket.on("system_config_updated", onSystemConfigUpdated);
     socket.on("room-state", onRoomState);
     socket.on("player-joined", onPlayerJoined);
     socket.on("game-started", onGameStarted);
+    socket.on("detective:gameStarted", onDetectiveGameStarted);
+    socket.on("detective:reconnectSync", onDetectiveReconnectSync);
     socket.on("classic:startCardSelection", onStartCardSelection);
     socket.on("classic:playerCardSelected", onPlayerCardSelected);
     socket.on("classic:roleRevealedPrivate", onRoleRevealedPrivate);
@@ -521,6 +546,8 @@ useEffect(() => {
       socket.off("room-state", onRoomState);
       socket.off("player-joined", onPlayerJoined);
       socket.off("game-started", onGameStarted);
+      socket.off("detective:gameStarted", onDetectiveGameStarted);
+      socket.off("detective:reconnectSync", onDetectiveReconnectSync);
       socket.off("classic:startCardSelection", onStartCardSelection);
       socket.off("classic:playerCardSelected", onPlayerCardSelected);
       socket.off("classic:roleRevealedPrivate", onRoleRevealedPrivate);
@@ -628,6 +655,7 @@ useEffect(() => {
       winCondition?: string;
       targetScore?: number;
       policeTurnsPerPlayer?: number;
+      maxPlayers?: number;
     },
     userId?: string
   ) => {
@@ -1131,15 +1159,36 @@ useEffect(() => {
             case "waiting":
               return room ? (
                 <WaitingRoom
+                  socket={socket}
                   room={room}
                   currentPlayerId={currentPlayerId}
                   messages={messages}
                   onSendMessage={handleSendMessage}
+                  onStartDetectiveGame={() => {
+                    socket.emit("detective:startGame", {
+                      roomCode: room.id,
+                      playerId: currentPlayerId,
+                    });
+                  }}
                 />
               ) : null;
 
             case "playing":
-              return room ? (
+              if (!room) return null;
+              if (room.gameMode === "DETECTIVE_CHALLENGE") {
+                const isHost = !!room.players.find((p) => p.id === currentPlayerId)?.isHost;
+                return (
+                  <DoorOfMysteryGameView
+                    socket={socket}
+                    roomCode={room.id}
+                    currentPlayerId={currentPlayerId}
+                    isHost={isHost}
+                    initialPublicState={detectivePublicState}
+                    onLeaveGame={handleBackToHome}
+                  />
+                );
+              }
+              return (
                 <GameBoard
                   socket={socket}
                   room={room}
@@ -1155,7 +1204,7 @@ useEffect(() => {
                   onSendMessage={handleSendMessage}
                   onLeaveRoom={handlePlayAgain}
                 />
-              ) : null;
+              );
 
             case "result":
               return roundResult ? (

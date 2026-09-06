@@ -35,6 +35,18 @@ export const detectiveChallengeService = {
     return res.json();
   },
 
+  async deleteDetectiveLeaderboardRecord(id: string): Promise<void> {
+    const token = adminService.getAdminToken();
+    const res = await fetch(`${API_BASE}/api/admin/detective-challenge/leaderboard/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+      },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to delete detective leaderboard record");
+  },
+
   async recordRound(roundData: any): Promise<any> {
     const res = await fetch(`${API_BASE}/api/detective-challenge/round`, {
       method: "POST",

@@ -12,6 +12,9 @@ import {
   Flame,
   AlertTriangle,
   Award,
+  Users,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import {
   DetectiveDoorOutcome,
@@ -66,13 +69,36 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
 
   // Door tracking
   const [revealedDoors, setRevealedDoors] = useState<Map<number, DetectiveDoorOutcome>>(new Map());
-  const [latestDoorResult, setLatestDoorResult] = useState<{ doorId: number; result: DetectiveDoorOutcome } | null>(null);
+  const [latestDoorResult, setLatestDoorResult] = useState<{ doorId: number; result: DetectiveDoorOutcome; clue?: string | null } | null>(null);
+  const [activeClue, setActiveClue] = useState<string | null>(null);
   const [isRequestPending, setIsRequestPending] = useState<boolean>(false);
 
   // Room Players Public Roster
   const [playersRoster, setPlayersRoster] = useState<DetectivePlayerPublicState[]>(() => {
     return initialPublicState?.players ?? [];
   });
+
+  // Joined Players Accordion Dropdown State
+  const [isPlayersAccordionOpen, setIsPlayersAccordionOpen] = useState<boolean>(false);
+  const playersAccordionRef = useRef<HTMLDivElement | null>(null);
+
+  // Close accordion dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        playersAccordionRef.current &&
+        !playersAccordionRef.current.contains(event.target as Node)
+      ) {
+        setIsPlayersAccordionOpen(false);
+      }
+    };
+    if (isPlayersAccordionOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isPlayersAccordionOpen]);
 
   // Reset key to smoothly reset game and timer state
   const [resetKey, setResetKey] = useState<number>(() => Date.now());
@@ -108,6 +134,8 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
       bannerTimeoutRef.current = null;
     }
     setBannerMessage(null);
+    setActiveClue(null);
+    setIsPlayersAccordionOpen(false);
     setIsGameOver(false);
     setShowResultModal(false);
     setFinalResults(null);
@@ -170,7 +198,7 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
         return next;
       });
 
-      setLatestDoorResult({ doorId: data.doorId, result: data.result });
+      setLatestDoorResult({ doorId: data.doorId, result: data.result, clue: data.clue });
 
       if (data.result === "SAFE") {
         showBanner(`Door #${data.doorId} is SAFE. Keep investigating!`, "safe");
@@ -184,6 +212,11 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
       } else if (data.result === "THIEF") {
         const timeSec = (data.investigationTimeMs ? data.investigationTimeMs / 1000 : 0).toFixed(2);
         showBanner(`🕵️ THIEF CAUGHT! Identified in ${timeSec}s!`, "thief", 6000);
+      } else if (data.result === "CLUE") {
+        setActiveClue(data.clue || null);
+        showBanner(`🔍 SECRET CLUE REVEALED: ${data.clue || "Check Crime Scene"}`, "info", 6000);
+      } else if (data.result === "LIFE") {
+        showBanner(`❤️ +1 EXTRA LIFE! Vitality Restored! (${data.livesRemaining} Lives)`, "safe", 5000);
       }
     };
 
@@ -209,10 +242,10 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
       setIsGameOver(true);
       setFinalResults(data);
       if (modalTimeoutRef.current) clearTimeout(modalTimeoutRef.current);
-      // Reveal results modal after 1.5 seconds for dramatic effect
+      // Reveal results modal after 3.5 seconds so players can clearly see the Thief in Jail, Iron Bars & ARRESTED Stamp
       modalTimeoutRef.current = setTimeout(() => {
         setShowResultModal(true);
-      }, 1500);
+      }, 3500);
     };
 
     const handleReconnectSync = (data: DetectiveReconnectSyncPayload) => {
@@ -229,6 +262,9 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
         setSafeDoorsFound(data.myState.safeDoorsFound);
         setBombsTriggered(data.myState.bombsTriggered);
         setMyStatus(data.myState.status);
+        if (data.myState.clue) {
+          setActiveClue(data.myState.clue);
+        }
         if (data.myState.investigationTimeMs) {
           setInvestigationTimeMs(data.myState.investigationTimeMs);
         }
@@ -301,6 +337,8 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
 
   const canInteract = !isGameOver && myStatus === "INVESTIGATING" && lives > 0 && !isRequestPending;
 
+  const otherPlayers = playersRoster.filter((p) => p.id !== currentPlayerId);
+
   return (
     <div className="relative w-full h-[100dvh] overflow-hidden bg-slate-950 font-sans text-white select-none">
       {/* 3D PLAYABLE SCENE (BABYLON.JS) */}
@@ -309,52 +347,231 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
           revealedDoors={revealedDoors}
           selectedDoorId={null}
           latestDoorResult={latestDoorResult}
+          activeClue={activeClue}
           onOpenDoor={handleOpenDoor}
           canInteract={canInteract}
           resetKey={resetKey}
+          roomCode={roomCode}
         />
       </div>
 
-      {/* 2D HUD OVERLAY (TOP BAR) */}
-      <header className="absolute top-0 left-0 right-0 z-20 px-3 py-2 sm:px-6 sm:py-3.5 bg-gradient-to-b from-[#090214]/90 via-[#0e041e]/60 to-transparent backdrop-blur-[2px] flex items-center justify-between border-b border-purple-500/20">
-        {/* Left: Mode Title */}
-        <div className="flex items-center space-x-2 sm:space-x-3">
-          <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-purple-900/60 border border-amber-400/50 flex items-center justify-center shadow-lg shrink-0">
-            <span className="text-lg sm:text-xl">🗝️</span>
+      {/* 2D HUD OVERLAY (TOP BAR) - FULLY RESPONSIVE & COLLAPSIBLE */}
+      <header className="absolute top-0 left-0 right-0 z-20 px-2 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-b from-[#090214]/95 via-[#0e041e]/85 to-transparent backdrop-blur-md flex items-center justify-between gap-1.5 sm:gap-3 border-b border-purple-500/20 max-w-full">
+        {/* Left: Mode Title & Room Code */}
+        <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-purple-900/60 border border-amber-400/50 flex items-center justify-center shadow-lg shrink-0">
+            <span className="text-sm sm:text-base">🗝️</span>
           </div>
-          <div>
-            <h1 className="text-xs sm:text-base font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-300 to-amber-500 uppercase drop-shadow-md">
+          <div className="min-w-0">
+            <h1 className="text-[11px] sm:text-xs md:text-sm font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-300 to-amber-500 uppercase drop-shadow-md leading-tight truncate">
               Door of Mystery
             </h1>
-            <p className="text-[10px] sm:text-xs text-purple-300 font-semibold tracking-wide">
-              Detective Challenge • Room <span className="font-mono text-amber-300 font-bold">{roomCode}</span>
+            <p className="text-[8px] sm:text-[10px] text-purple-300 font-semibold tracking-wide leading-tight">
+              Room <span className="font-mono text-amber-300 font-bold">{roomCode}</span>
             </p>
           </div>
         </div>
 
-        {/* Center: Authoritative Countdown Timer */}
-        <div className="flex flex-col items-center">
-          <div
-            className={`px-3 sm:px-4 py-1 rounded-full border shadow-md flex items-center space-x-1.5 transition-colors ${
-              secondsRemaining <= 10
-                ? "bg-rose-950/80 border-rose-500 text-rose-300 animate-pulse ring-2 ring-rose-500/50"
-                : "bg-[#140628]/80 border-amber-400/40 text-amber-300"
-            }`}
-          >
-            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-purple-200">Time:</span>
-            <span className="font-mono font-black text-sm sm:text-lg tabular-nums tracking-wider">
-              {formatTimer(secondsRemaining)}
-            </span>
+        {/* Center: [Attempts, Safe, Bombs] | [TIME] | [My Status] */}
+        <div className="flex items-center gap-1 sm:gap-2 shrink min-w-0">
+          {/* Attempts, Safe, Bombs */}
+          <div className="flex items-center gap-1 sm:gap-2 bg-[#130528]/90 px-1.5 sm:px-2.5 py-1 rounded-xl sm:rounded-2xl border border-purple-500/30 shadow-inner">
+            <div className="flex items-center space-x-1" title={`Attempts: ${attempts}`}>
+              <div className="w-5 h-5 rounded-md bg-amber-500/20 border border-amber-400/40 flex items-center justify-center shrink-0">
+                <Target className="w-3 h-3 text-amber-300" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[7px] sm:text-[8px] text-purple-300 uppercase font-bold leading-none hidden md:block">Attempts</span>
+                <span className="text-[10px] sm:text-xs font-black text-white leading-none mt-0.5">{attempts}</span>
+              </div>
+            </div>
+
+            <div className="w-px h-3.5 sm:h-4 bg-purple-500/30" />
+
+            <div className="flex items-center space-x-1" title={`Safe Doors: ${safeDoorsFound} / 4`}>
+              <div className="w-5 h-5 rounded-md bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center shrink-0">
+                <Shield className="w-3 h-3 text-emerald-300" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[7px] sm:text-[8px] text-purple-300 uppercase font-bold leading-none hidden md:block">Safe</span>
+                <span className="text-[10px] sm:text-xs font-black text-emerald-300 leading-none mt-0.5">{safeDoorsFound} / 4</span>
+              </div>
+            </div>
+
+            <div className="w-px h-3.5 sm:h-4 bg-purple-500/30" />
+
+            <div className="flex items-center space-x-1" title={`Bombs: ${bombsTriggered} / 3`}>
+              <div className="w-5 h-5 rounded-md bg-rose-500/20 border border-rose-400/40 flex items-center justify-center shrink-0">
+                <Flame className="w-3 h-3 text-rose-300" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[7px] sm:text-[8px] text-purple-300 uppercase font-bold leading-none hidden md:block">Bombs</span>
+                <span className="text-[10px] sm:text-xs font-black text-rose-300 leading-none mt-0.5">{bombsTriggered} / 3</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Authoritative Countdown Timer */}
+          <div className="flex flex-col items-center shrink-0">
+            <div
+              className={`px-2 sm:px-3 py-1 rounded-full border shadow-md flex items-center space-x-1 transition-colors ${
+                secondsRemaining <= 10
+                  ? "bg-rose-950/90 border-rose-500 text-rose-300 animate-pulse ring-2 ring-rose-500/50"
+                  : "bg-[#140628]/90 border-amber-400/50 text-amber-300 shadow-[0_0_15px_rgba(251,191,36,0.25)]"
+              }`}
+            >
+              <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider text-purple-200 hidden xs:inline">Time:</span>
+              <span className="font-mono font-black text-[11px] sm:text-xs md:text-sm tabular-nums tracking-wider">
+                {formatTimer(secondsRemaining)}
+              </span>
+            </div>
+          </div>
+
+          {/* My Status */}
+          <div className="flex items-center bg-[#130528]/90 px-1.5 sm:px-2.5 py-1 rounded-xl sm:rounded-2xl border border-purple-500/30 shadow-inner shrink-0">
+            <div className="flex flex-col">
+              <span className="text-[7px] sm:text-[8px] text-purple-300 uppercase font-bold leading-none hidden md:block">My Status</span>
+              <span
+                className={`text-[9px] sm:text-[10px] md:text-xs font-black tracking-wider uppercase leading-none mt-0.5 ${
+                  myStatus === "CAUGHT"
+                    ? "text-amber-400"
+                    : myStatus === "ELIMINATED"
+                    ? "text-rose-400"
+                    : myStatus === "TIMEOUT"
+                    ? "text-slate-400"
+                    : "text-cyan-400"
+                }`}
+              >
+                {myStatus} {investigationTimeMs && `(${(investigationTimeMs / 1000).toFixed(1)}s)`}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Right: Lives Hearts + Mute Toggle + Exit Room */}
-        <div className="flex items-center space-x-1.5 sm:space-x-3">
-          <div className="flex items-center space-x-1 px-2.5 py-1 bg-[#150529]/80 rounded-xl border border-purple-500/30 shadow-inner">
-            {[1, 2, 3].map((heartNum) => (
+        {/* Right: Joined Detectives (Inline if 1, Accordion if > 1) + Lives Hearts + Mute + Exit */}
+        <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
+          {/* Other Detectives: Single Player View */}
+          {otherPlayers.length === 1 && (
+            <div
+              key={otherPlayers[0].id}
+              className="flex items-center space-x-1 sm:space-x-1.5 px-1.5 sm:px-2 py-1 rounded-xl bg-purple-950/70 border border-purple-700/40 shadow-sm shrink-0"
+              title={`${otherPlayers[0].name}: ${otherPlayers[0].lives} lives, Status: ${otherPlayers[0].status}`}
+            >
+              <span className="text-xs">🕵️</span>
+              <span className="text-[9px] sm:text-xs font-bold text-white truncate max-w-[55px] sm:max-w-[75px]">
+                {otherPlayers[0].name}
+              </span>
+              <span className="text-[8px] sm:text-[9px] text-rose-400 font-mono">
+                {"❤️".repeat(Math.max(0, otherPlayers[0].lives))}
+              </span>
+              <span
+                className={`text-[7px] sm:text-[8px] font-black uppercase px-1 py-0.2 rounded ${
+                  otherPlayers[0].status === "CAUGHT"
+                    ? "bg-amber-400 text-black"
+                    : otherPlayers[0].status === "ELIMINATED"
+                    ? "bg-rose-600 text-white"
+                    : otherPlayers[0].status === "TIMEOUT"
+                    ? "bg-slate-700 text-slate-300"
+                    : "bg-cyan-500/30 text-cyan-300"
+                }`}
+              >
+                {otherPlayers[0].status === "CAUGHT"
+                  ? "CAUGHT"
+                  : otherPlayers[0].status === "ELIMINATED"
+                  ? "OUT"
+                  : "SEARCH"}
+              </span>
+            </div>
+          )}
+
+          {/* Other Detectives: Accordion Dropdown if > 1 Player */}
+          {otherPlayers.length > 1 && (
+            <div className="relative" ref={playersAccordionRef}>
+              <button
+                type="button"
+                onClick={() => setIsPlayersAccordionOpen((prev) => !prev)}
+                className={`flex items-center space-x-1 sm:space-x-1.5 px-2 py-1 rounded-xl border transition-all cursor-pointer select-none text-[10px] sm:text-xs font-bold shadow-md ${
+                  isPlayersAccordionOpen
+                    ? "bg-purple-900 border-amber-400 text-amber-200 ring-2 ring-amber-400/40"
+                    : "bg-[#16062b]/90 hover:bg-[#250a45] border-purple-500/40 text-purple-200 hover:text-white"
+                }`}
+                title="Toggle Joined Detectives Roster"
+              >
+                <Users className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                <span className="font-black">
+                  {otherPlayers.length} <span className="hidden sm:inline">Detectives</span>
+                </span>
+                {isPlayersAccordionOpen ? (
+                  <ChevronUp className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                ) : (
+                  <ChevronDown className="w-3.5 h-3.5 text-purple-300 shrink-0" />
+                )}
+              </button>
+
+              {/* Accordion Dropdown Menu */}
+              {isPlayersAccordionOpen && (
+                <div className="absolute top-full right-0 mt-2 z-50 w-60 sm:w-72 bg-gradient-to-b from-[#1c0736] via-[#120424] to-[#0a0114] border-2 border-amber-400/60 shadow-[0_0_30px_rgba(0,0,0,0.9)] rounded-2xl p-3 backdrop-blur-xl animate-fade-in space-y-2">
+                  <div className="flex items-center justify-between border-b border-purple-500/30 pb-1.5">
+                    <div className="flex items-center space-x-1.5">
+                      <Users className="w-3.5 h-3.5 text-amber-400" />
+                      <span className="text-[11px] sm:text-xs font-black text-amber-200 uppercase tracking-wide">
+                        Joined Detectives ({otherPlayers.length})
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setIsPlayersAccordionOpen(false)}
+                      className="text-purple-300 hover:text-white text-xs font-bold px-1.5 py-0.5 rounded hover:bg-purple-800/50 transition cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
+                    {otherPlayers.map((p) => (
+                      <div
+                        key={p.id}
+                        className="flex items-center justify-between p-2 rounded-xl bg-purple-950/70 border border-purple-700/40 shadow-inner"
+                      >
+                        <div className="flex items-center space-x-2 min-w-0">
+                          <span className="text-sm">🕵️</span>
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-xs font-extrabold text-white truncate max-w-[100px] sm:max-w-[130px]">
+                              {p.name}
+                            </span>
+                            <span className="text-[10px] text-rose-400 font-mono">
+                              {"❤️".repeat(Math.max(0, p.lives))}
+                              {p.lives === 0 && <span className="text-slate-400 text-[9px] ml-1">Out</span>}
+                            </span>
+                          </div>
+                        </div>
+
+                        <span
+                          className={`text-[9px] font-black uppercase px-2 py-0.5 rounded shadow-sm shrink-0 ${
+                            p.status === "CAUGHT"
+                              ? "bg-amber-400 text-black font-black"
+                              : p.status === "ELIMINATED"
+                              ? "bg-rose-600 text-white"
+                              : p.status === "TIMEOUT"
+                              ? "bg-slate-700 text-slate-300"
+                              : "bg-cyan-500/30 text-cyan-300 border border-cyan-400/30"
+                          }`}
+                        >
+                          {p.status === "CAUGHT" ? "🏆 CAUGHT" : p.status === "ELIMINATED" ? "💀 OUT" : "🔍 SEARCH"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Lives Hearts */}
+          <div className="flex items-center space-x-0.5 sm:space-x-1 px-1.5 sm:px-2 py-1 bg-[#150529]/80 rounded-xl border border-purple-500/30 shadow-inner">
+            {Array.from({ length: Math.max(3, lives) }, (_, i) => i + 1).map((heartNum) => (
               <Heart
                 key={heartNum}
-                className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform ${
+                className={`w-3 h-3 sm:w-3.5 sm:h-3.5 transition-transform ${
                   lives >= heartNum
                     ? "text-rose-500 fill-rose-500 drop-shadow-[0_0_8px_rgba(244,63,94,0.8)] scale-105"
                     : "text-slate-600 fill-slate-800 scale-90 opacity-60"
@@ -363,121 +580,41 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
             ))}
           </div>
 
+          {/* Mute Button */}
           <button
             onClick={toggleMute}
-            className="p-1.5 sm:p-2 rounded-xl bg-[#16062b]/80 border border-purple-500/30 text-purple-300 hover:text-white transition shadow cursor-pointer"
+            className="p-1 sm:p-1.5 rounded-xl bg-[#16062b]/80 border border-purple-500/30 text-purple-300 hover:text-white transition shadow cursor-pointer"
             title={isAudioMuted ? "Unmute Audio" : "Mute Audio"}
           >
-            {isAudioMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-amber-400" />}
+            {isAudioMuted ? <VolumeX className="w-3.5 h-3.5 text-rose-400" /> : <Volume2 className="w-3.5 h-3.5 text-amber-400" />}
           </button>
 
+          {/* Exit Room Button */}
           <button
             onClick={() => setShowExitConfirm(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-rose-600/20 hover:bg-rose-600/40 border border-rose-500/40 text-rose-300 hover:text-white transition shadow cursor-pointer text-xs font-bold"
+            className="flex items-center gap-1 px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-xl bg-rose-600/20 hover:bg-rose-600/40 border border-rose-500/40 text-rose-300 hover:text-white transition shadow cursor-pointer text-[10px] sm:text-xs font-bold"
             title="Exit Room"
           >
-            <LogOut className="w-3.5 h-3.5 text-rose-400" />
-            <span className="hidden sm:inline">Exit Room</span>
+            <LogOut className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-400" />
+            <span className="hidden sm:inline">Exit</span>
           </button>
         </div>
       </header>
 
-      {/* 2D HUD OVERLAY (TOP SUB-BAR BELOW HEADER): ROSTER & PERSONAL METRICS */}
-      <div className="absolute top-14 sm:top-16 left-2 right-2 sm:left-6 sm:right-6 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
-        {/* Personal Investigation Card */}
-        <div className="pointer-events-auto bg-[#130528]/95 backdrop-blur-md rounded-2xl border border-purple-600/40 px-3 py-1.5 sm:px-4 sm:py-2 shadow-xl flex items-center justify-between sm:justify-start gap-2.5 sm:gap-4">
-          <div className="flex items-center space-x-1.5 sm:space-x-2">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-500/20 border border-amber-400/40 flex items-center justify-center shrink-0">
-              <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-300" />
-            </div>
-            <div>
-              <span className="text-[9px] sm:text-[10px] text-purple-300 uppercase font-bold block leading-tight">Attempts</span>
-              <span className="text-xs sm:text-sm font-black text-white">{attempts}</span>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-1.5 sm:space-x-2">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center shrink-0">
-              <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-300" />
-            </div>
-            <div>
-              <span className="text-[9px] sm:text-[10px] text-purple-300 uppercase font-bold block leading-tight">Safe</span>
-              <span className="text-xs sm:text-sm font-black text-emerald-300">{safeDoorsFound}</span>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-1.5 sm:space-x-2">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-rose-500/20 border border-rose-400/40 flex items-center justify-center shrink-0">
-              <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-300" />
-            </div>
-            <div>
-              <span className="text-[9px] sm:text-[10px] text-purple-300 uppercase font-bold block leading-tight">Bombs</span>
-              <span className="text-xs sm:text-sm font-black text-rose-300">{bombsTriggered}</span>
-            </div>
-          </div>
-
-          <div className="border-l border-purple-500/30 pl-2.5 sm:pl-3 flex flex-col">
-            <span className="text-[9px] sm:text-[10px] text-purple-300 uppercase font-bold block leading-tight">My Status</span>
-            <span
-              className={`text-[11px] sm:text-xs font-black tracking-wider uppercase ${
-                myStatus === "CAUGHT"
-                  ? "text-amber-400"
-                  : myStatus === "ELIMINATED"
-                  ? "text-rose-400"
-                  : myStatus === "TIMEOUT"
-                  ? "text-slate-400"
-                  : "text-cyan-400"
-              }`}
-            >
-              {myStatus} {investigationTimeMs && `(${(investigationTimeMs / 1000).toFixed(1)}s)`}
-            </span>
+      {/* PINNED SECRET CLUE BANNER (WHEN CLUE DOOR IS REVEALED) */}
+      {activeClue && (
+        <div className="absolute top-14 sm:top-16 left-1/2 transform -translate-x-1/2 z-20 w-[92%] max-w-xl pointer-events-none animate-fade-in">
+          <div className="px-4 py-2 rounded-2xl bg-gradient-to-r from-purple-950/95 via-indigo-950/95 to-purple-950/95 border-2 border-amber-400/80 shadow-[0_0_25px_rgba(245,158,11,0.4)] flex items-center justify-center space-x-2.5 text-center text-xs sm:text-sm font-black text-amber-200 backdrop-blur-md animate-pulse">
+            <span className="text-base">📜</span>
+            <span className="text-amber-400 uppercase tracking-wide font-black">SECRET CLUE:</span>
+            <span className="text-white drop-shadow-md">{activeClue}</span>
           </div>
         </div>
-
-        {/* Live Detective Roster Panel */}
-        <div className="pointer-events-auto bg-[#100422]/95 backdrop-blur-md rounded-2xl border border-purple-600/40 p-1.5 sm:p-2 shadow-xl overflow-x-auto flex items-center gap-1.5 sm:gap-2 max-w-full sm:max-w-md">
-          {playersRoster.map((p) => (
-            <div
-              key={p.id}
-              className={`px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-xl border flex items-center space-x-1.5 shrink-0 ${
-                p.id === currentPlayerId
-                  ? "bg-purple-900/60 border-amber-400/60 shadow-[0_0_10px_rgba(251,191,36,0.3)]"
-                  : "bg-purple-950/40 border-purple-700/30"
-              }`}
-            >
-              <span className="text-xs">🕵️</span>
-              <div className="flex flex-col">
-                <span className="text-[10px] sm:text-[11px] font-bold text-white truncate max-w-[75px] sm:max-w-[85px]">
-                  {p.name} {p.id === currentPlayerId && "(You)"}
-                </span>
-                <div className="flex items-center space-x-1">
-                  <span className="text-[8px] sm:text-[9px] text-rose-400">
-                    {"❤️".repeat(p.lives)}
-                    {"🖤".repeat(Math.max(0, 3 - p.lives))}
-                  </span>
-                  <span
-                    className={`text-[8px] font-black uppercase px-1 rounded ${
-                      p.status === "CAUGHT"
-                        ? "bg-amber-400 text-black"
-                        : p.status === "ELIMINATED"
-                        ? "bg-rose-600 text-white"
-                        : p.status === "TIMEOUT"
-                        ? "bg-slate-700 text-slate-300"
-                        : "bg-cyan-500/30 text-cyan-300"
-                    }`}
-                  >
-                    {p.status === "CAUGHT" ? "CAUGHT" : p.status === "ELIMINATED" ? "OUT" : "SEARCH"}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      )}
 
       {/* DYNAMIC ALERT BANNER */}
       {bannerMessage && (
-        <div className="absolute top-28 sm:top-32 left-1/2 transform -translate-x-1/2 z-30 w-[90%] max-w-md pointer-events-none animate-bounce">
+        <div className="absolute top-16 sm:top-20 left-1/2 transform -translate-x-1/2 z-30 w-[90%] max-w-md pointer-events-none animate-bounce">
           <div
             className={`px-4 py-2.5 rounded-2xl border backdrop-blur-xl shadow-2xl flex items-center justify-center space-x-2.5 text-center text-xs sm:text-sm font-black tracking-wide ${
               bannerMessage.type === "safe"

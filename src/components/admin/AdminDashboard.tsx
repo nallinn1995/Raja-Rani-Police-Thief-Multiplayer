@@ -317,6 +317,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
+  const handleDeleteGuest = async (guest: GuestSessionRecord) => {
+    const name = guest.username || guest.guestDeviceId;
+    if (!window.confirm(`Are you sure you want to delete guest tester "${name}"?`)) {
+      return;
+    }
+    try {
+      await adminService.deleteGuest(guest._id);
+      toast.success(`Guest tester ${name} deleted.`);
+      loadGuests();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete guest");
+    }
+  };
+
+  const handleDeleteStats = async (record: PlayerStatsRecord) => {
+    if (!window.confirm(`Are you sure you want to permanently delete stats record for "${record.username}"?`)) {
+      return;
+    }
+    try {
+      await adminService.deletePlayerStats(record._id);
+      toast.success(`Stats record for ${record.username} deleted.`);
+      loadPlayerStats();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete player stats");
+    }
+  };
+
   // Room Actions
   const handleCloseRoom = async (roomCode: string) => {
     if (!window.confirm(`Terminate active room ${roomCode}? All connected players will be disconnected.`)) {
@@ -1063,18 +1090,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <th className="p-3.5">Last Game Mode</th>
                       <th className="p-3.5">First Seen</th>
                       <th className="p-3.5">Last Active</th>
+                      <th className="p-3.5 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60">
                     {loading ? (
                       <tr>
-                        <td colSpan={7} className="p-8 text-center text-slate-500">
+                        <td colSpan={8} className="p-8 text-center text-slate-500">
                           Loading guest testers data...
                         </td>
                       </tr>
                     ) : guests.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="p-8 text-center text-slate-500">
+                        <td colSpan={8} className="p-8 text-center text-slate-500">
                           No guest sessions recorded yet.
                         </td>
                       </tr>
@@ -1103,6 +1131,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </td>
                           <td className="p-3.5 text-slate-300">
                             {new Date(g.lastSeenAt).toLocaleString()}
+                          </td>
+                          <td className="p-3.5 text-right">
+                            <button
+                              onClick={() => handleDeleteGuest(g)}
+                              className="p-1.5 text-red-400 hover:text-red-300 bg-slate-800 hover:bg-red-500/20 rounded-lg transition-colors"
+                              title="Delete Guest Session"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </td>
                         </tr>
                       ))
@@ -1259,15 +1296,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <span className="text-red-400">{st.totalLosses} L</span>
                           </td>
                           <td className="p-3.5 font-bold text-purple-400">{st.currentWinStreak} (Best: {st.longestWinStreak})</td>
-                          <td className="p-3.5 text-right">
+                          <td className="p-3.5 text-right space-x-1.5 whitespace-nowrap">
                             <button
                               onClick={() => {
                                 setSelectedStatsRecord(st);
                                 setIsStatsModalOpen(true);
                               }}
-                              className="px-3 py-1 text-xs font-bold text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-lg transition-colors"
+                              className="px-3 py-1 text-xs font-bold text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-lg transition-colors inline-flex items-center gap-1"
                             >
-                              Edit Stats
+                              <Edit2 className="w-3 h-3" />
+                              <span>Edit Stats</span>
+                            </button>
+                            <button
+                              onClick={() => handleDeleteStats(st)}
+                              className="p-1.5 text-red-400 hover:text-red-300 bg-slate-800 hover:bg-red-500/20 rounded-lg transition-colors inline-flex items-center"
+                              title="Delete Player Stats"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </td>
                         </tr>
@@ -1430,7 +1475,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <div className="p-4 bg-slate-950/70 border border-amber-500/30 rounded-2xl">
                   <span className="text-[11px] font-bold text-amber-400 uppercase block">Total Classic Games</span>
                   <span className="text-3xl font-black text-white mt-1 block">
-                    {overview?.totalMatches || 0}
+                    {overview?.classicMatchesCount ?? overview?.totalMatches ?? 0}
                   </span>
                 </div>
 

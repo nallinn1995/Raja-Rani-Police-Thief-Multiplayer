@@ -2,6 +2,8 @@ import mongoose from "mongoose";
 import ModernModeMatch from "../../models/modernMode/ModernModeMatch.js";
 import ModernModeStats from "../../models/modernMode/ModernModeStats.js";
 import ModernModeAchievement from "../../models/modernMode/ModernModeAchievement.js";
+import MatchHistory from "../../models/MatchHistory.js";
+import PlayerStats from "../../models/PlayerStats.js";
 import User from "../../models/User.js";
 import GuestTrackingService from "../GuestTrackingService.js";
 import { awardModernModeXP, calculateModernModeXP } from "./modernModeXPService.js";
@@ -434,8 +436,14 @@ export class ModernModeService {
       for (const p of modernState.players) {
         if (!p.userId || !mongoose.Types.ObjectId.isValid(p.userId)) {
           try {
-            const dbUser = await User.findOne({ username: p.name.trim(), isGuest: false });
-            if (dbUser) {
+            let dbUser = null;
+            if (p.userId) {
+              dbUser = await User.findOne({ supabaseUid: p.userId });
+            }
+            if (!dbUser && p.name) {
+              dbUser = await User.findOne({ username: new RegExp(`^${String(p.name).trim()}$`, "i") });
+            }
+            if (dbUser && !dbUser.isGuest) {
               p.userId = dbUser._id;
             } else {
               p.userId = null;
@@ -488,15 +496,46 @@ export class ModernModeService {
 
       await matchDoc.save();
 
+      // Also save general MatchHistory record for unified lifetime match tracking
+      const generalMatch = new MatchHistory({
+        roomCode,
+        gameMode: "MODERN_MODE",
+        totalRounds: 1,
+        duration: matchDuration,
+        winnerUsername: resultData.winner ? resultData.winner.name : "None",
+        players: modernState.players.map((p) => ({
+          userId: p.userId || null,
+          username: p.name,
+          score: p.finalScore || 0,
+          rank: p.rank || 1,
+          isWinner: !!p.isWinner,
+          role: p.role,
+        })),
+        endedAt: new Date(),
+      });
+      await generalMatch.save().catch((err) => console.warn("Error saving modern match to MatchHistory:", err.message));
+
       // Process Player Stats, Achievements, & XP for each player
       for (const p of modernState.players) {
-        if (!p.userId) continue;
+        let userDoc = null;
+        if (p.userId && mongoose.Types.ObjectId.isValid(p.userId)) {
+          userDoc = await User.findById(p.userId);
+        }
+        if (!userDoc && p.userId) {
+          userDoc = await User.findOne({ supabaseUid: p.userId });
+        }
+        if (!userDoc && p.name) {
+          userDoc = await User.findOne({ username: new RegExp(`^${String(p.name).trim()}$`, "i") });
+        }
 
-        let stats = await ModernModeStats.findOne({ userId: p.userId });
+        if (!userDoc) continue;
+        const targetUserId = userDoc._id;
+
+        let stats = await ModernModeStats.findOne({ userId: targetUserId });
         if (!stats) {
           stats = new ModernModeStats({
-            userId: p.userId,
-            username: p.name,
+            userId: targetUserId,
+            username: userDoc.username,
           });
         }
 
@@ -553,8 +592,24 @@ export class ModernModeService {
 
         await stats.save();
 
+        // Synchronize overall PlayerStats
+        await PlayerStats.updateOne(
+          { userId: targetUserId },
+          {
+            $set: { username: userDoc.username, lastPlayedAt: new Date() },
+            $inc: {
+              totalGames: 1,
+              totalWins: p.isWinner ? 1 : 0,
+              totalLosses: p.isWinner ? 0 : 1,
+              totalTimePlayed: matchDuration,
+              totalScore: Math.round(p.finalScore || 0),
+            },
+          },
+          { upsert: true }
+        ).catch(() => {});
+
         // Check & Award Modern Mode Achievements
-        await this.checkAchievements(p.userId, stats);
+        await this.checkAchievements(targetUserId, stats);
 
         // Calculate and award XP
         const xpEarned = calculateModernModeXP({
@@ -562,7 +617,7 @@ export class ModernModeService {
           isWinner: p.isWinner,
           isBonusEarned: (p.bonusPoints || 0) > 0,
         });
-        await awardModernModeXP(p.userId, xpEarned, p.name);
+        await awardModernModeXP(targetUserId, xpEarned, p.name);
       }
     } catch (err) {
       console.error("Error recording Modern Mode match:", err);

@@ -75,7 +75,7 @@ export const defaultConfig: FullSystemConfig = {
       title: "Game Rules & Info",
       subtitle: "Master the strategy, understand the scoring, and dominate the kingdom!",
       classicRules: "Each player picks a secret card. The Police must guess who holds the Thief card. Correct guess yields 500 points to Police. Wrong guess yields 800 points to Thief!",
-      detectiveRules: "Analyze clues, suspect statements, and crime scene logs to uncover the criminal before time runs out!",
+      detectiveRules: "Enter the Door of Mystery with 10 dynamic doors! Track down the hidden Mastermind Thief with clues and extra lives while dodging explosive Traps with 3 lives under a 60-second countdown!",
       modernRules: "Play with 6 Kingdom Roles: Raja, Rani, Mantri, Police, Thief, and Villager with shield abilities and witness bonuses!",
     },
     homePage: {

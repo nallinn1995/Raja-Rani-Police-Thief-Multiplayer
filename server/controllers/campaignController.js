@@ -538,6 +538,26 @@ export async function getCampaignRuns(req, res) {
 }
 
 /**
+ * DELETE /api/admin/notifications/runs/:id
+ * Delete a specific campaign execution run log
+ */
+export async function deleteCampaignRun(req, res) {
+  try {
+    const { id } = req.params;
+    const deleted = await NotificationCampaignRun.findByIdAndDelete(id);
+    if (!deleted) {
+      return res.status(404).json({ error: "Campaign run not found" });
+    }
+    return res.json({
+      success: true,
+      message: "Campaign run deleted successfully",
+    });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to delete campaign run" });
+  }
+}
+
+/**
  * -------------------------------------------------------------
  * TEMPLATE CONTROLLERS
  * -------------------------------------------------------------

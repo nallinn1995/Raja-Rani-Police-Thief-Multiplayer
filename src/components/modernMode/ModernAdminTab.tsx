@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Crown, Trophy, Users, RefreshCw, Activity, Award, Sparkles } from "lucide-react";
+import { Crown, Trophy, Users, RefreshCw, Activity, Award, Sparkles, Trash2 } from "lucide-react";
 import { adminService, ModernAdminDashboardData } from "../../services/adminService";
 import { toast } from "react-toastify";
 
@@ -16,6 +16,33 @@ export const ModernAdminTab: React.FC = () => {
       toast.error(err.message || "Failed to load Modern Mode admin data");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteMatch = async (matchId: string) => {
+    if (!window.confirm("Are you sure you want to delete this Modern Kingdom match record?")) {
+      return;
+    }
+    try {
+      await adminService.deleteMatch(matchId);
+      toast.success("Modern Kingdom match record deleted.");
+      fetchModernAdminData();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete match record");
+    }
+  };
+
+  const handleDeleteLeaderboardEntry = async (item: any) => {
+    const id = item._id || item.userId;
+    if (!window.confirm(`Are you sure you want to delete ${item.username}'s Modern Kingdom leaderboard record?`)) {
+      return;
+    }
+    try {
+      await adminService.deleteModernLeaderboardRecord(id);
+      toast.success(`Deleted ${item.username}'s leaderboard record.`);
+      fetchModernAdminData();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete leaderboard entry");
     }
   };
 
@@ -161,12 +188,13 @@ export const ModernAdminTab: React.FC = () => {
                 <th className="p-3">Rounds</th>
                 <th className="p-3">Duration</th>
                 <th className="p-3">Date</th>
+                <th className="p-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60 font-medium">
               {(!data?.recentMatches || data.recentMatches.length === 0) ? (
                 <tr>
-                  <td colSpan={5} className="p-6 text-center text-slate-500">
+                  <td colSpan={6} className="p-6 text-center text-slate-500">
                     No Modern Kingdom match logs recorded yet.
                   </td>
                 </tr>
@@ -178,6 +206,15 @@ export const ModernAdminTab: React.FC = () => {
                     <td className="p-3 text-slate-300">{m.totalRounds || 5}</td>
                     <td className="p-3 text-slate-400">{m.duration || 0}s</td>
                     <td className="p-3 text-slate-400">{new Date(m.createdAt).toLocaleString()}</td>
+                    <td className="p-3 text-right">
+                      <button
+                        onClick={() => handleDeleteMatch(m._id)}
+                        className="p-1.5 text-red-400 hover:text-red-300 bg-slate-800 hover:bg-red-500/20 rounded-lg transition-colors"
+                        title="Delete Match Record"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}
@@ -206,12 +243,13 @@ export const ModernAdminTab: React.FC = () => {
                 <th className="p-3 text-center">Total Score</th>
                 <th className="p-3 text-center">Highest Score</th>
                 <th className="p-3 text-center">Streak</th>
+                <th className="p-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60 font-medium">
               {(!data?.topLeaderboard || data.topLeaderboard.length === 0) ? (
                 <tr>
-                  <td colSpan={7} className="p-6 text-center text-slate-500">
+                  <td colSpan={8} className="p-6 text-center text-slate-500">
                     No Modern Mode leaderboard entries found.
                   </td>
                 </tr>
@@ -227,6 +265,15 @@ export const ModernAdminTab: React.FC = () => {
                     <td className="p-3 text-center font-mono font-bold text-amber-300">{item.totalScore} pts</td>
                     <td className="p-3 text-center font-mono text-cyan-300">{item.highestScore} pts</td>
                     <td className="p-3 text-center font-bold text-purple-300">{item.currentWinStreak} (Best: {item.longestWinStreak})</td>
+                    <td className="p-3 text-right">
+                      <button
+                        onClick={() => handleDeleteLeaderboardEntry(item)}
+                        className="p-1.5 text-red-400 hover:text-red-300 bg-slate-800 hover:bg-red-500/20 rounded-lg transition-colors"
+                        title="Delete Leaderboard Record"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}

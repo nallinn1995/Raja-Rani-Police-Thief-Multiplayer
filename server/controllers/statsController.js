@@ -42,11 +42,25 @@ export async function recordMatchResults(matchData) {
 
     const winner = sortedPlayers[0];
 
-    const matchPlayers = players.map((p) => {
+    const matchPlayers = [];
+    for (const p of players) {
       const pName = p.name || p.username;
       const isW = winner ? pName === (winner.name || winner.username) : false;
-      return {
-        userId: p.userId || null,
+
+      let user = null;
+      const targetId = p.userId || p.id;
+      if (targetId && mongoose.Types.ObjectId.isValid(targetId)) {
+        user = await User.findById(targetId);
+      }
+      if (!user && targetId) {
+        user = await User.findOne({ supabaseUid: targetId });
+      }
+      if (!user && pName) {
+        user = await User.findOne({ username: new RegExp(`^${String(pName).trim()}$`, "i") });
+      }
+
+      matchPlayers.push({
+        userId: user ? user._id : (mongoose.Types.ObjectId.isValid(p.userId) ? p.userId : null),
         username: pName,
         score: p.score || 0,
         rank: sortedPlayers.findIndex((sp) => (sp.name || sp.username) === pName) + 1,
@@ -65,8 +79,8 @@ export async function recordMatchResults(matchData) {
         thiefTurns: p.thiefTurns || 0,
         rajaPoints: p.rajaPoints || 0,
         raniPoints: p.raniPoints || 0,
-      };
-    });
+      });
+    }
 
     // Save match history
     const match = new MatchHistory({
@@ -350,34 +364,56 @@ export async function recordMatchResults(matchData) {
   }
 }
 
-async function checkAchievements(userId, stats, playerMatchData = {}) {
+export async function checkAchievements(userId, stats = {}, playerMatchData = {}) {
   const achievements = [];
   const policeStats = stats.roleStats?.police || {};
   const thiefStats = stats.roleStats?.thief || {};
 
-  if ((stats.totalGames || 0) >= 1) {
+  let dcStats = {};
+  try {
+    dcStats = (await DetectiveChallengeStats.findOne({ userId }).lean()) || {};
+  } catch (e) {}
+
+  const totalGames = (stats.totalGames || 0) + (dcStats.gamesPlayed || 0);
+  const totalWins = (stats.totalWins || 0) + (dcStats.gamesWon || 0);
+  const dcGames = dcStats.gamesPlayed || 0;
+  const dcWins = dcStats.gamesWon || 0;
+  const dcCatches = dcStats.totalCorrectGuesses || dcWins;
+  const dcAccuracy = dcStats.overallAccuracy || 0;
+  const totalCatches = Math.max(
+    (policeStats.correctCatches || 0) + (dcStats.totalCorrectGuesses || 0),
+    dcCatches,
+    dcWins
+  );
+
+  if (totalGames >= 1) {
     achievements.push({
       code: "FIRST_STEPS",
       title: "First Steps",
       description: "Play your first match.",
       tier: "Common",
-      category: "Classic Mode",
+      category: "General",
       xpReward: 100,
       coinReward: 200,
     });
   }
-  if ((stats.totalWins || 0) >= 1) {
+  if (totalWins >= 1) {
     achievements.push({
       code: "VICTORIOUS",
       title: "Victorious",
       description: "Win your first match.",
       tier: "Common",
-      category: "Classic Mode",
+      category: "General",
       xpReward: 100,
       coinReward: 200,
     });
   }
-  if ((policeStats.accuracy || 0) >= 80 && (policeStats.correctCatches || 0) >= 5) {
+  if (
+    totalCatches >= 5 ||
+    dcWins >= 5 ||
+    ((policeStats.accuracy || 0) >= 80 && (policeStats.correctCatches || 0) >= 5) ||
+    (dcAccuracy >= 80 && dcCatches >= 5)
+  ) {
     achievements.push({
       code: "MASTER_DETECTIVE",
       title: "Master Detective",
@@ -388,7 +424,7 @@ async function checkAchievements(userId, stats, playerMatchData = {}) {
       coinReward: 1000,
     });
   }
-  if ((policeStats.correctCatches || 0) >= 10) {
+  if (totalCatches >= 10 || dcWins >= 10) {
     achievements.push({
       code: "SHARP_SHOOTER",
       title: "Sharp Shooter",
@@ -399,7 +435,10 @@ async function checkAchievements(userId, stats, playerMatchData = {}) {
       coinReward: 600,
     });
   }
-  if (playerMatchData.fastestCatch && playerMatchData.fastestCatch <= 5 && playerMatchData.fastestCatch > 0) {
+  if (
+    (playerMatchData.fastestCatch && playerMatchData.fastestCatch <= 5 && playerMatchData.fastestCatch > 0) ||
+    (dcStats.fastestGuessTime && dcStats.fastestGuessTime <= 5 && dcStats.fastestGuessTime > 0)
+  ) {
     achievements.push({
       code: "GHOST_HUNTER",
       title: "Ghost Hunter",
@@ -432,7 +471,12 @@ async function checkAchievements(userId, stats, playerMatchData = {}) {
       coinReward: 500,
     });
   }
-  if ((policeStats.accuracy || 0) >= 70) {
+  if (
+    dcGames >= 3 ||
+    dcWins >= 3 ||
+    (policeStats.accuracy || 0) >= 70 ||
+    dcAccuracy >= 70
+  ) {
     achievements.push({
       code: "OBSERVATION_KING",
       title: "Observation King",
@@ -443,7 +487,7 @@ async function checkAchievements(userId, stats, playerMatchData = {}) {
       coinReward: 300,
     });
   }
-  if ((policeStats.correctCatches || 0) >= 15) {
+  if (totalCatches >= 15 || dcWins >= 15) {
     achievements.push({
       code: "SPEED_DETECTIVE",
       title: "Speed Detective",
@@ -476,7 +520,7 @@ async function checkAchievements(userId, stats, playerMatchData = {}) {
       coinReward: 400,
     });
   }
-  if ((stats.totalWins || 0) >= 100) {
+  if ((stats.totalWins || 0) >= 100 || dcWins >= 100 || totalWins >= 100) {
     achievements.push({
       code: "ULTIMATE_DETECTIVE",
       title: "Ultimate Detective",
@@ -669,6 +713,13 @@ export async function getProfileDataById(userId, limit = 15) {
       }
     }
 
+    // Synchronize and evaluate achievements across all modes (Classic, Modern, Detective Mystery Room)
+    try {
+      await checkAchievements(user._id, stats);
+    } catch (e) {
+      console.warn("[statsController] Achievement auto-sync error:", e);
+    }
+
     const classicAchievements = await Achievement.find({ userId: user._id })
       .sort({ unlockedAt: -1 })
       .lean();
@@ -694,8 +745,14 @@ export async function getProfileDataById(userId, limit = 15) {
     const detectiveStats = await DetectiveChallengeStats.findOne({ userId: user._id }).lean();
     const modernStats = await ModernModeStats.findOne({ userId: user._id }).lean();
 
-    const rawRecentMatches = await MatchHistory.find({ "players.userId": user._id })
-      .sort({ endedAt: -1 })
+    const rawRecentMatches = await MatchHistory.find({
+      $or: [
+        { "players.userId": user._id },
+        { "players.username": new RegExp(`^${String(user.username).trim()}$`, "i") }
+      ],
+      gameMode: { $nin: ["DETECTIVE_CHALLENGE", "MODERN_MODE"] }
+    })
+      .sort({ endedAt: -1, createdAt: -1 })
       .limit(limit)
       .lean();
 
@@ -720,7 +777,9 @@ export async function getProfileDataById(userId, limit = 15) {
       .lean();
 
     const formattedMatches = rawRecentMatches.map((m) => {
-      const playerInMatch = m.players?.find((p) => String(p.userId) === String(user._id)) || {};
+      const playerInMatch = m.players?.find(
+        (p) => String(p.userId) === String(user._id) || String(p.username).toLowerCase() === String(user.username).toLowerCase()
+      ) || {};
       return {
         ...m,
         date: m.endedAt || m.createdAt,

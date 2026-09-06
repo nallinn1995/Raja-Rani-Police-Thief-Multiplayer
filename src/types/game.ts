@@ -43,6 +43,7 @@ export interface Room {
   cardsState?: { id: string; selectedBy: string | null }[];
   guessingEndTime?: number;
   gameMode?: GameMode | string;
+  maxPlayers?: number;
   winCondition?: 'rounds' | 'target_score' | string;
   targetScore?: number;
 }
