@@ -4,6 +4,7 @@ import { Socket } from "socket.io-client";
 import { Player, ChatMessage } from "../types/game";
 import { Chat } from "./Chat";
 import { ClassicCardSelection } from "./ClassicCardSelection";
+import { soundService } from "../services/soundService";
 
 interface GameBoardProps {
   socket?: Socket | null;
@@ -111,9 +112,6 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   const [timeLeft, setTimeLeft] = useState<number>(30);
   const [speakingPlayers, setSpeakingPlayers] = useState<Set<string>>(new Set());
 
-  const heartbeatAudioRef = React.useRef<HTMLAudioElement>(null);
-  const policeSirenAudioRef = React.useRef<HTMLAudioElement>(null);
-
   // Real-time socket listener for player speaking updates
   useEffect(() => {
     if (!socket) return;
@@ -138,35 +136,20 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
   useEffect(() => {
     if (room.gameState === "guessing" && room.guessingEndTime) {
+      // Play police siren cue once at start of guessing phase
+      soundService.playPoliceSiren();
+
       const interval = setInterval(() => {
         const remaining = Math.max(0, Math.ceil((room.guessingEndTime! - Date.now()) / 1000));
         setTimeLeft(remaining);
-        if (policeSirenAudioRef.current) {
-          policeSirenAudioRef.current.volume = 0.3;
-          policeSirenAudioRef.current.play().catch((e) => console.log("Audio autoplay prevented", e));
+        if (remaining <= 5 && remaining > 0) {
+          soundService.playTimerTick();
         }
       }, 1000);
 
       return () => {
         clearInterval(interval);
-        if (heartbeatAudioRef.current) {
-          heartbeatAudioRef.current.pause();
-          heartbeatAudioRef.current.currentTime = 0;
-        }
-        if (policeSirenAudioRef.current) {
-          policeSirenAudioRef.current.pause();
-          policeSirenAudioRef.current.currentTime = 0;
-        }
       };
-    } else {
-      if (heartbeatAudioRef.current) {
-        heartbeatAudioRef.current.pause();
-        heartbeatAudioRef.current.currentTime = 0;
-      }
-      if (policeSirenAudioRef.current) {
-        policeSirenAudioRef.current.pause();
-        policeSirenAudioRef.current.currentTime = 0;
-      }
     }
   }, [room.gameState, room.guessingEndTime]);
 
@@ -441,6 +424,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
+                          soundService.playPoliceSiren();
                           onPoliceReveal();
                         }}
                         className="relative group w-full max-w-[200px] cursor-pointer animate-bounce"
@@ -478,7 +462,10 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                     ? "cursor-pointer hover:scale-105 border-fuchsia-400 shadow-[0_0_35px_rgba(217,70,239,0.5)]"
                     : ""
                   }`}
-                onClick={canClick ? () => onMakeGuess(player.id) : undefined}
+                onClick={canClick ? () => {
+                  soundService.playSelectClick();
+                  onMakeGuess(player.id);
+                } : undefined}
               >
                 {/* Sci-Fi Contour Tech Background */}
                 <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-fuchsia-900/20 via-[#0B031E] to-[#04010B] opacity-80" />
@@ -576,18 +563,6 @@ export const GameBoard: React.FC<GameBoardProps> = ({
           onClose={() => setShowChat(false)}
         />
       )}
-
-      {/* Heartbeat and Siren audio */}
-      <audio
-        ref={heartbeatAudioRef}
-        loop
-        src="https://upload.wikimedia.org/wikipedia/commons/6/6b/Heartbeat.ogg"
-      />
-      <audio
-        ref={policeSirenAudioRef}
-        loop
-        src="https://actions.google.com/sounds/v1/alarms/police_siren.ogg"
-      />
     </div>
   );
 };

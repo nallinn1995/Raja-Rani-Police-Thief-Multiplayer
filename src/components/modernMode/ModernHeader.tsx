@@ -1,6 +1,7 @@
-import React from 'react';
-import { Crown, Clock, Users, Copy } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Crown, Clock, Users, Copy, Volume2, VolumeX } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { soundService } from '../../services/soundService';
 
 interface ModernHeaderProps {
   roomCode: string;
@@ -17,6 +18,17 @@ export const ModernHeader: React.FC<ModernHeaderProps> = ({
   maxTimerSeconds = 25,
   playerCount = 6,
 }) => {
+  const [isMuted, setIsMuted] = useState<boolean>(() => soundService.isMuted());
+
+  useEffect(() => {
+    return soundService.subscribe((muted) => setIsMuted(muted));
+  }, []);
+
+  const handleToggleSound = () => {
+    const next = soundService.toggleMute();
+    setIsMuted(next);
+  };
+
   const copyRoomCode = () => {
     navigator.clipboard.writeText(roomCode);
     toast.success('Room Code Copied!');
@@ -116,7 +128,7 @@ export const ModernHeader: React.FC<ModernHeaderProps> = ({
           </p>
         </div>
 
-        {/* Right: Animated Countdown Timer */}
+        {/* Right: Animated Countdown Timer & SFX Toggle */}
         <div className="flex items-center gap-3 w-full md:w-auto justify-center md:justify-end">
           {timerSeconds >= 0 && (
             <div className="flex items-center gap-3 bg-purple-950/80 border border-purple-700/60 px-4 py-1.5 rounded-2xl shadow-inner">
@@ -141,6 +153,20 @@ export const ModernHeader: React.FC<ModernHeaderProps> = ({
               </div>
             </div>
           )}
+
+          {/* Sound Effects Toggle Button */}
+          <button
+            onClick={handleToggleSound}
+            className={`p-2 sm:p-2.5 rounded-2xl border shadow-md transition cursor-pointer flex items-center justify-center ${
+              isMuted
+                ? 'bg-rose-950/80 border-rose-500/60 text-rose-300 hover:bg-rose-900'
+                : 'bg-purple-900/80 border-yellow-500/50 text-yellow-300 hover:bg-purple-800 shadow-[0_0_12px_rgba(234,179,8,0.3)]'
+            }`}
+            title={isMuted ? 'Unmute Sound Effects' : 'Mute Sound Effects'}
+            aria-label="Toggle Sound Effects"
+          >
+            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          </button>
         </div>
       </div>
 

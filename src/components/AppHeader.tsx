@@ -1,6 +1,7 @@
-import React from 'react';
-import { BookOpen, Mic, MicOff, Crown } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { BookOpen, Mic, MicOff, Crown, Volume2, VolumeX } from 'lucide-react';
 import { SpeakerWaveIcon, SpeakerXMarkIcon } from '@heroicons/react/24/solid';
+import { soundService } from '../services/soundService';
 import { UserProfile } from './UserProfile';
 import { User } from '../services/authService';
 import { Room } from '../types/game';
@@ -34,6 +35,17 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   onOpenNotificationSettings,
   onGoHome,
 }) => {
+  const [isSfxMuted, setIsSfxMuted] = useState<boolean>(() => soundService.isMuted());
+
+  useEffect(() => {
+    return soundService.subscribe((muted) => setIsSfxMuted(muted));
+  }, []);
+
+  const handleToggleSfx = () => {
+    const next = soundService.toggleMute();
+    setIsSfxMuted(next);
+  };
+
   if (!currentUser) return null;
 
   const isClassicMode =
@@ -139,6 +151,24 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               <span className={isClassicInRoom ? 'hidden md:inline' : 'hidden xs:inline'}>Game Info</span>
             </button>
           )}
+
+          {/* Sound Effects (SFX) Toggle */}
+          <button
+            onClick={handleToggleSfx}
+            className={`p-1.5 sm:p-2 rounded-full border shadow-md transition-all transform hover:scale-110 active:scale-95 flex items-center justify-center cursor-pointer ${
+              isSfxMuted
+                ? 'bg-rose-500/80 hover:bg-rose-600 border-rose-400 text-white shadow-[0_0_10px_rgba(244,63,94,0.4)]'
+                : 'bg-purple-900/80 hover:bg-purple-800 border-yellow-500/50 text-yellow-300 shadow-[0_0_10px_rgba(234,179,8,0.3)]'
+            }`}
+            title={isSfxMuted ? 'Unmute Game Sound Effects' : 'Mute Game Sound Effects'}
+            aria-label="Toggle Game Sound Effects"
+          >
+            {isSfxMuted ? (
+              <VolumeX className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+            ) : (
+              <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-300" />
+            )}
+          </button>
 
           {/* PWA Install Button */}
           <PWAHeaderButton />

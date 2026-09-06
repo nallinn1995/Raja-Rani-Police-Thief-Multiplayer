@@ -20,7 +20,7 @@ import {
   Texture,
 } from "@babylonjs/core";
 import { Player } from "../../types/game";
-import { playCardShuffleSound } from "../../utils/soundUtils";
+import { soundService } from "../../services/soundService";
 
 interface CardState {
   id: string;
@@ -503,6 +503,8 @@ export const BabylonRoleCardScene: React.FC<BabylonRoleCardSceneProps> = ({
         mesh.animations = [animX, animY, animRotZ];
         scene.beginAnimation(mesh, 0, 45, false, 1.0 + idx * 0.08);
       });
+
+      soundService.playCardShuffle();
     };
 
     playShuffleAnimationRef.current = playShuffleAnimation;
@@ -539,6 +541,7 @@ export const BabylonRoleCardScene: React.FC<BabylonRoleCardSceneProps> = ({
           if (pickedId && !myPrivateRoleRef.current) {
             const targetCard = cardsStateRef.current?.find((c) => c.id === pickedId);
             if (targetCard && !targetCard.selectedBy) {
+              soundService.playCardFlip();
               onSelectCardRef.current(pickedId);
             }
           }
@@ -655,6 +658,9 @@ export const BabylonRoleCardScene: React.FC<BabylonRoleCardSceneProps> = ({
       // Handle PRIVATE 3D FLIP REVEAL for the selecting player ONLY
       if (isMySelection && myPrivateRole && !hasFlippedRef.current[card.id]) {
         hasFlippedRef.current[card.id] = true;
+
+        soundService.playCardFlip();
+        soundService.playRoleReveal(myPrivateRole.role);
 
         scene.stopAnimation(mesh);
         mesh.animations = [];

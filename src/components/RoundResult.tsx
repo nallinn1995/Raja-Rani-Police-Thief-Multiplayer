@@ -5,6 +5,8 @@ import { RoundResult as RoundResultType } from '../types/game';
 import { XpBreakdownCard } from './common/XpBreakdownCard';
 import { playCardShuffleSound } from '../utils/soundUtils';
 
+import { soundService } from '../services/soundService';
+
 interface RoundResultProps {
   result: RoundResultType;
   isHost?: boolean;
@@ -20,15 +22,11 @@ export const RoundResult: React.FC<RoundResultProps> = ({ result, isHost, onNext
         spread: 70,
         origin: { y: 0.6 }
       });
-      // Success sound
-      const successAudio = new Audio("https://actions.google.com/sounds/v1/cartoon/cling_1.ogg");
-      successAudio.volume = 0.6;
-      successAudio.play().catch(e => console.log("Audio play prevented", e));
+      // Correct catch sound
+      soundService.playCorrectCatch();
     } else {
-      // Wrong sound
-      const wrongAudio = new Audio("https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg");
-      wrongAudio.volume = 0.6;
-      wrongAudio.play().catch(e => console.log("Audio play prevented", e));
+      // Thief escape sound
+      soundService.playThiefEscape();
     }
   }, [result.isCorrect]);
 

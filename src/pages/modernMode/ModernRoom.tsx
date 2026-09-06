@@ -10,6 +10,7 @@ import { ModernRoundResult } from '../../components/modernMode/ModernRoundResult
 import { ModernLeaderboard } from '../../components/modernMode/ModernLeaderboard';
 import { modernSocketHandler } from '../../socket/modernMode/modernSocketHandler';
 import { ModernPlayerState, ModernRole, ModernRoundResultData } from '../../types/modernMode';
+import { soundService } from '../../services/soundService';
 
 interface ModernRoomProps {
   socket: Socket;
@@ -112,6 +113,10 @@ export const ModernRoom: React.FC<ModernRoomProps> = ({
       setMaxTimerSeconds(data.maxTimerSeconds);
       setPlayers(data.players);
 
+      if (data.timerSeconds <= 5 && data.timerSeconds > 0) {
+        soundService.playTimerTick();
+      }
+
       const updatedMe = data.players.find((p) => p.id === currentPlayerId);
       if (updatedMe) {
         setHasSubmittedAction(!!updatedMe.hasSubmittedAction);
@@ -119,12 +124,14 @@ export const ModernRoom: React.FC<ModernRoomProps> = ({
     });
 
     socket.on('modern:yourRole', (data: { role: ModernRole }) => {
+      soundService.playRoleReveal(data.role);
       setPlayers((prev) =>
         prev.map((p) => (p.id === currentPlayerId ? { ...p, role: data.role } : p))
       );
     });
 
     socket.on('modern:youAreProtected', (data: { message: string }) => {
+      soundService.playShieldCast();
       toast.info(data.message || '🛡️ You are protected by the Mantri Royal Shield!', {
         autoClose: 5000,
       });
@@ -134,6 +141,19 @@ export const ModernRoom: React.FC<ModernRoomProps> = ({
     });
 
     socket.on('modern:phaseTransition', (data: { title: string; subtitle: string; icon: string }) => {
+      const tTitle = (data.title || '').toLowerCase();
+      if (data.icon === '🚨' || tTitle.includes('investigat') || tTitle.includes('police')) {
+        soundService.playPoliceSiren();
+      } else if (data.icon === '🏛️' || tTitle.includes('shield') || tTitle.includes('mantri')) {
+        soundService.playShieldCast();
+      } else if (data.icon === '⚖️' || data.icon === '👨' || tTitle.includes('witness') || tTitle.includes('villager')) {
+        soundService.playGavelStrike();
+      } else if (data.icon === '👑' || tTitle.includes('royal')) {
+        soundService.playRoyalFanfare();
+      } else {
+        soundService.playRoyalFanfare();
+      }
+
       setTransitionData(data);
       setShowTransition(true);
       setTimeout(() => {
@@ -195,6 +215,11 @@ export const ModernRoom: React.FC<ModernRoomProps> = ({
 
   // Mantri Shield choice handler
   const handleMantriShieldChoice = (targetId: string | null) => {
+    if (targetId) {
+      soundService.playShieldCast();
+    } else {
+      soundService.playSelectClick();
+    }
     modernSocketHandler.submitMantriShield(socket, roomCode, currentPlayerId, targetId);
     setHasSubmittedAction(true);
     if (targetId) {
@@ -209,6 +234,8 @@ export const ModernRoom: React.FC<ModernRoomProps> = ({
   const handleConfirmAction = (targetId?: string) => {
     const target = targetId || selectedPlayerId;
     if (!target) return;
+
+    soundService.playSelectClick();
 
     if (currentPhase === 'royal-phase') {
       if (myRole === 'Raja') {
@@ -226,6 +253,7 @@ export const ModernRoom: React.FC<ModernRoomProps> = ({
 
   // Villager Witness Statement choice handler
   const handleVillagerWitnessChoice = (choice: 'agree' | 'disagree') => {
+    soundService.playGavelStrike();
     modernSocketHandler.submitVillagerWitness(socket, roomCode, currentPlayerId, choice);
     setHasSubmittedAction(true);
     toast.success(`Witness statement (${choice.toUpperCase()}) submitted!`);
@@ -287,7 +315,10 @@ export const ModernRoom: React.FC<ModernRoomProps> = ({
           selectablePlayerIds={selectableIds}
           selectedPlayerId={selectedPlayerId}
           mantriShowProtectButtons={mantriDecision === 'yes'}
-          onSelectPlayer={(id) => setSelectedPlayerId(id)}
+          onSelectPlayer={(id) => {
+            soundService.playSelectClick();
+            setSelectedPlayerId(id);
+          }}
           onMantriProtectPlayer={(targetId) => handleMantriShieldChoice(targetId)}
         />
       </main>

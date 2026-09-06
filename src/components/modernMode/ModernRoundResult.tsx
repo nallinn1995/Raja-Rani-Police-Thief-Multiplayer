@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle2, XCircle, RotateCcw } from 'lucide-react';
 import { ModernRoundResultData, ModernRole, MODERN_ROLES_CONFIG } from '../../types/modernMode';
+import { soundService } from '../../services/soundService';
 
 interface ModernRoundResultProps {
   resultData: ModernRoundResultData;
@@ -31,6 +32,14 @@ export const ModernRoundResult: React.FC<ModernRoundResultProps> = ({
     scores,
     winner,
   } = resultData;
+
+  useEffect(() => {
+    if (policeResult?.isPoliceCatchSuccessful) {
+      soundService.playCorrectCatch();
+    } else {
+      soundService.playThiefEscape();
+    }
+  }, [policeResult?.isPoliceCatchSuccessful]);
 
   return (
     <div className="min-h-screen bg-[#11052C] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#3A1054] via-[#11052C] to-[#0A0217] flex flex-col items-center justify-center p-4 text-white font-sans py-8">
@@ -244,7 +253,10 @@ export const ModernRoundResult: React.FC<ModernRoundResultProps> = ({
         {/* Action Controls */}
         {isGameOver ? (
           <button
-            onClick={onViewLeaderboard}
+            onClick={() => {
+              soundService.playSelectClick();
+              onViewLeaderboard();
+            }}
             className="w-full py-4 rounded-2xl bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 text-black font-black text-lg tracking-wider uppercase shadow-[0_0_30px_rgba(234,179,8,0.4)] hover:scale-[1.02] transition flex items-center justify-center gap-2 cursor-pointer"
           >
             <img src="/assets/images/trophy.png" className="w-6 h-6 object-contain" alt="Trophy" />
@@ -252,7 +264,10 @@ export const ModernRoundResult: React.FC<ModernRoundResultProps> = ({
           </button>
         ) : isHost ? (
           <button
-            onClick={onNextRound}
+            onClick={() => {
+              soundService.playSelectClick();
+              onNextRound();
+            }}
             className="w-full py-4 rounded-2xl bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 text-black font-black text-lg tracking-wider uppercase shadow-[0_0_30px_rgba(234,179,8,0.4)] hover:scale-[1.02] transition flex items-center justify-center gap-2 cursor-pointer"
           >
             <RotateCcw className="w-6 h-6 text-black" />

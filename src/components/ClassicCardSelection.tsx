@@ -3,6 +3,7 @@ import { Socket } from "socket.io-client";
 import { Sparkles, Shield, Crown, CheckCircle2, Lock, HelpCircle, LogOut } from "lucide-react";
 import { Player } from "../types/game";
 import { BabylonRoleCardScene } from "./classic/BabylonRoleCardScene";
+import { soundService } from "../services/soundService";
 
 interface CardState {
   id: string;
@@ -92,9 +93,11 @@ export const ClassicCardSelection: React.FC<ClassicCardSelectionProps> = ({
     if (myPrivateRole && myPrivateRole.cardId) {
       setSelectedCardId(myPrivateRole.cardId);
       setIsFlipping(true);
+      soundService.playCardFlip();
       const timer = setTimeout(() => {
         setIsFlipping(false);
         setShowRoleReveal(true);
+        soundService.playRoleReveal(myPrivateRole.role);
       }, 1200);
       return () => clearTimeout(timer);
     } else if (!myPrivateRole || allUnselected) {
@@ -111,6 +114,7 @@ export const ClassicCardSelection: React.FC<ClassicCardSelectionProps> = ({
     if (targetCard && targetCard.selectedBy) return;
 
     setSelectedCardId(cardId);
+    soundService.playCardFlip();
     onSelectCard(cardId);
   }, [myPrivateRole, showRoleReveal, cardsState, onSelectCard]);
 
