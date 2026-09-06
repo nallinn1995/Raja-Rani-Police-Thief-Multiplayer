@@ -160,22 +160,47 @@ class NotificationService {
       permission: "GRANTED",
     });
 
+    const totalLogs = await NotificationLog.countDocuments();
+    const automaticCount = await NotificationLog.countDocuments({
+      $or: [{ source: "AUTOMATIC" }, { createdBy: { $regex: /^Auto:/i } }],
+    });
+    const campaignCount = await NotificationLog.countDocuments({
+      $or: [{ source: "CAMPAIGN" }, { createdBy: { $regex: /^Campaign:/i } }],
+    });
+    const directCount = await NotificationLog.countDocuments({
+      $or: [
+        { source: "DIRECT" },
+        {
+          $and: [
+            { source: { $ne: "AUTOMATIC" } },
+            { source: { $ne: "CAMPAIGN" } },
+            { createdBy: { $not: /^Auto:/i } },
+            { createdBy: { $not: /^Campaign:/i } },
+          ],
+        },
+      ],
+    });
+
     return {
       totalInstallations,
       enabledInstallations,
       registeredUsersWithPush,
       guestInstallations,
+      totalLogs,
+      automaticCount,
+      campaignCount,
+      directCount,
       isFirebaseConfigured: isFirebaseConfigured(),
     };
   }
 
   /**
-   * Get recent notification history
+   * Get recent notification history across all types
    */
-  async getRecentNotifications(limit = 20) {
-    return await NotificationLog.find()
+  async getRecentNotifications(limit = 100, filter = {}) {
+    return await NotificationLog.find(filter)
       .sort({ createdAt: -1 })
-      .limit(Math.min(limit, 100))
+      .limit(Math.min(limit, 200))
       .lean();
   }
 
@@ -191,6 +216,8 @@ class NotificationService {
     icon = "/icons/icon-192x192.png",
     image = null,
     createdBy = "admin",
+    category = null,
+    source = null,
   }) {
     if (!title || !body) {
       throw new Error("Notification title and body are required");
@@ -218,6 +245,22 @@ class NotificationService {
         ? "INSTALLATION"
         : targetType;
 
+    const resolvedCategory =
+      category ||
+      (createdBy?.startsWith("Auto:")
+        ? "GAME_EVENTS"
+        : createdBy?.startsWith("Campaign:")
+        ? "CAMPAIGN"
+        : "BROADCAST");
+
+    const resolvedSource =
+      source ||
+      (createdBy?.startsWith("Auto:")
+        ? "AUTOMATIC"
+        : createdBy?.startsWith("Campaign:")
+        ? "CAMPAIGN"
+        : "DIRECT");
+
     // Create pending audit log
     const logDoc = await NotificationLog.create({
       title: trimmedTitle,
@@ -228,6 +271,8 @@ class NotificationService {
       targetId: Array.isArray(targetId) ? targetId.join(",") : targetId,
       deepLink: safeDeepLink,
       status: "PROCESSING",
+      category: resolvedCategory,
+      source: resolvedSource,
       createdBy,
       createdAt: new Date(),
     });

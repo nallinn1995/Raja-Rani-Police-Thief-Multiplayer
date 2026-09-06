@@ -49,6 +49,7 @@ export interface ModernAdminDashboardData {
   }>;
   topLeaderboard: Array<{
     rank: number;
+    _id?: string;
     userId: string;
     username: string;
     level: number;
@@ -305,6 +306,15 @@ class AdminService {
     if (!res.ok) throw new Error(data.error || "Failed to delete user");
   }
 
+  async deleteGuest(id: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/api/admin/guests/${id}`, {
+      method: "DELETE",
+      headers: this.getHeaders(),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to delete guest tester");
+  }
+
   async toggleBanUser(id: string): Promise<boolean> {
     const res = await fetch(`${API_BASE}/api/admin/users/${id}/ban`, {
       method: "POST",
@@ -372,6 +382,15 @@ class AdminService {
     if (!res.ok) throw new Error(data.error || "Failed to reset stats");
   }
 
+  async deletePlayerStats(id: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/api/admin/player-stats/${id}`, {
+      method: "DELETE",
+      headers: this.getHeaders(),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to delete player stats record");
+  }
+
   async getMatches(search = "", gameMode = ""): Promise<MatchRecord[]> {
     const query = new URLSearchParams({ search, gameMode }).toString();
     const res = await fetch(`${API_BASE}/api/admin/matches?${query}`, {
@@ -419,6 +438,15 @@ class AdminService {
     return data;
   }
 
+  async deleteModernLeaderboardRecord(id: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/api/admin/modern-mode/leaderboard/${id}`, {
+      method: "DELETE",
+      headers: this.getHeaders(),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to delete modern leaderboard entry");
+  }
+
   async getSystemConfig(): Promise<any> {
     const res = await fetch(`${API_BASE}/api/admin/config`, {
       headers: this.getHeaders(),
@@ -459,6 +487,10 @@ class AdminService {
       enabledInstallations: number;
       registeredUsersWithPush: number;
       guestInstallations: number;
+      totalLogs?: number;
+      automaticCount?: number;
+      campaignCount?: number;
+      directCount?: number;
       isFirebaseConfigured: boolean;
     };
     recent: Array<{
@@ -471,6 +503,8 @@ class AdminService {
       successCount: number;
       failureCount: number;
       status: "PROCESSING" | "SENT" | "PARTIAL" | "FAILED";
+      category?: string;
+      source?: "DIRECT" | "CAMPAIGN" | "AUTOMATIC";
       createdBy: string;
       deepLink?: string;
       createdAt: string;
@@ -500,6 +534,30 @@ class AdminService {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to send notification");
     return data;
+  }
+
+  async testGameEventNotification(payload: {
+    eventType: string;
+    targetUserId?: string;
+    variables?: Record<string, any>;
+  }): Promise<any> {
+    const res = await fetch(`${API_BASE}/api/admin/notifications/test-event`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to trigger test event");
+    return data;
+  }
+
+  async deleteNotificationLog(id: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/api/admin/notifications/logs/${id}`, {
+      method: "DELETE",
+      headers: this.getHeaders(),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to delete notification dispatch log");
   }
 
   // --- Phase 2: Campaigns & Templates API ---
@@ -607,6 +665,15 @@ class AdminService {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to fetch campaign runs");
     return data;
+  }
+
+  async deleteCampaignRun(runId: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/api/admin/notifications/runs/${runId}`, {
+      method: "DELETE",
+      headers: this.getHeaders(),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to delete campaign run");
   }
 
   async getTemplates(): Promise<{ templates: NotificationTemplateItem[] }> {

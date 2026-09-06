@@ -59,6 +59,26 @@ const DEFAULT_AUTO_CONFIGS = [
     cooldownMinutes: 5,
   },
   {
+    eventType: "GAME_WON",
+    displayName: "Victory in Battle",
+    category: "GAME_EVENTS",
+    enabled: true,
+    titleTemplate: "🏆 Victory in the Kingdom!",
+    bodyTemplate: "Glory to {{username}}! You triumphed with {{score}} points in room {{roomCode}}!",
+    deepLinkTemplate: "/profile",
+    cooldownMinutes: 3,
+  },
+  {
+    eventType: "DETECTIVE_VICTORY",
+    displayName: "Mystery Solved",
+    category: "GAME_EVENTS",
+    enabled: true,
+    titleTemplate: "🕵️ Master Detective Triumph!",
+    bodyTemplate: "Detective {{username}} solved the mystery with {{score}} pts in room {{roomCode}}!",
+    deepLinkTemplate: "/profile",
+    cooldownMinutes: 3,
+  },
+  {
     eventType: "DAILY_RETURN",
     displayName: "Daily Streak Reminder",
     category: "REMINDERS",
@@ -178,156 +198,128 @@ class GameNotificationService {
   }
 
   /**
-   * Central asynchronous decision pipeline
+   * Core synchronous/awaitable event execution logic
    */
-  async processEvent({
+  async executeEventCore({
     eventType,
     recipientUserId,
     variables = {},
     cooldownKey = null,
     isCritical = false,
   }) {
-    // Run entirely asynchronous so caller never blocks
+    if (!recipientUserId || !mongoose.Types.ObjectId.isValid(recipientUserId)) {
+      return null;
+    }
+
+    // 1. Check if event is enabled in admin config
+    const config = await this.getConfig(eventType);
+    if (!config || !config.enabled) {
+      return null;
+    }
+
+    // 2. Cooldown anti-spam check
+    const eventKey = cooldownKey || `${eventType}:${recipientUserId}`;
+    if (!isCritical && !notificationFrequencyService.canSendEvent(eventKey, config.cooldownMinutes)) {
+      return null;
+    }
+
+    // 3. Render content
+    const title = this.renderTemplate(config.titleTemplate, variables);
+    const body = this.renderTemplate(config.bodyTemplate, variables);
+    const deepLink = this.renderTemplate(config.deepLinkTemplate, variables) || "/";
+
+    // 4. Deliver in-app Socket.IO toast if player is actively online
+    const isOnline = this.isUserOnline(recipientUserId);
+    if (isOnline && this.io) {
+      const sockets = this.activeSocketsByUser.get(recipientUserId.toString());
+      if (sockets) {
+        for (const socketId of sockets) {
+          this.io.to(socketId).emit("game-notification", {
+            type: eventType,
+            category: config.category,
+            title,
+            body,
+            deepLink,
+            icon: config.icon || "/icons/icon-192x192.png",
+            timestamp: new Date().toISOString(),
+          });
+        }
+      }
+    }
+
+    notificationFrequencyService.recordEventSent(eventKey);
+
+    // Record in-app or targeted event in analytics
+    await NotificationEvent.create({
+      category: config.category,
+      eventType: isOnline ? "SENT" : "TARGETED",
+      userId: recipientUserId,
+      targetType: isOnline ? "SOCKET_IN_APP" : "USER",
+      metadata: { eventType, deepLink, isOnline },
+    }).catch(() => {});
+
+    // 5. Dispatch FCM push notification & record in NotificationLog
+    let dispatchResult = null;
+    try {
+      dispatchResult = await notificationService.sendNotification({
+        title,
+        body,
+        targetType: "SPECIFIC_USER",
+        targetId: recipientUserId.toString(),
+        deepLink,
+        icon: config.icon || "/icons/icon-192x192.png",
+        createdBy: `Auto: ${config.displayName || eventType}`,
+        category: config.category || "GAME_EVENTS",
+        source: "AUTOMATIC",
+      });
+    } catch (err) {
+      console.warn(`[GameNotification] FCM push dispatch error for "${eventType}":`, err.message);
+    }
+
+    // 6. Record final event status in analytics
+    const finalStatus =
+      dispatchResult?.successCount > 0 ? "SENT" : isOnline ? "SENT" : "FAILED";
+    await NotificationEvent.create({
+      category: config.category,
+      eventType: finalStatus,
+      userId: recipientUserId,
+      targetType: "FCM_PUSH",
+      metadata: {
+        eventType,
+        deepLink,
+        targetCount: dispatchResult?.targetCount || 0,
+        successCount: dispatchResult?.successCount || 0,
+        failureCount: dispatchResult?.failureCount || 0,
+      },
+    }).catch(() => {});
+
+    return {
+      title,
+      body,
+      isOnline,
+      dispatchResult,
+    };
+  }
+
+  /**
+   * Central asynchronous decision pipeline
+   */
+  async processEvent(params) {
+    // Run entirely asynchronous so caller never blocks game loop
     setImmediate(async () => {
       try {
-        if (!recipientUserId || !mongoose.Types.ObjectId.isValid(recipientUserId)) {
-          return;
-        }
-
-        // 1. Check if event is enabled in admin config
-        const config = await this.getConfig(eventType);
-        if (!config || !config.enabled) {
-          return;
-        }
-
-        // 2. Cooldown anti-spam check
-        const eventKey = cooldownKey || `${eventType}:${recipientUserId}`;
-        if (!notificationFrequencyService.canSendEvent(eventKey, config.cooldownMinutes)) {
-          return;
-        }
-
-        // 3. Render content
-        const title = this.renderTemplate(config.titleTemplate, variables);
-        const body = this.renderTemplate(config.bodyTemplate, variables);
-        const deepLink = this.renderTemplate(config.deepLinkTemplate, variables) || "/";
-
-        // 4. Check if player is actively online in Socket.IO
-        const isOnline = this.isUserOnline(recipientUserId);
-
-        if (isOnline && this.io) {
-          // Deliver as real-time in-app royal toast
-          const sockets = this.activeSocketsByUser.get(recipientUserId.toString());
-          if (sockets) {
-            for (const socketId of sockets) {
-              this.io.to(socketId).emit("game-notification", {
-                type: eventType,
-                category: config.category,
-                title,
-                body,
-                deepLink,
-                icon: config.icon || "/icons/icon-192x192.png",
-                timestamp: new Date().toISOString(),
-              });
-            }
-          }
-
-          notificationFrequencyService.recordEventSent(eventKey);
-
-          // Record SENT event in analytics
-          await NotificationEvent.create({
-            category: config.category,
-            eventType: "SENT",
-            userId: recipientUserId,
-            targetType: "SOCKET_IN_APP",
-            metadata: { eventType, deepLink, delivery: "IN_APP" },
-          }).catch(() => {});
-
-          return;
-        }
-
-        // 5. If player is backgrounded or offline, resolve push installations
-        const installations = await PushInstallation.find({
-          userId: recipientUserId,
-          notificationsEnabled: true,
-          permission: "GRANTED",
-        }).lean();
-
-        if (!installations || installations.length === 0) {
-          return;
-        }
-
-        // Filter installations respecting user category preferences & quiet hours
-        const categoryKey = this.mapCategoryToPrefKey(config.category);
-        const eligibleInstallations = [];
-
-        for (const inst of installations) {
-          // Category preference check
-          if (inst.preferences && categoryKey && inst.preferences[categoryKey] === false) {
-            continue;
-          }
-
-          // Quiet hours check (suppress non-critical notifications)
-          if (!isCritical && notificationFrequencyService.isInQuietHours(inst.quietHours)) {
-            continue;
-          }
-
-          // Daily limit check
-          const withinLimit = await notificationFrequencyService.checkDailyLimit(
-            inst.installationId,
-            config.category
-          );
-          if (!withinLimit) {
-            continue;
-          }
-
-          eligibleInstallations.push(inst);
-        }
-
-        if (eligibleInstallations.length === 0) {
-          return;
-        }
-
-        // 6. Record TARGETED event in analytics
-        await NotificationEvent.create({
-          category: config.category,
-          eventType: "TARGETED",
-          userId: recipientUserId,
-          targetType: "USER",
-          metadata: { eventType, targetCount: eligibleInstallations.length },
-        }).catch(() => {});
-
-        // 7. Dispatch FCM push notification
-        const dispatchResult = await notificationService.sendNotification({
-          title,
-          body,
-          targetType: "SPECIFIC_USER",
-          targetId: recipientUserId.toString(),
-          deepLink,
-          icon: config.icon || "/icons/icon-192x192.png",
-          createdBy: "system-event",
-        });
-
-        notificationFrequencyService.recordEventSent(eventKey);
-
-        // 8. Record SENT / FAILED in analytics
-        const finalStatus = dispatchResult?.successCount > 0 ? "SENT" : "FAILED";
-        await NotificationEvent.create({
-          category: config.category,
-          eventType: finalStatus,
-          userId: recipientUserId,
-          targetType: "FCM_PUSH",
-          metadata: {
-            eventType,
-            deepLink,
-            targetCount: dispatchResult?.targetCount || 0,
-            successCount: dispatchResult?.successCount || 0,
-            failureCount: dispatchResult?.failureCount || 0,
-          },
-        }).catch(() => {});
+        await this.executeEventCore(params);
       } catch (err) {
-        console.error(`[GameNotification] Failed to process event "${eventType}":`, err.message);
+        console.error(`[GameNotification] Failed to process event "${params.eventType}":`, err.message);
       }
     });
+  }
+
+  /**
+   * Synchronous / Awaitable execution (for admin testing and testing scripts)
+   */
+  async processEventSync(params) {
+    return await this.executeEventCore(params);
   }
 
   mapCategoryToPrefKey(category) {
@@ -375,6 +367,20 @@ class GameNotificationService {
   }
 
   dispatchRoomReady({ roomCode, recipientUserIds = [] }) {
+    if (!recipientUserIds || recipientUserIds.length === 0) {
+      if (this.io && roomCode) {
+        this.io.to(roomCode.toUpperCase()).emit("game-notification", {
+          type: "ROOM_READY",
+          category: "ROOMS",
+          title: "👑 The Royal Battle is Ready!",
+          body: `All players have assembled in room ${roomCode.toUpperCase()}. The kingdom awaits!`,
+          deepLink: `/?join=${roomCode.toUpperCase()}`,
+          icon: "/icons/icon-192x192.png",
+          timestamp: new Date().toISOString(),
+        });
+      }
+      return;
+    }
     for (const userId of recipientUserIds) {
       this.processEvent({
         eventType: "ROOM_READY",
@@ -392,6 +398,7 @@ class GameNotificationService {
       recipientUserId: userId,
       variables: { username, achievementName },
       cooldownKey: `ACHIEVEMENT:${achievementCode}:${userId}`,
+      isCritical: true,
     });
   }
 
@@ -401,6 +408,27 @@ class GameNotificationService {
       recipientUserId: userId,
       variables: { username, level: newLevel, oldLevel },
       cooldownKey: `LEVEL_UP:${newLevel}:${userId}`,
+      isCritical: true,
+    });
+  }
+
+  dispatchGameWon({ userId, username, roomCode, score }) {
+    this.processEvent({
+      eventType: "GAME_WON",
+      recipientUserId: userId,
+      variables: { username, roomCode, score: score || 0 },
+      cooldownKey: `GAME_WON:${roomCode}:${userId}`,
+      isCritical: true,
+    });
+  }
+
+  dispatchDetectiveVictory({ userId, username, roomCode, score }) {
+    this.processEvent({
+      eventType: "DETECTIVE_VICTORY",
+      recipientUserId: userId,
+      variables: { username, roomCode, score: score || 0 },
+      cooldownKey: `DETECTIVE_VICTORY:${roomCode}:${userId}`,
+      isCritical: true,
     });
   }
 

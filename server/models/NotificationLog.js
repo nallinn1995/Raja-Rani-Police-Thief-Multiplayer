@@ -45,6 +45,16 @@ const NotificationLogSchema = new mongoose.Schema(
       enum: ["PROCESSING", "SENT", "PARTIAL", "FAILED"],
       default: "PROCESSING",
     },
+    category: {
+      type: String,
+      default: "BROADCAST",
+      trim: true,
+    },
+    source: {
+      type: String,
+      enum: ["DIRECT", "CAMPAIGN", "AUTOMATIC"],
+      default: "DIRECT",
+    },
     createdBy: {
       type: String,
       default: "admin",

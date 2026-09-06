@@ -219,6 +219,14 @@ export async function recordMatchResults(matchData) {
           if (stats.currentWinStreak > (stats.longestWinStreak || 0)) {
             stats.longestWinStreak = stats.currentWinStreak;
           }
+          if (user?._id) {
+            gameNotificationService.dispatchGameWon({
+              userId: user._id,
+              username: user.username,
+              roomCode: roomCode || "",
+              score: p.score || 0,
+            });
+          }
         } else {
           stats.totalLosses = (stats.totalLosses || 0) + 1;
           stats.currentWinStreak = 0;

@@ -1,4 +1,7 @@
+import mongoose from "mongoose";
 import notificationService from "../services/notificationService.js";
+import gameNotificationService from "../services/gameNotificationService.js";
+import NotificationLog from "../models/NotificationLog.js";
 import PushInstallation from "../models/PushInstallation.js";
 import User from "../models/User.js";
 import { verifyAccessToken, getBearerToken } from "../security.js";
@@ -189,7 +192,7 @@ export async function disassociateUserInstallation(req, res) {
 export async function getAdminNotificationData(req, res) {
   try {
     const metrics = await notificationService.getMetrics();
-    const recent = await notificationService.getRecentNotifications(30);
+    const recent = await notificationService.getRecentNotifications(100);
 
     return res.json({
       success: true,
@@ -244,14 +247,89 @@ export async function sendAdminNotification(req, res) {
       deepLink: deepLink || "/",
       icon: icon || "/icons/icon-192x192.png",
       createdBy: adminUsername,
+      category: "BROADCAST",
+      source: "DIRECT",
     });
 
     return res.json({
       success: true,
+      log: result.log,
+      targetCount: result.targetCount,
+      successCount: result.successCount,
+      failureCount: result.failureCount,
+    });
+  } catch (err) {
+    console.error("[FCM] Admin send notification error:", err);
+    return res.status(500).json({ error: err.message || "Failed to send notification" });
+  }
+}
+
+/**
+ * Admin: Delete notification dispatch log
+ * DELETE /api/admin/notifications/logs/:id
+ */
+export async function deleteNotificationLog(req, res) {
+  try {
+    const { id } = req.params;
+    const deleted = await NotificationLog.findByIdAndDelete(id);
+    if (!deleted) {
+      return res.status(404).json({ error: "Notification log record not found" });
+    }
+    return res.json({ success: true, message: "Notification dispatch log deleted successfully" });
+  } catch (err) {
+    console.error("[FCM] Delete notification log error:", err);
+    return res.status(500).json({ error: "Failed to delete notification dispatch log" });
+  }
+}
+
+/**
+ * Admin: Dispatch a test automatic game event to verify delivery & history
+ * POST /api/admin/notifications/test-event
+ */
+export async function testGameEventNotification(req, res) {
+  try {
+    const { eventType, targetUserId, variables } = req.body;
+    if (!eventType) {
+      return res.status(400).json({ error: "eventType is required" });
+    }
+
+    let userId = targetUserId;
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+      if (req.auth?.userId && mongoose.Types.ObjectId.isValid(req.auth.userId)) {
+        userId = req.auth.userId;
+      } else {
+        const user = await User.findOne().sort({ updatedAt: -1 }).lean();
+        userId = user?._id?.toString();
+      }
+    }
+
+    if (!userId) {
+      return res.status(400).json({ error: "No target user available for event testing." });
+    }
+
+    const testVars = {
+      username: req.auth?.username || "Commander",
+      roomCode: "ROYAL99",
+      achievementName: "Royal Detective Champion",
+      level: 5,
+      score: 1500,
+      ...(variables || {}),
+    };
+
+    const result = await gameNotificationService.processEventSync({
+      eventType,
+      recipientUserId: userId,
+      variables: testVars,
+      isCritical: true,
+    });
+
+    return res.json({
+      success: true,
+      message: `Automatic game event "${eventType}" dispatched successfully!`,
       result,
     });
   } catch (err) {
-    console.error("[FCM] Admin notification send failure:", err.message);
-    return res.status(500).json({ error: err.message || "Failed to send notification" });
+    console.error("[GameNotification] Admin test event error:", err);
+    return res.status(500).json({ error: err.message || "Failed to test event" });
   }
 }

@@ -30,9 +30,11 @@ import {
   getDetectiveProfile,
   getDetectiveLeaderboard,
   getDetectiveAdminDashboard,
+  deleteDetectiveLeaderboardRecord,
   recordRoundResult as recordDetectiveRound,
   recordMatchResult as recordDetectiveMatch,
 } from "./controllers/detectiveChallenge/detectiveChallengeController.js";
+import { DetectiveMysteryGameService } from "./services/detectiveChallenge/DetectiveMysteryGameService.js";
 import {
   adminLogin,
   getOverviewStats,
@@ -40,18 +42,21 @@ import {
   createAdminUser,
   updateUser,
   deleteUser,
+  deleteGuest,
   toggleBanUser,
   getActiveRoomsData,
   closeRoom,
   kickPlayer,
   getPlayerStatsList,
   updatePlayerStatsRecord,
+  deletePlayerStatsRecord,
   resetPlayerStatsRecord,
   getMatchesList,
   deleteMatchRecord,
   clearAllMatches,
   broadcastSystemMessage,
   getModernModeAdminData,
+  deleteModernLeaderboardRecord,
   getOrInitSystemConfig,
   updateSystemConfigInDB,
   getAllGuests,
@@ -64,6 +69,8 @@ import {
   syncUserInstallation,
   getAdminNotificationData,
   sendAdminNotification,
+  deleteNotificationLog,
+  testGameEventNotification,
 } from "./controllers/notificationController.js";
 import {
   getCampaigns,
@@ -75,6 +82,7 @@ import {
   cancelCampaign,
   archiveCampaign,
   getCampaignRuns,
+  deleteCampaignRun,
   getTemplates,
   createTemplate,
   updateTemplate,
@@ -567,6 +575,7 @@ app.get("/api/detective-challenge/leaderboard", getDetectiveLeaderboard);
 app.post("/api/detective-challenge/round", recordDetectiveRound);
 app.post("/api/detective-challenge/match", recordDetectiveMatch);
 app.get("/api/admin/detective-challenge/dashboard", getDetectiveAdminDashboard);
+app.delete("/api/admin/detective-challenge/leaderboard/:id", deleteDetectiveLeaderboardRecord);
 
 // ADMIN API ENDPOINTS
 app.post("/api/admin/login", adminLogin);
@@ -580,6 +589,7 @@ app.get("/api/admin/overview", async (req, res) => {
 });
 app.get("/api/admin/users", getAllUsers);
 app.get("/api/admin/guests", getAllGuests);
+app.delete("/api/admin/guests/:id", deleteGuest);
 app.post("/api/admin/users", createAdminUser);
 app.put("/api/admin/users/:id", updateUser);
 app.delete("/api/admin/users/:id", deleteUser);
@@ -639,6 +649,7 @@ app.post("/api/admin/rooms/:roomCode/kick", (req, res) => {
 app.get("/api/admin/player-stats", getPlayerStatsList);
 app.put("/api/admin/player-stats/:id", updatePlayerStatsRecord);
 app.post("/api/admin/player-stats/:id/reset", resetPlayerStatsRecord);
+app.delete("/api/admin/player-stats/:id", deletePlayerStatsRecord);
 
 app.get("/api/admin/matches", getMatchesList);
 app.delete("/api/admin/matches/:id", deleteMatchRecord);
@@ -649,6 +660,7 @@ app.post("/api/admin/broadcast", (req, res) => {
   res.json({ success: true, message: "Broadcast sent" });
 });
 app.get("/api/admin/modern-mode/dashboard", getModernModeAdminData);
+app.delete("/api/admin/modern-mode/leaderboard/:id", deleteModernLeaderboardRecord);
 app.get("/api/config", async (req, res) => {
   const config = await getOrInitSystemConfig();
   res.json({ success: true, config });
@@ -683,6 +695,8 @@ app.post("/api/notifications/sync-user", syncUserInstallation);
 // Protected Admin Notification Endpoints
 app.get("/api/admin/notifications", verifyAdminToken, getAdminNotificationData);
 app.post("/api/admin/notifications/send", verifyAdminToken, pushSendLimiter, sendAdminNotification);
+app.post("/api/admin/notifications/test-event", verifyAdminToken, testGameEventNotification);
+app.delete("/api/admin/notifications/logs/:id", verifyAdminToken, deleteNotificationLog);
 
 // Phase 2 Protected Admin Notification Campaigns
 app.get("/api/admin/notifications/campaigns", verifyAdminToken, getCampaigns);
@@ -694,6 +708,7 @@ app.post("/api/admin/notifications/campaigns/:id/resume", verifyAdminToken, resu
 app.post("/api/admin/notifications/campaigns/:id/cancel", verifyAdminToken, cancelCampaign);
 app.delete("/api/admin/notifications/campaigns/:id", verifyAdminToken, archiveCampaign);
 app.get("/api/admin/notifications/campaigns/:id/runs", verifyAdminToken, getCampaignRuns);
+app.delete("/api/admin/notifications/runs/:id", verifyAdminToken, deleteCampaignRun);
 
 // Phase 2 Protected Admin Notification Templates
 app.get("/api/admin/notifications/templates", verifyAdminToken, getTemplates);
@@ -783,7 +798,7 @@ app.post(
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { roomName, playerName, totalRounds, gameMode, winCondition, targetScore, userId, guestDeviceId } = req.body;
+    const { roomName, playerName, totalRounds, gameMode, winCondition, targetScore, maxPlayers, userId, guestDeviceId } = req.body;
 
     const token = getBearerToken(req);
     const identity = verifyAccessToken(token);
@@ -805,6 +820,7 @@ app.post(
       totalRounds: parseInt(totalRounds) || 3,
       currentRound: 0,
       gameMode: gameMode || "CLASSIC_POINTS",
+      maxPlayers: gameMode === "DETECTIVE_CHALLENGE" ? Math.min(6, Math.max(1, parseInt(maxPlayers) || 1)) : (gameMode === "MODERN_MODE" ? 6 : 4),
       winCondition: winCondition || "rounds",
       targetScore: winCondition === "target_score" ? (parseInt(targetScore) || 5000) : undefined,
       cardsState: [],
@@ -839,6 +855,7 @@ app.post(
         name: room.name,
         totalRounds: room.totalRounds,
         gameMode: room.gameMode,
+        maxPlayers: room.maxPlayers,
         winCondition: room.winCondition,
         targetScore: room.targetScore,
         players: room.players.map((p) => ({
@@ -876,7 +893,8 @@ app.post(
       return res.status(404).json({ error: "Room not found" });
     }
 
-    if (room.players.length >= 4) {
+    const maxAllowedPlayers = room.maxPlayers || ((room.gameMode === "DETECTIVE_CHALLENGE" || room.gameMode === "MODERN_MODE") ? 6 : 4);
+    if (room.players.length >= maxAllowedPlayers) {
       return res.status(400).json({ error: "Room is full" });
     }
 
@@ -920,6 +938,7 @@ app.post(
         name: room.name,
         totalRounds: room.totalRounds,
         gameMode: room.gameMode,
+        maxPlayers: room.maxPlayers,
         winCondition: room.winCondition,
         targetScore: room.targetScore,
         players: room.players.map((p) => ({
@@ -941,8 +960,9 @@ app.post(
       })),
     });
 
-    // Start game if room is full and notify players
-    if (room.players.length === 4) {
+    // Start game if room is full for Classic Mode (4 players)
+    // Note: Detective Challenge does not auto-start at 4 because it supports 1-6 players started by Host
+    if (room.players.length === 4 && room.gameMode !== "DETECTIVE_CHALLENGE" && room.gameMode !== "MODERN_MODE") {
       const userIds = room.players.map((p) => p.userId).filter(Boolean);
       gameNotificationService.dispatchRoomReady({
         roomCode: roomCode.toUpperCase(),
@@ -1032,6 +1052,14 @@ io.on("connection", (socket) => {
           cardId: myCard.id,
           role: player.role,
         });
+      }
+    }
+
+    // Sync reconnect state for Detective Challenge if game active
+    if (room.gameMode === "DETECTIVE_CHALLENGE" && DetectiveMysteryGameService.hasActiveGame(upperCode)) {
+      const recState = DetectiveMysteryGameService.getReconnectingPlayerState(upperCode, playerId);
+      if (recState) {
+        socket.emit("detective:reconnectSync", recState);
       }
     }
 
@@ -1381,6 +1409,99 @@ io.on("connection", (socket) => {
   socket.on("player-speaking", ({ roomCode, playerId, isSpeaking }) => {
     if (!roomCode) return;
     socket.to(roomCode.toUpperCase()).emit("player-speaking-update", { playerId, isSpeaking });
+  });
+
+  // ==========================================
+  // DETECTIVE CHALLENGE: THE DOOR OF MYSTERY
+  // ==========================================
+  socket.on("detective:startGame", ({ roomCode, playerId }) => {
+    if (!roomCode || !playerId) return;
+    const upperCode = roomCode.toUpperCase();
+    const room = rooms.get(upperCode);
+    if (!room || room.gameMode !== "DETECTIVE_CHALLENGE") return;
+
+    const player = room.players.find((p) => p.id === playerId);
+    if (!player || !player.isHost) {
+      socket.emit("detective:error", { message: "Only host can start the investigation." });
+      return;
+    }
+
+    if (room.players.length < 1) {
+      socket.emit("detective:error", { message: "Minimum 1 player required." });
+      return;
+    }
+
+    room.gameState = "playing";
+    console.log(`[DetectiveMystery] Host ${player.name} initiated Door of Mystery in ${upperCode} with ${room.players.length} detectives.`);
+    DetectiveMysteryGameService.startGame(upperCode, room.players, io);
+  });
+
+  socket.on("detective:toggleRulesReady", ({ roomCode, playerId, isReady }) => {
+    if (!roomCode || !playerId) return;
+    const upperCode = roomCode.toUpperCase();
+    const room = rooms.get(upperCode);
+    if (!room || room.gameMode !== "DETECTIVE_CHALLENGE") return;
+
+    if (!room.detectiveReadyPlayerIds) {
+      room.detectiveReadyPlayerIds = new Set();
+    }
+
+    if (isReady) {
+      room.detectiveReadyPlayerIds.add(playerId);
+    } else {
+      room.detectiveReadyPlayerIds.delete(playerId);
+    }
+
+    const readyPlayerIds = Array.from(room.detectiveReadyPlayerIds);
+    io.to(upperCode).emit("detective:rulesState", {
+      readyCount: readyPlayerIds.length,
+      readyPlayerIds,
+      totalPlayers: room.players.length,
+    });
+  });
+
+  socket.on("detective:requestRulesState", ({ roomCode }) => {
+    if (!roomCode) return;
+    const upperCode = roomCode.toUpperCase();
+    const room = rooms.get(upperCode);
+    if (!room || room.gameMode !== "DETECTIVE_CHALLENGE") return;
+
+    const readyPlayerIds = Array.from(room.detectiveReadyPlayerIds || []);
+    socket.emit("detective:rulesState", {
+      readyCount: readyPlayerIds.length,
+      readyPlayerIds,
+      totalPlayers: room.players.length,
+    });
+  });
+
+  socket.on("detective:openDoor", ({ roomCode, playerId, doorId }) => {
+    if (!roomCode || !playerId || !doorId) return;
+    DetectiveMysteryGameService.openDoor(roomCode, playerId, doorId, socket);
+  });
+
+  socket.on("detective:requestState", ({ roomCode, playerId }) => {
+    if (!roomCode || !playerId) return;
+    const recState = DetectiveMysteryGameService.getReconnectingPlayerState(roomCode, playerId);
+    if (recState) {
+      socket.emit("detective:reconnectSync", recState);
+    }
+  });
+
+  socket.on("detective:playAgain", ({ roomCode, playerId }) => {
+    if (!roomCode || !playerId) return;
+    const upperCode = roomCode.toUpperCase();
+    const room = rooms.get(upperCode);
+    if (!room || room.gameMode !== "DETECTIVE_CHALLENGE") return;
+
+    const player = room.players.find((p) => p.id === playerId);
+    if (!player || !player.isHost) {
+      socket.emit("detective:error", { message: "Only host can restart the game." });
+      return;
+    }
+
+    room.gameState = "playing";
+    console.log(`[DetectiveMystery] Host ${player.name} triggered Play Again in ${upperCode}.`);
+    DetectiveMysteryGameService.startGame(upperCode, room.players, io);
   });
 
   socket.on("disconnect", () => {

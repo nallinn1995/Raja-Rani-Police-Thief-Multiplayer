@@ -10,7 +10,6 @@ import {
   RefreshCw,
   Clock,
   X,
-  Radio,
   ShieldAlert,
   Calendar,
   Repeat,
@@ -48,6 +47,10 @@ interface PushData {
     enabledInstallations: number;
     registeredUsersWithPush: number;
     guestInstallations: number;
+    totalLogs?: number;
+    automaticCount?: number;
+    campaignCount?: number;
+    directCount?: number;
     isFirebaseConfigured: boolean;
   };
   recent: Array<{
@@ -60,6 +63,8 @@ interface PushData {
     successCount: number;
     failureCount: number;
     status: "PROCESSING" | "SENT" | "PARTIAL" | "FAILED";
+    category?: string;
+    source?: "DIRECT" | "CAMPAIGN" | "AUTOMATIC";
     createdBy: string;
     deepLink?: string;
     createdAt: string;
@@ -105,6 +110,22 @@ export const AdminPushNotificationTab: React.FC = () => {
   const [sendTargetType, setSendTargetType] = useState<"ALL" | "INSTALLATION" | "USER">("ALL");
   const [sendTargetId, setSendTargetId] = useState("");
   const [sendDeepLink, setSendDeepLink] = useState("/");
+
+  // Overview History Filters & Search
+  const [historySourceFilter, setHistorySourceFilter] = useState<"ALL" | "AUTOMATIC" | "DIRECT" | "CAMPAIGN">("ALL");
+  const [historySearch, setHistorySearch] = useState("");
+  const [historyStatusFilter, setHistoryStatusFilter] = useState<string>("ALL");
+
+  // Test Game Event Modal State
+  const [isTestEventModalOpen, setIsTestEventModalOpen] = useState(false);
+  const [testEventType, setTestEventType] = useState<string>("ROOM_READY");
+  const [testTargetUserId, setTestTargetUserId] = useState("");
+  const [testRoomCode, setTestRoomCode] = useState("ROYAL88");
+  const [testHostName, setTestHostName] = useState("KingArthur");
+  const [testNewLevel, setTestNewLevel] = useState(5);
+  const [testAchievementName, setTestAchievementName] = useState("Master Detective");
+  const [testMysteryDifficulty, setTestMysteryDifficulty] = useState("hard");
+  const [isTestingEvent, setIsTestingEvent] = useState(false);
 
   // Phase 2 Campaigns State
   const [campaigns, setCampaigns] = useState<NotificationCampaignItem[]>([]);
@@ -437,6 +458,45 @@ export const AdminPushNotificationTab: React.FC = () => {
     }
   };
 
+  const handleExecuteTestEvent = async () => {
+    setIsTestingEvent(true);
+    try {
+      const variables: Record<string, any> = {};
+      if (testEventType === "ROOM_READY") {
+        variables.roomCode = testRoomCode;
+      } else if (testEventType === "ROOM_INVITATION") {
+        variables.roomCode = testRoomCode;
+        variables.hostName = testHostName;
+      } else if (testEventType === "LEVEL_UP") {
+        variables.newLevel = Number(testNewLevel);
+      } else if (testEventType === "ACHIEVEMENT_UNLOCKED") {
+        variables.achievementName = testAchievementName;
+      } else if (testEventType === "GAME_WON") {
+        variables.roomCode = testRoomCode;
+      } else if (testEventType === "DETECTIVE_VICTORY") {
+        variables.difficulty = testMysteryDifficulty;
+      }
+
+      const res = await adminService.testGameEventNotification({
+        eventType: testEventType,
+        targetUserId: testTargetUserId.trim() || undefined,
+        variables,
+      });
+
+      toast.success(
+        `⚡ Test event "${testEventType}" dispatched! (${res.result?.successCount || 0} succeeded, ${res.result?.failureCount || 0} failed)`
+      );
+      setIsTestEventModalOpen(false);
+      fetchData();
+    } catch (err: any) {
+      console.error("Failed to test game event:", err);
+      toast.error(err.message || "Failed to trigger test event");
+    } finally {
+      setIsTestingEvent(false);
+    }
+  };
+
+
   // --- CAMPAIGN ACTIONS ---
   const handleOpenCreateCampaign = () => {
     setEditingCampaignId(null);
@@ -604,6 +664,37 @@ export const AdminPushNotificationTab: React.FC = () => {
     }
   };
 
+  const handleDeleteNotificationLog = async (logId: string) => {
+    if (!window.confirm("Are you sure you want to delete this notification dispatch log?")) {
+      return;
+    }
+    try {
+      await adminService.deleteNotificationLog(logId);
+      toast.success("Notification dispatch log deleted.");
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete notification log");
+    }
+  };
+
+  const handleDeleteCampaignRun = async (runId: string) => {
+    if (!window.confirm("Are you sure you want to delete this campaign run log?")) {
+      return;
+    }
+    try {
+      await adminService.deleteCampaignRun(runId);
+      toast.success("Campaign run log deleted.");
+      if (selectedCampaignRuns) {
+        setSelectedCampaignRuns({
+          ...selectedCampaignRuns,
+          runs: selectedCampaignRuns.runs.filter((r) => r._id !== runId),
+        });
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete campaign run");
+    }
+  };
+
   const handleViewRuns = async (camp: NotificationCampaignItem) => {
     try {
       const res = await adminService.getCampaignRuns(camp._id);
@@ -711,6 +802,50 @@ export const AdminPushNotificationTab: React.FC = () => {
     );
   };
 
+  // Process unified notification history logs
+  const allRecentLogs = data?.recent || [];
+  const autoLogsCount = allRecentLogs.filter(
+    (l) => l.source === "AUTOMATIC" || l.createdBy?.startsWith("Auto:")
+  ).length;
+  const directLogsCount = allRecentLogs.filter(
+    (l) => l.source === "DIRECT" || (l.createdBy && !l.createdBy.startsWith("Auto:") && !l.createdBy.startsWith("Campaign:"))
+  ).length;
+  const campaignLogsCount = allRecentLogs.filter(
+    (l) => l.source === "CAMPAIGN" || l.createdBy?.startsWith("Campaign:")
+  ).length;
+
+  const filteredLogs = allRecentLogs.filter((item) => {
+    // Source filter
+    if (historySourceFilter === "AUTOMATIC") {
+      if (item.source !== "AUTOMATIC" && !item.createdBy?.startsWith("Auto:")) return false;
+    } else if (historySourceFilter === "DIRECT") {
+      if (item.source !== "DIRECT" && (item.createdBy?.startsWith("Auto:") || item.createdBy?.startsWith("Campaign:"))) return false;
+    } else if (historySourceFilter === "CAMPAIGN") {
+      if (item.source !== "CAMPAIGN" && !item.createdBy?.startsWith("Campaign:")) return false;
+    }
+
+    // Status filter
+    if (historyStatusFilter !== "ALL" && item.status !== historyStatusFilter) {
+      return false;
+    }
+
+    // Search query
+    if (historySearch.trim()) {
+      const q = historySearch.toLowerCase();
+      const matchTitle = item.title?.toLowerCase().includes(q);
+      const matchBody = item.body?.toLowerCase().includes(q);
+      const matchCreator = item.createdBy?.toLowerCase().includes(q);
+      const matchCategory = item.category?.toLowerCase().includes(q);
+      const matchTarget = item.targetId?.toLowerCase().includes(q);
+      const matchLink = item.deepLink?.toLowerCase().includes(q);
+      if (!matchTitle && !matchBody && !matchCreator && !matchCategory && !matchTarget && !matchLink) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
   return (
     <div className="space-y-6">
       {/* Header & Sub-Tab Navigation */}
@@ -757,13 +892,23 @@ export const AdminPushNotificationTab: React.FC = () => {
             </button>
 
             {activeSubTab === "overview" && (
-              <button
-                onClick={handleOpenSend}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#FFD700] via-[#FBE278] to-[#E59866] text-black font-bold text-xs sm:text-sm hover:brightness-110 active:scale-95 shadow-[0_0_15px_rgba(255,215,0,0.35)] transition-all cursor-pointer"
-              >
-                <Send className="w-4 h-4" />
-                <span>+ Send Now</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsTestEventModalOpen(true)}
+                  className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-[#AC41D7]/30 to-[#782287]/40 hover:bg-[#AC41D7]/50 text-white font-bold text-xs sm:text-sm border border-[#AC41D7]/50 hover:border-[#AC41D7] shadow-[0_0_12px_rgba(172,65,215,0.25)] transition-all cursor-pointer"
+                  title="Test automatic game event push dispatch"
+                >
+                  <Zap className="w-4 h-4 text-amber-300" />
+                  <span>⚡ Test Game Event</span>
+                </button>
+                <button
+                  onClick={handleOpenSend}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#FFD700] via-[#FBE278] to-[#E59866] text-black font-bold text-xs sm:text-sm hover:brightness-110 active:scale-95 shadow-[0_0_15px_rgba(255,215,0,0.35)] transition-all cursor-pointer"
+                >
+                  <Send className="w-4 h-4" />
+                  <span>+ Send Now</span>
+                </button>
+              </div>
             )}
 
             {activeSubTab === "campaigns" && (
@@ -905,7 +1050,7 @@ export const AdminPushNotificationTab: React.FC = () => {
               <div className="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#FBE278] to-[#FFD700]">
                 {data?.metrics.enabledInstallations.toLocaleString() || 0}
               </div>
-              <p className="text-[11px] text-white/50 mt-1">Permission granted & active</p>
+              <p className="text-[11px] text-white/50 mt-1">Permission granted & active devices</p>
             </div>
 
             <div className="p-4 rounded-2xl bg-[#190833]/80 border border-[#FFD700]/20 shadow-lg backdrop-blur-sm">
@@ -918,108 +1063,242 @@ export const AdminPushNotificationTab: React.FC = () => {
               <div className="text-2xl sm:text-3xl font-black text-white">
                 {data?.metrics.registeredUsersWithPush.toLocaleString() || 0}
               </div>
-              <p className="text-[11px] text-white/50 mt-1">Authenticated accounts with push</p>
+              <p className="text-[11px] text-white/50 mt-1">Logged-in accounts with push active</p>
             </div>
 
             <div className="p-4 rounded-2xl bg-[#190833]/80 border border-[#FFD700]/20 shadow-lg backdrop-blur-sm">
               <div className="flex items-center justify-between text-white/60 mb-2">
-                <span className="text-xs font-semibold uppercase tracking-wider">Active Campaigns</span>
+                <span className="text-xs font-semibold uppercase tracking-wider">Automatic Game Events</span>
                 <div className="p-2 rounded-lg bg-amber-400/10 text-amber-400">
+                  <Zap className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-amber-300">
+                {(data?.metrics?.automaticCount ?? autoLogsCount).toLocaleString()}
+              </div>
+              <p className="text-[11px] text-white/50 mt-1">Room ready, level ups, wins & invites</p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-[#190833]/80 border border-[#FFD700]/20 shadow-lg backdrop-blur-sm">
+              <div className="flex items-center justify-between text-white/60 mb-2">
+                <span className="text-xs font-semibold uppercase tracking-wider">Campaign & Direct Logs</span>
+                <div className="p-2 rounded-lg bg-cyan-400/10 text-cyan-400">
                   <Repeat className="w-4 h-4" />
                 </div>
               </div>
               <div className="text-2xl sm:text-3xl font-black text-white">
-                {campaignStats.activeRecurring + campaignStats.scheduledOneTime}
+                {((data?.metrics?.campaignCount ?? campaignLogsCount) + (data?.metrics?.directCount ?? directLogsCount)).toLocaleString()}
               </div>
               <p className="text-[11px] text-white/50 mt-1">
-                {campaignStats.activeRecurring} recurring · {campaignStats.scheduledOneTime} scheduled
+                {data?.metrics?.campaignCount ?? campaignLogsCount} campaign · {data?.metrics?.directCount ?? directLogsCount} direct
               </p>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-[#190833]/80 border border-[#FFD700]/20 shadow-lg backdrop-blur-sm">
-              <div className="flex items-center justify-between text-white/60 mb-2">
-                <span className="text-xs font-semibold uppercase tracking-wider">Guest Devices</span>
-                <div className="p-2 rounded-lg bg-cyan-400/10 text-cyan-400">
-                  <Radio className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-2xl sm:text-3xl font-black text-white">
-                {data?.metrics.guestInstallations.toLocaleString() || 0}
-              </div>
-              <p className="text-[11px] text-white/50 mt-1">Unassociated visitor devices</p>
             </div>
           </div>
 
-          {/* Recent Direct / Broadcast Logs */}
+          {/* All Push Notification History (Automatic, Direct & Campaigns) */}
           <div className="bg-[#190833]/80 border border-[#FFD700]/20 rounded-2xl overflow-hidden shadow-xl backdrop-blur-md">
-            <div className="p-4 border-b border-white/10 flex items-center justify-between">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Clock className="w-4 h-4 text-[#FFD700]" />
-                Recent Direct Dispatches (Send Now)
-              </h3>
-              <span className="text-xs text-white/50">{data?.recent.length || 0} logs</span>
+            {/* Table Header & Search/Filters */}
+            <div className="p-4 border-b border-white/10 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <History className="w-4 h-4 text-[#FFD700]" />
+                    <span>All Push Notification History</span>
+                  </h3>
+                  <p className="text-xs text-white/50 mt-0.5">
+                    Live stream of all automatic game events, direct dispatches, and campaign executions.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/70 font-mono">
+                    Showing {filteredLogs.length} of {allRecentLogs.length} logs
+                  </span>
+                </div>
+              </div>
+
+              {/* Filter controls row */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-white/5">
+                {/* Kind Filter Pills */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <button
+                    onClick={() => setHistorySourceFilter("ALL")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      historySourceFilter === "ALL"
+                        ? "bg-[#FFD700] text-black shadow-[0_0_8px_rgba(255,215,0,0.3)]"
+                        : "bg-white/5 text-white/70 hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    All History ({allRecentLogs.length})
+                  </button>
+                  <button
+                    onClick={() => setHistorySourceFilter("AUTOMATIC")}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      historySourceFilter === "AUTOMATIC"
+                        ? "bg-emerald-400 text-black shadow-[0_0_8px_rgba(52,211,153,0.3)]"
+                        : "bg-white/5 text-emerald-400/80 hover:bg-white/10 hover:text-emerald-300"
+                    }`}
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    <span>⚡ Automatic Events ({autoLogsCount})</span>
+                  </button>
+                  <button
+                    onClick={() => setHistorySourceFilter("DIRECT")}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      historySourceFilter === "DIRECT"
+                        ? "bg-amber-400 text-black shadow-[0_0_8px_rgba(251,191,36,0.3)]"
+                        : "bg-white/5 text-amber-400/80 hover:bg-white/10 hover:text-amber-300"
+                    }`}
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>📢 Direct Send Now ({directLogsCount})</span>
+                  </button>
+                  <button
+                    onClick={() => setHistorySourceFilter("CAMPAIGN")}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      historySourceFilter === "CAMPAIGN"
+                        ? "bg-purple-400 text-black shadow-[0_0_8px_rgba(192,132,252,0.3)]"
+                        : "bg-white/5 text-purple-400/80 hover:bg-white/10 hover:text-purple-300"
+                    }`}
+                  >
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>📅 Campaigns ({campaignLogsCount})</span>
+                  </button>
+                </div>
+
+                {/* Search & Status Filters */}
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <input
+                    type="text"
+                    value={historySearch}
+                    onChange={(e) => setHistorySearch(e.target.value)}
+                    placeholder="Search title, message, route..."
+                    className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-white text-xs placeholder:text-white/30 focus:border-[#FFD700] w-full sm:w-48 outline-none"
+                  />
+                  <select
+                    value={historyStatusFilter}
+                    onChange={(e) => setHistoryStatusFilter(e.target.value)}
+                    className="px-2.5 py-1.5 rounded-lg bg-black/40 border border-white/10 text-white text-xs focus:border-[#FFD700] outline-none cursor-pointer"
+                  >
+                    <option value="ALL">All Status</option>
+                    <option value="SENT">Sent</option>
+                    <option value="PARTIAL">Partial</option>
+                    <option value="FAILED">Failed</option>
+                    <option value="PROCESSING">Processing</option>
+                  </select>
+                </div>
+              </div>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs sm:text-sm">
                 <thead>
                   <tr className="bg-black/30 text-white/60 text-[11px] uppercase tracking-wider border-b border-white/5">
+                    <th className="py-3 px-4">Source & Event</th>
                     <th className="py-3 px-4">Title & Message</th>
                     <th className="py-3 px-4">Target</th>
                     <th className="py-3 px-4">Sent At</th>
                     <th className="py-3 px-4">Delivery</th>
                     <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5 text-white/80">
-                  {data && data.recent.length > 0 ? (
-                    data.recent.map((item) => (
-                      <tr key={item._id} className="hover:bg-white/[0.02] transition-colors">
-                        <td className="py-3 px-4 max-w-xs">
-                          <div className="font-semibold text-white truncate">{item.title}</div>
-                          <div className="text-xs text-white/60 truncate">{item.body}</div>
-                        </td>
-                        <td className="py-3 px-4 whitespace-nowrap">
-                          <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-xs">
-                            {item.targetType === "ALL"
-                              ? "All Enabled"
-                              : item.targetType === "USER"
-                              ? `User (${item.targetId?.slice(0, 6)}...)`
-                              : `Device (${item.targetId?.slice(0, 6)}...)`}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 whitespace-nowrap text-white/50 text-xs">
-                          {item.createdAt ? new Date(item.createdAt).toLocaleString() : "—"}
-                        </td>
-                        <td className="py-3 px-4 whitespace-nowrap text-xs">
-                          <span className="text-[#36D978] font-semibold">{item.successCount}</span>
-                          <span className="text-white/40"> / </span>
-                          <span className="text-white/70">{item.targetCount}</span>
-                          {item.failureCount > 0 && (
-                            <span className="text-red-400 text-[11px] ml-1.5">({item.failureCount} failed)</span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 whitespace-nowrap">
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${
-                              item.status === "SENT"
-                                ? "bg-[#36D978]/20 text-[#36D978] border border-[#36D978]/30"
-                                : item.status === "PARTIAL"
-                                ? "bg-amber-400/20 text-amber-300 border border-amber-400/30"
-                                : item.status === "FAILED"
-                                ? "bg-red-500/20 text-red-400 border border-red-500/30"
-                                : "bg-blue-400/20 text-blue-300 border border-blue-400/30 animate-pulse"
-                            }`}
-                          >
-                            {item.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))
+                  {filteredLogs.length > 0 ? (
+                    filteredLogs.map((item) => {
+                      const isAuto = item.source === "AUTOMATIC" || item.createdBy?.startsWith("Auto:");
+                      const isCamp = item.source === "CAMPAIGN" || item.createdBy?.startsWith("Campaign:");
+                      const displayLabel = isAuto
+                        ? (item.category || item.createdBy?.replace("Auto: ", "") || "Automatic Event")
+                        : isCamp
+                        ? (item.category || item.createdBy?.replace("Campaign: ", "") || "Campaign Run")
+                        : (item.createdBy || "Admin Direct");
+
+                      return (
+                        <tr key={item._id} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="py-3 px-4 whitespace-nowrap">
+                            {isAuto ? (
+                              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-semibold text-[11px]">
+                                <Zap className="w-3.5 h-3.5 text-amber-300 flex-shrink-0" />
+                                <span className="truncate max-w-[130px]">{displayLabel}</span>
+                              </div>
+                            ) : isCamp ? (
+                              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-500/15 border border-purple-500/30 text-purple-300 font-semibold text-[11px]">
+                                <Calendar className="w-3.5 h-3.5 text-purple-300 flex-shrink-0" />
+                                <span className="truncate max-w-[130px]">{displayLabel}</span>
+                              </div>
+                            ) : (
+                              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-400/15 border border-amber-400/30 text-amber-300 font-semibold text-[11px]">
+                                <Send className="w-3.5 h-3.5 text-amber-300 flex-shrink-0" />
+                                <span className="truncate max-w-[130px]">Direct: {displayLabel}</span>
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 max-w-xs">
+                            <div className="font-semibold text-white truncate flex items-center gap-1.5">
+                              <span>{item.title}</span>
+                              {item.deepLink && item.deepLink !== "/" && (
+                                <span className="px-1.5 py-0.2 rounded bg-white/10 text-[10px] text-cyan-300 font-mono">
+                                  {item.deepLink}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-white/60 truncate">{item.body}</div>
+                          </td>
+                          <td className="py-3 px-4 whitespace-nowrap">
+                            <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-xs">
+                              {item.targetType === "ALL"
+                                ? "All Enabled"
+                                : item.targetType === "USER"
+                                ? `User (${item.targetId?.slice(0, 6)}...)`
+                                : `Device (${item.targetId?.slice(0, 6)}...)`}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 whitespace-nowrap text-white/50 text-xs">
+                            {item.createdAt ? new Date(item.createdAt).toLocaleString() : "—"}
+                          </td>
+                          <td className="py-3 px-4 whitespace-nowrap text-xs">
+                            <span className="text-[#36D978] font-semibold">{item.successCount}</span>
+                            <span className="text-white/40"> / </span>
+                            <span className="text-white/70">{item.targetCount}</span>
+                            {item.failureCount > 0 && (
+                              <span className="text-red-400 text-[11px] ml-1.5">({item.failureCount} failed)</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 whitespace-nowrap">
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${
+                                item.status === "SENT"
+                                  ? "bg-[#36D978]/20 text-[#36D978] border border-[#36D978]/30"
+                                  : item.status === "PARTIAL"
+                                  ? "bg-amber-400/20 text-amber-300 border border-amber-400/30"
+                                  : item.status === "FAILED"
+                                  ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                                  : "bg-blue-400/20 text-blue-300 border border-blue-400/30 animate-pulse"
+                              }`}
+                            >
+                              {item.status}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right whitespace-nowrap">
+                            <button
+                              onClick={() => handleDeleteNotificationLog(item._id)}
+                              className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors cursor-pointer"
+                              title="Delete Notification Log"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
                   ) : (
                     <tr>
-                      <td colSpan={5} className="py-8 text-center text-white/40 text-xs">
-                        {loading ? "Loading notification history..." : "No notification logs recorded yet."}
+                      <td colSpan={7} className="py-8 text-center text-white/40 text-xs">
+                        {loading
+                          ? "Loading notification history..."
+                          : allRecentLogs.length > 0
+                          ? "No notification logs matched the selected filters."
+                          : "No notification logs recorded yet. Trigger a test event or direct notification above."}
                       </td>
                     </tr>
                   )}
@@ -2422,6 +2701,7 @@ export const AdminPushNotificationTab: React.FC = () => {
                     <th className="py-2.5 px-3">Targeted</th>
                     <th className="py-2.5 px-3">Delivered</th>
                     <th className="py-2.5 px-3">Status</th>
+                    <th className="py-2.5 px-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5 text-white/80">
@@ -2451,11 +2731,20 @@ export const AdminPushNotificationTab: React.FC = () => {
                             {r.status}
                           </span>
                         </td>
+                        <td className="py-2.5 px-3 text-right">
+                          <button
+                            onClick={() => handleDeleteCampaignRun(r._id)}
+                            className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors"
+                            title="Delete Campaign Run Log"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={4} className="py-6 text-center text-white/40 text-xs">
+                      <td colSpan={5} className="py-6 text-center text-white/40 text-xs">
                         No executions recorded yet for this campaign.
                       </td>
                     </tr>
@@ -2621,6 +2910,186 @@ export const AdminPushNotificationTab: React.FC = () => {
                   className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#FFD700] via-[#FBE278] to-[#E59866] text-black font-bold text-xs hover:brightness-110 active:scale-95 shadow-[0_0_15px_rgba(255,215,0,0.4)] cursor-pointer"
                 >
                   {isSavingAutoEvent ? "Saving..." : "Save Configuration"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL 8: TEST GAME EVENT PUSH NOTIFICATION --- */}
+      {isTestEventModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-lg bg-gradient-to-b from-[#21073F] to-[#120426] border border-[#FFD700]/50 rounded-2xl shadow-2xl p-5 sm:p-6 space-y-5 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div>
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-amber-400" />
+                  <span>Test Automatic Game Event</span>
+                </h3>
+                <p className="text-xs text-white/50 mt-0.5">
+                  Simulate an in-game trigger with live FCM push dispatch & audit logging
+                </p>
+              </div>
+              <button
+                onClick={() => setIsTestEventModalOpen(false)}
+                className="text-white/60 hover:text-white p-1 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleExecuteTestEvent();
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="block text-xs font-semibold text-white/70 mb-1.5">Game Event Type</label>
+                <select
+                  value={testEventType}
+                  onChange={(e) => setTestEventType(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/15 text-white text-xs focus:border-[#FFD700] outline-none cursor-pointer"
+                >
+                  <option value="ROOM_READY" className="bg-[#190833]">⚡ ROOM_READY (Match Starting)</option>
+                  <option value="ROOM_INVITATION" className="bg-[#190833]">👑 ROOM_INVITATION (Friend Room Invite)</option>
+                  <option value="LEVEL_UP" className="bg-[#190833]">🎖️ LEVEL_UP (Player Level Advanced)</option>
+                  <option value="ACHIEVEMENT_UNLOCKED" className="bg-[#190833]">🏆 ACHIEVEMENT_UNLOCKED (Badge Earned)</option>
+                  <option value="GAME_WON" className="bg-[#190833]">👑 GAME_WON (Royal Match Victory)</option>
+                  <option value="DETECTIVE_VICTORY" className="bg-[#190833]">🔍 DETECTIVE_VICTORY (Mystery Case Solved)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-white/70 mb-1">
+                  Target User ID <span className="text-white/40 font-normal">(Optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={testTargetUserId}
+                  onChange={(e) => setTestTargetUserId(e.target.value)}
+                  placeholder="Leave empty to send test broadcast"
+                  className="w-full px-3.5 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-xs placeholder:text-white/30 focus:border-[#FFD700] outline-none"
+                />
+                <p className="text-[10px] text-white/40 mt-1">
+                  Leave blank to broadcast to all enabled test installations or enter a specific User ID.
+                </p>
+              </div>
+
+              {/* Event variables contextual fields */}
+              {(testEventType === "ROOM_READY" || testEventType === "ROOM_INVITATION" || testEventType === "GAME_WON") && (
+                <div>
+                  <label className="block text-xs font-semibold text-white/70 mb-1">Room Code</label>
+                  <input
+                    type="text"
+                    value={testRoomCode}
+                    onChange={(e) => setTestRoomCode(e.target.value)}
+                    required
+                    className="w-full px-3.5 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-xs focus:border-[#FFD700] outline-none font-mono"
+                  />
+                </div>
+              )}
+
+              {testEventType === "ROOM_INVITATION" && (
+                <div>
+                  <label className="block text-xs font-semibold text-white/70 mb-1">Host Name</label>
+                  <input
+                    type="text"
+                    value={testHostName}
+                    onChange={(e) => setTestHostName(e.target.value)}
+                    required
+                    className="w-full px-3.5 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-xs focus:border-[#FFD700] outline-none"
+                  />
+                </div>
+              )}
+
+              {testEventType === "LEVEL_UP" && (
+                <div>
+                  <label className="block text-xs font-semibold text-white/70 mb-1">New Level</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={testNewLevel}
+                    onChange={(e) => setTestNewLevel(Number(e.target.value))}
+                    required
+                    className="w-full px-3.5 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-xs focus:border-[#FFD700] outline-none"
+                  />
+                </div>
+              )}
+
+              {testEventType === "ACHIEVEMENT_UNLOCKED" && (
+                <div>
+                  <label className="block text-xs font-semibold text-white/70 mb-1">Achievement Name</label>
+                  <input
+                    type="text"
+                    value={testAchievementName}
+                    onChange={(e) => setTestAchievementName(e.target.value)}
+                    required
+                    className="w-full px-3.5 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-xs focus:border-[#FFD700] outline-none"
+                  />
+                </div>
+              )}
+
+              {testEventType === "DETECTIVE_VICTORY" && (
+                <div>
+                  <label className="block text-xs font-semibold text-white/70 mb-1">Difficulty</label>
+                  <select
+                    value={testMysteryDifficulty}
+                    onChange={(e) => setTestMysteryDifficulty(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-xs focus:border-[#FFD700] outline-none cursor-pointer"
+                  >
+                    <option value="easy" className="bg-[#190833]">Easy</option>
+                    <option value="medium" className="bg-[#190833]">Medium</option>
+                    <option value="hard" className="bg-[#190833]">Hard</option>
+                    <option value="insane" className="bg-[#190833]">Insane</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Event Sample Preview */}
+              <div>
+                <span className="block text-xs font-semibold text-white/70 mb-1.5">Live Push Preview</span>
+                <div className="p-3.5 rounded-xl bg-gradient-to-r from-[#2B0952] to-[#1D0638] border border-[#FFD700]/40 text-left space-y-1">
+                  <div className="flex items-center gap-1.5 text-[10px] text-white/40">
+                    <span className="text-[#FBE278] font-bold">👑 Raja Rani Police Thief</span>
+                    <span>· now</span>
+                  </div>
+                  <h4 className="text-xs font-bold text-white">
+                    {testEventType === "ROOM_READY" && `⚡ Room Ready: Match Starting!`}
+                    {testEventType === "ROOM_INVITATION" && `👑 Room Invitation Received!`}
+                    {testEventType === "LEVEL_UP" && `🎖️ Level Up Achieved!`}
+                    {testEventType === "ACHIEVEMENT_UNLOCKED" && `🏆 Achievement Unlocked!`}
+                    {testEventType === "GAME_WON" && `👑 Royal Victory! You Won the Match!`}
+                    {testEventType === "DETECTIVE_VICTORY" && `🔍 Case Solved! Detective Mystery Victory`}
+                  </h4>
+                  <p className="text-xs text-white/80 leading-relaxed">
+                    {testEventType === "ROOM_READY" && `Room ${testRoomCode} is full and starting now. Jump in to claim the throne!`}
+                    {testEventType === "ROOM_INVITATION" && `${testHostName} invited you to join room ${testRoomCode}. Tap to play now!`}
+                    {testEventType === "LEVEL_UP" && `Congratulations! You just advanced to Level ${testNewLevel}. New titles unlocked!`}
+                    {testEventType === "ACHIEVEMENT_UNLOCKED" && `You unlocked ${testAchievementName}! Check your profile to show it off.`}
+                    {testEventType === "GAME_WON" && `Outstanding play in room ${testRoomCode}! Your glory shines across the kingdom.`}
+                    {testEventType === "DETECTIVE_VICTORY" && `You cracked the ${testMysteryDifficulty.toUpperCase()} case before time ran out. Brilliant deduction!`}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setIsTestEventModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-white/70 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isTestingEvent}
+                  className="flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-[#AC41D7] via-[#9B51E0] to-[#782287] text-white font-bold text-xs hover:brightness-110 active:scale-95 shadow-[0_0_15px_rgba(172,65,215,0.4)] cursor-pointer"
+                >
+                  <Zap className={`w-3.5 h-3.5 text-amber-300 ${isTestingEvent ? "animate-spin" : ""}`} />
+                  <span>{isTestingEvent ? "Dispatching..." : "⚡ Dispatch Test Event"}</span>
                 </button>
               </div>
             </form>
