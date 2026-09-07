@@ -79,6 +79,7 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
   const currentLayoutRef = useRef<'mobile-4-4-2' | 'desktop-5-2'>('desktop-5-2');
   const thiefImgRef = useRef<HTMLImageElement | null>(null);
   const baseTargetRef = useRef<Vector3>(new Vector3(0, 0, 0));
+  const shakeIntervalRef = useRef<NodeJS.Timeout | number | null>(null);
 
   // Keep refs for callbacks so events don't get stale closures
   const canInteractRef = useRef(canInteract);
@@ -122,6 +123,7 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
       true,
       Texture.TRILINEAR_SAMPLINGMODE
     );
+    texture.anisotropicFilteringLevel = 16;
     const ctx = texture.getContext() as CanvasRenderingContext2D;
     ctx.save();
     ctx.scale(2, 2);
@@ -418,31 +420,34 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
     ctx.stroke();
     ctx.restore();
 
-    // C. Text Banners
-    ctx.font = "900 52px sans-serif";
-    ctx.fillStyle = "#34D399";
+    // C. Text Banners - Crisp, High Contrast & Maximum Readability for Mobile
+    ctx.font = "900 64px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.shadowColor = "rgba(16, 185, 129, 0.6)";
-    ctx.shadowBlur = 15;
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.9)";
+    ctx.lineWidth = 8;
+    ctx.strokeText("SAFE!", cx, 475);
+    ctx.fillStyle = "#34D399";
     ctx.fillText("SAFE!", cx, 475);
 
-    ctx.shadowBlur = 0;
-    ctx.font = "bold 28px sans-serif";
+    ctx.font = "900 32px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.85)";
+    ctx.lineWidth = 5;
+    ctx.strokeText("SECTOR CLEARED", cx, 538);
     ctx.fillStyle = "#A7F3D0";
-    ctx.fillText("SECTOR CLEARED", cx, 535);
+    ctx.fillText("SECTOR CLEARED", cx, 538);
 
     // +100 PTS Badge
-    drawRoundedRect(ctx, 166, 580, 180, 42, 12);
+    drawRoundedRect(ctx, 136, 585, 240, 52, 14);
     ctx.fillStyle = "#F59E0B";
     ctx.fill();
     ctx.strokeStyle = "#FEF08A";
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 3;
     ctx.stroke();
 
-    ctx.font = "900 22px sans-serif";
+    ctx.font = "900 30px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
     ctx.fillStyle = "#1E0A02";
-    ctx.fillText("+100 PTS", cx, 601);
+    ctx.fillText("+100 PTS", cx, 611);
   };
 
   // 3. Bomb Door Interior: Animated Bomb Icon with Burning Fuse & Dynamic Sparks
@@ -620,31 +625,34 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
 
     ctx.restore();
 
-    // C. Warning Text Banners
-    ctx.font = "900 48px sans-serif";
-    ctx.fillStyle = "#F87171";
+    // C. Warning Text Banners - Crisp, Bold & High Contrast for Mobile
+    ctx.font = "900 64px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.shadowColor = "rgba(239, 68, 68, 0.7)";
-    ctx.shadowBlur = 16;
-    ctx.fillText("TRAP!", cx, 475);
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.95)";
+    ctx.lineWidth = 8;
+    ctx.strokeText("BOMB!", cx, 475);
+    ctx.fillStyle = "#EF4444";
+    ctx.fillText("BOMB!", cx, 475);
 
-    ctx.shadowBlur = 0;
     // -1 LIFE Pill Badge
-    drawRoundedRect(ctx, 166, 520, 180, 42, 12);
+    drawRoundedRect(ctx, 136, 525, 240, 52, 14);
     ctx.fillStyle = "#DC2626";
     ctx.fill();
     ctx.strokeStyle = "#FECACA";
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 3;
     ctx.stroke();
 
-    ctx.font = "900 22px sans-serif";
+    ctx.font = "900 30px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
     ctx.fillStyle = "#FFFFFF";
-    ctx.fillText("-1 LIFE LOST", cx, 541);
+    ctx.fillText("-1 LIFE LOST", cx, 551);
 
-    ctx.font = "bold 24px sans-serif";
+    ctx.font = "900 32px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.85)";
+    ctx.lineWidth = 5;
+    ctx.strokeText("TRAP TRIGGERED", cx, 612);
     ctx.fillStyle = "#FCA5A5";
-    ctx.fillText("EXPLOSION DETECTED", cx, 600);
+    ctx.fillText("TRAP TRIGGERED", cx, 612);
   };
 
   // 4. Thief Door Interior: Thief Image + Jail Iron Bars In Front + Animated "ARRESTED" Stamp
@@ -908,25 +916,25 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
 
     // Top Tag
     ctx.fillStyle = "#FCA5A5";
-    ctx.font = "900 13px sans-serif";
+    ctx.font = "900 18px system-ui, -apple-system, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("★ POLICE DEPARTMENT • CRIMINAL DIVISION ★", 0, sTop + 24);
+    ctx.fillText("★ POLICE DEPARTMENT ★", 0, sTop + 26);
 
     // Giant Main Stamp Text: ARRESTED
-    ctx.font = "900 58px 'Impact', 'Arial Black', sans-serif";
+    ctx.font = "900 68px 'Impact', 'Arial Black', system-ui, sans-serif";
     ctx.fillStyle = "#EF4444";
     ctx.shadowColor = "rgba(220, 38, 38, 1)";
     ctx.shadowBlur = 14;
-    ctx.fillText("ARRESTED", 0, 8);
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = "#B91C1C";
-    ctx.strokeText("ARRESTED", 0, 8);
+    ctx.fillText("ARRESTED", 0, 10);
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "#7F1D1D";
+    ctx.strokeText("ARRESTED", 0, 10);
 
     // Bottom Tag
     ctx.fillStyle = "#FECACA";
-    ctx.font = "bold 13px sans-serif";
-    ctx.fillText(`THIEF CAUGHT • ROOM ${roomCode || "CASE CLOSED"}`, 0, sTop + stampH - 22);
+    ctx.font = "900 18px system-ui, -apple-system, sans-serif";
+    ctx.fillText("CASE CLOSED • VICTORY!", 0, sTop + stampH - 24);
 
     // Rubber stamp distress grunge hatch marks
     ctx.strokeStyle = "rgba(254, 202, 202, 0.35)";
@@ -941,27 +949,27 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
     ctx.restore();
 
     // E. Header / Footer Chamber Badges
-    drawRoundedRect(ctx, 146, 38, 220, 36, 10);
+    drawRoundedRect(ctx, 116, 28, 280, 48, 12);
     ctx.fillStyle = "#F59E0B";
     ctx.fill();
     ctx.strokeStyle = "#FEF3C7";
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 3;
     ctx.stroke();
     ctx.fillStyle = "#160601";
-    ctx.font = "900 18px sans-serif";
+    ctx.font = "900 24px system-ui, -apple-system, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("CRIMINAL CAPTURED", 256, 56);
+    ctx.fillText("THIEF CAPTURED!", 256, 52);
 
-    drawRoundedRect(ctx, 156, 706, 200, 36, 10);
+    drawRoundedRect(ctx, 126, 696, 260, 48, 12);
     ctx.fillStyle = "#10B981";
     ctx.fill();
     ctx.strokeStyle = "#A7F3D0";
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 3;
     ctx.stroke();
     ctx.fillStyle = "#022C22";
-    ctx.font = "900 18px sans-serif";
-    ctx.fillText("+1000 PTS VICTORY", 256, 724);
+    ctx.font = "900 24px system-ui, -apple-system, sans-serif";
+    ctx.fillText("+1000 PTS VICTORY", 256, 720);
   };
 
   // 5. Secret Clue Door Interior: Glowing Magnifying Glass, Mystical Parchment & Dynamic Riddle Text
@@ -1050,31 +1058,31 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
     ctx.restore();
 
     // C. Top Badge: "SECRET CLUE!"
-    drawRoundedRect(ctx, 136, 42, 240, 42, 10);
-    const topBadgeGrad = ctx.createLinearGradient(136, 0, 376, 0);
+    drawRoundedRect(ctx, 116, 28, 280, 50, 14);
+    const topBadgeGrad = ctx.createLinearGradient(116, 0, 396, 0);
     topBadgeGrad.addColorStop(0, "#9333EA");
     topBadgeGrad.addColorStop(0.5, "#C084FC");
     topBadgeGrad.addColorStop(1, "#7E22CE");
     ctx.fillStyle = topBadgeGrad;
     ctx.fill();
     ctx.strokeStyle = "#FDE047";
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 3;
     ctx.stroke();
 
     ctx.fillStyle = "#FFFFFF";
-    ctx.font = "900 24px sans-serif";
+    ctx.font = "900 30px system-ui, -apple-system, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
     ctx.shadowBlur = 8;
-    ctx.fillText("SECRET CLUE!", cx, 63);
+    ctx.fillText("SECRET CLUE!", cx, 53);
     ctx.shadowBlur = 0;
 
     // D. Parchment Clue Scroll Box
-    const boxX = 36;
-    const boxY = 405;
-    const boxW = 440;
-    const boxH = 265;
+    const boxX = 32;
+    const boxY = 385;
+    const boxW = 448;
+    const boxH = 285;
     drawRoundedRect(ctx, boxX, boxY, boxW, boxH, 18);
     const parchGrad = ctx.createLinearGradient(boxX, boxY, boxX, boxY + boxH);
     parchGrad.addColorStop(0, "#1F1235");
@@ -1083,25 +1091,25 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
     ctx.fillStyle = parchGrad;
     ctx.fill();
     ctx.strokeStyle = "#F59E0B";
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 4;
     ctx.stroke();
 
     // Scroll header ribbon
     ctx.fillStyle = "#F59E0B";
-    ctx.font = "900 20px sans-serif";
-    ctx.fillText("📜 CLASSIFIED INTELLIGENCE", cx, boxY + 36);
+    ctx.font = "900 28px system-ui, -apple-system, sans-serif";
+    ctx.fillText("📜 SECRET INTEL", cx, boxY + 40);
 
     // Riddle / Clue Text (Multi-line wrapped)
     const textToDisplay = clueText || "Mysterious clues revealed! Check the crime scene.";
-    ctx.fillStyle = "#FEF3C7";
-    ctx.font = "bold 22px sans-serif";
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = "900 32px system-ui, -apple-system, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
     const words = textToDisplay.split(" ");
     let line = "";
     const lines: string[] = [];
-    const maxLineW = boxW - 50;
+    const maxLineW = boxW - 40;
     for (let i = 0; i < words.length; i++) {
       const testLine = line + (line ? " " : "") + words[i];
       const metrics = ctx.measureText(testLine);
@@ -1114,28 +1122,31 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
     }
     if (line) lines.push(line);
 
-    const startTextY = boxY + 105;
-    const lineSpacing = 32;
+    const startTextY = boxY + 115;
+    const lineSpacing = 42;
     lines.forEach((l, idx) => {
+      ctx.strokeStyle = "rgba(0, 0, 0, 0.95)";
+      ctx.lineWidth = 6;
+      ctx.strokeText(l, cx, startTextY + idx * lineSpacing);
       ctx.fillText(l, cx, startTextY + idx * lineSpacing);
     });
 
     // Sub-note in clue box
-    ctx.font = "600 15px sans-serif";
-    ctx.fillStyle = "#C084FC";
-    ctx.fillText("★ Clue pinned to detective HUD banner ★", cx, boxY + boxH - 28);
+    ctx.font = "900 22px system-ui, -apple-system, sans-serif";
+    ctx.fillStyle = "#FDE047";
+    ctx.fillText("★ PINNED ON TOP BANNER ☝️ ★", cx, boxY + boxH - 28);
 
     // E. Bottom Victory / Intel Points Badge
-    drawRoundedRect(ctx, 146, 696, 220, 38, 10);
+    drawRoundedRect(ctx, 136, 696, 240, 48, 12);
     ctx.fillStyle = "#F59E0B";
     ctx.fill();
     ctx.strokeStyle = "#FEF08A";
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 3;
     ctx.stroke();
 
-    ctx.font = "900 20px sans-serif";
+    ctx.font = "900 26px system-ui, -apple-system, sans-serif";
     ctx.fillStyle = "#1E0A02";
-    ctx.fillText("+150 PTS INTEL", cx, 715);
+    ctx.fillText("+150 PTS INTEL", cx, 720);
   };
 
   // 6. Extra Life Door Interior: Beating Heart & Vitality Restoration Chamber
@@ -1229,7 +1240,7 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
     ctx.restore();
 
     // C. Top Badge: "+1 EXTRA LIFE!"
-    drawRoundedRect(ctx, 116, 42, 280, 44, 12);
+    drawRoundedRect(ctx, 116, 28, 280, 50, 14);
     const lifeBadgeGrad = ctx.createLinearGradient(116, 0, 396, 0);
     lifeBadgeGrad.addColorStop(0, "#E11D48");
     lifeBadgeGrad.addColorStop(0.5, "#F43F5E");
@@ -1237,41 +1248,46 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
     ctx.fillStyle = lifeBadgeGrad;
     ctx.fill();
     ctx.strokeStyle = "#FECDD3";
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 3;
     ctx.stroke();
 
     ctx.fillStyle = "#FFFFFF";
-    ctx.font = "900 26px sans-serif";
+    ctx.font = "900 30px system-ui, -apple-system, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
     ctx.shadowBlur = 8;
-    ctx.fillText("+1 EXTRA LIFE!", cx, 64);
+    ctx.fillText("+1 EXTRA LIFE!", cx, 53);
     ctx.shadowBlur = 0;
 
     // D. Sub-banners
-    ctx.font = "900 38px sans-serif";
+    ctx.font = "900 50px system-ui, -apple-system, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.9)";
+    ctx.lineWidth = 7;
+    ctx.strokeText("LIFE REGAINED", cx, 545);
     ctx.fillStyle = "#FECDD3";
-    ctx.shadowColor = "rgba(244, 63, 94, 0.6)";
-    ctx.shadowBlur = 14;
-    ctx.fillText("VITALITY RESTORED", cx, 550);
-    ctx.shadowBlur = 0;
+    ctx.fillText("LIFE REGAINED", cx, 545);
 
-    ctx.font = "bold 24px sans-serif";
+    ctx.font = "900 32px system-ui, -apple-system, sans-serif";
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.85)";
+    ctx.lineWidth = 5;
+    ctx.strokeText("+1 CHANCE GAINED", cx, 608);
     ctx.fillStyle = "#FDA4AF";
-    ctx.fillText("1 EXTRA CHANCE GAINED", cx, 605);
+    ctx.fillText("+1 CHANCE GAINED", cx, 608);
 
     // E. Bottom Badge: "+150 PTS VITALITY"
-    drawRoundedRect(ctx, 136, 696, 240, 38, 10);
+    drawRoundedRect(ctx, 136, 696, 240, 48, 12);
     ctx.fillStyle = "#10B981";
     ctx.fill();
     ctx.strokeStyle = "#A7F3D0";
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 3;
     ctx.stroke();
 
-    ctx.font = "900 20px sans-serif";
+    ctx.font = "900 26px system-ui, -apple-system, sans-serif";
     ctx.fillStyle = "#022C22";
-    ctx.fillText("+150 PTS VITALITY", cx, 715);
+    ctx.fillText("+150 PTS LIFE", cx, 720);
   };
 
   // Dispatch interior frame render to the active door texture
@@ -1389,28 +1405,44 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
     }, 600);
   };
 
-  // Camera Shake Animation for Bomb detonate
+  // Camera Shake Animation for Bomb detonate (smooth decaying shake with guaranteed cleanup)
   const triggerCameraShake = () => {
     if (!cameraRef.current) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
+    if (shakeIntervalRef.current) {
+      clearInterval(shakeIntervalRef.current);
+      shakeIntervalRef.current = null;
+    }
+
     const camera = cameraRef.current;
     const origRadius = camera.radius;
-    const interval = setInterval(() => {
-      const offsetX = (Math.random() - 0.5) * 0.15;
-      const offsetY = (Math.random() - 0.5) * 0.15;
+    let shakeCount = 0;
+    const maxShakes = 8;
+
+    shakeIntervalRef.current = setInterval(() => {
+      shakeCount++;
+      if (shakeCount >= maxShakes || !cameraRef.current) {
+        if (shakeIntervalRef.current) {
+          clearInterval(shakeIntervalRef.current);
+          shakeIntervalRef.current = null;
+        }
+        if (cameraRef.current) {
+          cameraRef.current.target = new Vector3(baseTargetRef.current.x, baseTargetRef.current.y, 0);
+          cameraRef.current.radius = origRadius;
+        }
+        return;
+      }
+
+      const decay = 1 - shakeCount / maxShakes;
+      const offsetX = (Math.random() - 0.5) * 0.16 * decay;
+      const offsetY = (Math.random() - 0.5) * 0.16 * decay;
       camera.target = new Vector3(
         baseTargetRef.current.x + offsetX,
         baseTargetRef.current.y + offsetY,
         0
       );
-      shakeCount++;
-      if (shakeCount > 6) {
-        clearInterval(interval);
-        camera.target = new Vector3(baseTargetRef.current.x, baseTargetRef.current.y, 0);
-        camera.radius = origRadius;
-      }
-    }, 40);
+    }, 35);
   };
 
   // Initialize Babylon Scene
@@ -1424,8 +1456,9 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
         stencil: false,
         powerPreference: "high-performance",
       });
-      // 1:1 hardware pixel ratio for crisp, razor-sharp rendering on all mobile displays
-      engine.setHardwareScalingLevel(1.0);
+      // Native retina / high-DPI hardware pixel ratio for crisp, razor-sharp rendering on mobile displays
+      const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+      engine.setHardwareScalingLevel(1 / dpr);
       engineRef.current = engine;
     } catch (err) {
       console.warn("Babylon initialization failed:", err);
@@ -1678,6 +1711,7 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
         true,
         Texture.TRILINEAR_SAMPLINGMODE
       );
+      revealTexture.anisotropicFilteringLevel = 16;
       const rInitCtx = revealTexture.getContext() as CanvasRenderingContext2D;
       rInitCtx.save();
       rInitCtx.scale(2, 2);
@@ -1875,7 +1909,11 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
     updateCameraResponsive();
 
     const handleResize = () => {
-      engine.resize();
+      if (engine) {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+        engine.setHardwareScalingLevel(1 / dpr);
+        engine.resize();
+      }
       updateCameraResponsive();
     };
     window.addEventListener("resize", handleResize);
@@ -1895,6 +1933,10 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
       window.removeEventListener("orientationchange", handleResize);
       if (resizeObserver) {
         resizeObserver.disconnect();
+      }
+      if (shakeIntervalRef.current) {
+        clearInterval(shakeIntervalRef.current);
+        shakeIntervalRef.current = null;
       }
       scene.dispose();
       engine.dispose();
@@ -1984,6 +2026,14 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
     if (!sceneRef.current) return;
 
     if (revealedDoors.size === 0) {
+      // Clear any active shake interval
+      if (shakeIntervalRef.current) {
+        clearInterval(shakeIntervalRef.current);
+        shakeIntervalRef.current = null;
+      }
+      if (cameraRef.current) {
+        cameraRef.current.target = new Vector3(baseTargetRef.current.x, baseTargetRef.current.y, 0);
+      }
       // RESET: Close and lock all 10 doors back to initial chamber state!
       doorMeshesRef.current.forEach((door) => {
         if (sceneRef.current) {
