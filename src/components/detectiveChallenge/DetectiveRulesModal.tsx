@@ -19,7 +19,7 @@ const RULE_STEPS = [
     icon: Shield,
     title: "STEP 1: The Chamber of 10 Doors",
     subtitle: "Dynamic 5x2 Mystery Grid",
-    description: "Before you stands a grand chamber of 10 ancient wooden mystery doors arranged in a dynamic 5x2 matrix (2x5 on mobile).",
+    description: "Before you stands a grand chamber of 10 ancient wooden mystery doors arranged in a dynamic 5x2 matrix (adaptive 4-4-2 on mobile).",
     detail: "Exactly 1 door conceals the escaped Mastermind Thief! Detectives investigate simultaneously in real-time to capture the Thief.",
     color: "from-cyan-950/95 via-blue-950/95 to-[#080214]/95",
     borderColor: "border-cyan-500/50",

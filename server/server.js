@@ -1494,9 +1494,9 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on("detective:openDoor", ({ roomCode, playerId, doorId }) => {
+  socket.on("detective:openDoor", ({ roomCode, playerId, doorId, layout }) => {
     if (!roomCode || !playerId || !doorId) return;
-    DetectiveMysteryGameService.openDoor(roomCode, playerId, doorId, socket);
+    DetectiveMysteryGameService.openDoor(roomCode, playerId, doorId, socket, layout);
   });
 
   socket.on("detective:requestState", ({ roomCode, playerId }) => {

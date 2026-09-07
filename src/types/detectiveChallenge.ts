@@ -106,6 +106,7 @@ export interface DetectiveDoorResultPayload {
   doorId: number;
   result: DetectiveDoorOutcome;
   clue?: string | null;
+  clueRiddles?: Record<string, string> | null;
   livesRemaining: number;
   attempts: number;
   safeDoorsFound: number;
@@ -187,6 +188,7 @@ export interface DetectiveReconnectSyncPayload {
     status: DetectivePlayerStatus;
     investigationTimeMs?: number | null;
     clue?: string | null;
+    clueRiddles?: Record<string, string> | null;
     revealedDoors: {
       doorId: number;
       result: DetectiveDoorOutcome;

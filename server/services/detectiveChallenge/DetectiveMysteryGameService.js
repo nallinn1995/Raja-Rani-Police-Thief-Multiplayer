@@ -58,39 +58,144 @@ export class DetectiveMysteryGameService {
       }
     }
 
-    // Dynamic row/column riddle for the Thief in 5x2 matrix
-    // Row 1: doors 1-5, Row 2: doors 6-10
-    const thiefRow = thiefDoor <= 5 ? 1 : 2;
-    // Column 1..5: (door - 1) % 5 + 1
-    const thiefCol = ((thiefDoor - 1) % 5) + 1;
-    const colOtherDoor = thiefRow === 1 ? thiefDoor + 5 : thiefDoor - 5;
-    const d1Str = thiefDoor < 10 ? `0${thiefDoor}` : `${thiefDoor}`;
-    const d2Str = colOtherDoor < 10 ? `0${colOtherDoor}` : `${colOtherDoor}`;
-
-    const riddles = [
-      thiefRow === 1
-        ? "The Thief is hiding on the First Row (Doors 01–05)!"
-        : "The Thief is hiding on the Second Row (Doors 06–10)!",
-      thiefRow === 1
-        ? "Footsteps echo from the Northern Chamber (First Row)!"
-        : "Shadows detected along the Southern Chamber (Second Row)!",
-      `Suspicious activity spotted in Column ${thiefCol} (Doors ${d1Str} or ${d2Str})!`,
-      thiefCol <= 2
-        ? "The Thief was glimpsed fleeing towards the Left Wing (Columns 1–2)!"
-        : thiefCol === 3
-        ? "Mysterious echoes resonate from the Center Column (Column 3)!"
-        : "A cold draft blows from the Right Wing (Columns 4–5)!",
-    ];
-
-    const riddle = riddles[Math.floor(Math.random() * riddles.length)];
+    // Generate coordinated, valid riddles for each screen resolution matrix layout
+    const layoutRiddles = this.generateLayoutRiddles(thiefDoor);
 
     return {
       thiefDoor,
       bombDoors: Array.from(bombDoors),
       clueDoor,
       lifeDoor,
-      riddle,
+      riddle: layoutRiddles.defaultRiddle,
+      clueRiddles: layoutRiddles.riddles,
+      riddleType: layoutRiddles.archetype,
       mapping,
+    };
+  }
+
+  /**
+   * Generates coordinated riddles for all screen resolution matrix layouts.
+   * Layouts supported:
+   *  - 'desktop-5-2': 5 columns x 2 rows (Row 1: 01-05, Row 2: 06-10)
+   *  - 'mobile-4-4-2': 3 rows (Row 1: 01-04, Row 2: 05-08, Row 3: 09-10)
+   *  - 'mobile-2-5': 5 rows x 2 columns (Row 1: 01-02, ..., Row 5: 09-10)
+   */
+  static generateLayoutRiddles(thiefDoor) {
+    const pad = (n) => (n < 10 ? `0${n}` : `${n}`);
+
+    // Pick a random archetype: 'ROW', 'CHAMBER', 'COLUMN', 'WING'
+    const archetypes = ["ROW", "CHAMBER", "COLUMN", "WING"];
+    const archetype = archetypes[Math.floor(Math.random() * archetypes.length)];
+
+    const riddles = {
+      "desktop-5-2": "",
+      "mobile-4-4-2": "",
+      "mobile-2-5": "",
+    };
+
+    if (archetype === "ROW") {
+      // Desktop 5x2: Row 1 (01-05) vs Row 2 (06-10)
+      riddles["desktop-5-2"] = thiefDoor <= 5
+        ? "The Thief is hiding on the First Row (Doors 01–05)!"
+        : "The Thief is hiding on the Second Row (Doors 06–10)!";
+
+      // Mobile 4-4-2: Row 1 (01-04), Row 2 (05-08), Row 3 (09-10)
+      if (thiefDoor <= 4) {
+        riddles["mobile-4-4-2"] = "The Thief is hiding on the First Row (Doors 01–04)!";
+      } else if (thiefDoor <= 8) {
+        riddles["mobile-4-4-2"] = "The Thief is hiding on the Second Row (Doors 05–08)!";
+      } else {
+        riddles["mobile-4-4-2"] = "The Thief is hiding on the Third Row (Doors 09–10)!";
+      }
+
+      // Mobile 2-5: Rows 1..5
+      const m25Row = Math.ceil(thiefDoor / 2);
+      const m25D1 = pad((m25Row - 1) * 2 + 1);
+      const m25D2 = pad((m25Row - 1) * 2 + 2);
+      riddles["mobile-2-5"] = `The Thief is hiding on Row ${m25Row} (Doors ${m25D1} or ${m25D2})!`;
+    } else if (archetype === "CHAMBER") {
+      // Desktop 5x2: Northern (01-05) vs Southern (06-10)
+      riddles["desktop-5-2"] = thiefDoor <= 5
+        ? "Footsteps echo from the Northern Chamber (Top Row: Doors 01–05)!"
+        : "Shadows detected along the Southern Chamber (Bottom Row: Doors 06–10)!";
+
+      // Mobile 4-4-2: Northern (01-04), Central (05-08), Southern (09-10)
+      if (thiefDoor <= 4) {
+        riddles["mobile-4-4-2"] = "Footsteps echo from the Northern Chamber (Top Row: Doors 01–04)!";
+      } else if (thiefDoor <= 8) {
+        riddles["mobile-4-4-2"] = "Shadows detected in the Central Chamber (Middle Row: Doors 05–08)!";
+      } else {
+        riddles["mobile-4-4-2"] = "Creaking sounds rise from the Southern Chamber (Bottom Row: Doors 09–10)!";
+      }
+
+      // Mobile 2-5: Upper (01-04), Central (05-06), Lower (07-10)
+      if (thiefDoor <= 4) {
+        riddles["mobile-2-5"] = "Footsteps echo from the Upper Chambers (Doors 01–04)!";
+      } else if (thiefDoor <= 6) {
+        riddles["mobile-2-5"] = "Shadows detected in the Central Chamber (Doors 05–06)!";
+      } else {
+        riddles["mobile-2-5"] = "Creaking sounds rise from the Lower Chambers (Doors 07–10)!";
+      }
+    } else if (archetype === "COLUMN") {
+      // Desktop 5x2: Columns 1..5
+      const dCol = ((thiefDoor - 1) % 5) + 1;
+      const dOther = thiefDoor <= 5 ? thiefDoor + 5 : thiefDoor - 5;
+      riddles["desktop-5-2"] = `Suspicious activity spotted in Column ${dCol} (Doors ${pad(Math.min(thiefDoor, dOther))} or ${pad(Math.max(thiefDoor, dOther))})!`;
+
+      // Mobile 4-4-2:
+      // Col 1: 01, 05
+      // Col 2: 02, 06, 09
+      // Col 3: 03, 07, 10
+      // Col 4: 04, 08
+      if (thiefDoor === 1 || thiefDoor === 5) {
+        riddles["mobile-4-4-2"] = "Suspicious activity spotted in Column 1 (Doors 01 or 05)!";
+      } else if (thiefDoor === 2 || thiefDoor === 6 || thiefDoor === 9) {
+        riddles["mobile-4-4-2"] = "Suspicious activity spotted in Column 2 (Doors 02, 06, or 09)!";
+      } else if (thiefDoor === 3 || thiefDoor === 7 || thiefDoor === 10) {
+        riddles["mobile-4-4-2"] = "Suspicious activity spotted in Column 3 (Doors 03, 07, or 10)!";
+      } else {
+        riddles["mobile-4-4-2"] = "Suspicious activity spotted in Column 4 (Doors 04 or 08)!";
+      }
+
+      // Mobile 2-5: Left col (odd) vs Right col (even)
+      if (thiefDoor % 2 === 1) {
+        riddles["mobile-2-5"] = "Suspicious activity spotted in the Left Column (Doors 01, 03, 05, 07, 09)!";
+      } else {
+        riddles["mobile-2-5"] = "Suspicious activity spotted in the Right Column (Doors 02, 04, 06, 08, 10)!";
+      }
+    } else {
+      // WING
+      // Desktop 5x2: Left Wing (cols 1-2), Center Column (col 3), Right Wing (cols 4-5)
+      const dCol = ((thiefDoor - 1) % 5) + 1;
+      if (dCol <= 2) {
+        riddles["desktop-5-2"] = "The Thief was glimpsed fleeing towards the Left Wing (Columns 1–2)!";
+      } else if (dCol === 3) {
+        riddles["desktop-5-2"] = "Mysterious echoes resonate from the Center Column (Column 3: Doors 03 or 08)!";
+      } else {
+        riddles["desktop-5-2"] = "A cold draft blows from the Right Wing (Columns 4–5)!";
+      }
+
+      // Mobile 4-4-2:
+      // Left Wing: cols 1-2 (Doors 01, 02, 05, 06, 09)
+      // Right Wing: cols 3-4 (Doors 03, 04, 07, 08, 10)
+      if ([1, 2, 5, 6, 9].includes(thiefDoor)) {
+        riddles["mobile-4-4-2"] = "The Thief was glimpsed fleeing towards the Left Wing (Columns 1–2)!";
+      } else {
+        riddles["mobile-4-4-2"] = "A cold draft blows from the Right Wing (Columns 3–4)!";
+      }
+
+      // Mobile 2-5: Left Wing vs Right Wing
+      if (thiefDoor % 2 === 1) {
+        riddles["mobile-2-5"] = "The Thief was glimpsed fleeing towards the Left Wing (Column 1)!";
+      } else {
+        riddles["mobile-2-5"] = "A cold draft blows from the Right Wing (Column 2)!";
+      }
+    }
+
+    return {
+      archetype,
+      riddles,
+      defaultRiddle: riddles["desktop-5-2"],
     };
   }
 
@@ -193,7 +298,7 @@ export class DetectiveMysteryGameService {
   /**
    * Validates and resolves an open-door action sent by a player.
    */
-  static async openDoor(roomCode, playerId, doorId, socket) {
+  static async openDoor(roomCode, playerId, doorId, socket, clientLayout = 'desktop-5-2') {
     const upperCode = roomCode.toUpperCase();
     const game = activeGames.get(upperCode);
 
@@ -253,6 +358,7 @@ export class DetectiveMysteryGameService {
 
       let investigationTimeMs = null;
       let clue = null;
+      let clueRiddles = null;
 
       if (outcome === "SAFE") {
         player.safeDoorsFound += 1;
@@ -265,7 +371,9 @@ export class DetectiveMysteryGameService {
       } else if (outcome === "LIFE") {
         player.lives += 1; // grant extra life
       } else if (outcome === "CLUE") {
-        clue = game.secretLayout.riddle;
+        const layoutKey = (clientLayout && game.secretLayout.clueRiddles?.[clientLayout]) ? clientLayout : 'desktop-5-2';
+        clue = game.secretLayout.clueRiddles?.[layoutKey] || game.secretLayout.riddle;
+        clueRiddles = game.secretLayout.clueRiddles || null;
       } else if (outcome === "THIEF") {
         player.status = "CAUGHT";
         player.caughtAt = Date.now();
@@ -278,6 +386,7 @@ export class DetectiveMysteryGameService {
         doorId: numDoorId,
         result: outcome,
         clue,
+        clueRiddles,
         livesRemaining: player.lives,
         attempts: player.attempts,
         safeDoorsFound: player.safeDoorsFound,
@@ -697,6 +806,7 @@ export class DetectiveMysteryGameService {
         status: player.status,
         investigationTimeMs: player.investigationTimeMs,
         clue: player && player.revealedDoors && Array.from(player.revealedDoors.values()).includes("CLUE") ? game.secretLayout.riddle : null,
+        clueRiddles: player && player.revealedDoors && Array.from(player.revealedDoors.values()).includes("CLUE") ? (game.secretLayout.clueRiddles || null) : null,
         revealedDoors: Array.from(player.revealedDoors.entries()).map(([doorId, result]) => ({
           doorId,
           result,

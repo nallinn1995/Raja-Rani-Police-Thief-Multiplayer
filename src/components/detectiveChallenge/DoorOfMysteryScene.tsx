@@ -41,6 +41,7 @@ interface DoorMeshRef {
   isOpen: boolean;
   status: "LOCKED" | "SAFE" | "BOMB" | "THIEF" | "CLUE" | "LIFE";
   clueText?: string | null;
+  clueRiddles?: Record<string, string> | null;
   hingeRoot: Mesh;
   openedAtTime: number;
   lastRenderTime: number;
@@ -50,9 +51,11 @@ interface DoorMeshRef {
 interface DoorOfMysterySceneProps {
   revealedDoors: Map<number, DetectiveDoorOutcome>;
   selectedDoorId?: number | null;
-  latestDoorResult: { doorId: number; result: DetectiveDoorOutcome; clue?: string | null } | null;
+  latestDoorResult: { doorId: number; result: DetectiveDoorOutcome; clue?: string | null; clueRiddles?: Record<string, string> | null } | null;
   activeClue?: string | null;
+  clueRiddles?: Record<string, string> | null;
   onOpenDoor: (doorId: number) => void;
+  onLayoutChange?: (layout: 'mobile-4-4-2' | 'desktop-5-2') => void;
   canInteract: boolean;
   onFallback?: () => void;
   resetKey?: number;
@@ -63,7 +66,9 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
   revealedDoors,
   latestDoorResult,
   activeClue,
+  clueRiddles,
   onOpenDoor,
+  onLayoutChange,
   canInteract,
   onFallback,
   resetKey,
@@ -84,17 +89,23 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
   // Keep refs for callbacks so events don't get stale closures
   const canInteractRef = useRef(canInteract);
   const onOpenDoorRef = useRef(onOpenDoor);
+  const onLayoutChangeRef = useRef(onLayoutChange);
   const revealedDoorsRef = useRef(revealedDoors);
   const onFallbackRef = useRef(onFallback);
   const roomCodeRef = useRef(roomCode);
+  const activeClueRef = useRef(activeClue);
+  const clueRiddlesRef = useRef(clueRiddles);
 
   useEffect(() => {
     canInteractRef.current = canInteract;
     onOpenDoorRef.current = onOpenDoor;
+    onLayoutChangeRef.current = onLayoutChange;
     revealedDoorsRef.current = revealedDoors;
     onFallbackRef.current = onFallback;
     roomCodeRef.current = roomCode;
-  }, [canInteract, onOpenDoor, revealedDoors, onFallback, roomCode]);
+    activeClueRef.current = activeClue;
+    clueRiddlesRef.current = clueRiddles;
+  }, [canInteract, onOpenDoor, onLayoutChange, revealedDoors, onFallback, roomCode, activeClue, clueRiddles]);
 
   // Pre-load local Thief Character Image
   useEffect(() => {
@@ -660,7 +671,7 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
     ctx: CanvasRenderingContext2D,
     elapsed: number,
     thiefImg: HTMLImageElement | null,
-    roomCode?: string
+    _roomCode?: string
   ) => {
     const W = 512;
     const H = 768;
@@ -1310,7 +1321,12 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
     } else if (door.status === "SAFE") {
       drawSafeInterior(ctx, elapsed);
     } else if (door.status === "CLUE") {
-      drawClueInterior(ctx, elapsed, door.clueText || activeClue);
+      const activeRiddle =
+        (door.clueRiddles && door.clueRiddles[currentLayoutRef.current]) ||
+        (clueRiddlesRef.current && clueRiddlesRef.current[currentLayoutRef.current]) ||
+        door.clueText ||
+        activeClueRef.current;
+      drawClueInterior(ctx, elapsed, activeRiddle);
     } else if (door.status === "LIFE") {
       drawLifeInterior(ctx, elapsed);
     } else {
@@ -1576,6 +1592,15 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
         }
       }
       currentLayoutRef.current = layout;
+      if (onLayoutChangeRef.current) {
+        onLayoutChangeRef.current(layout);
+      }
+      // Re-render any revealed clue door so its 3D parchment text dynamically matches active matrix layout
+      doorMeshesRef.current.forEach((door) => {
+        if (door.isOpen && door.status === "CLUE") {
+          drawDoorInterior(door, performance.now());
+        }
+      });
     };
 
     const updateCameraResponsive = () => {
@@ -1590,6 +1615,8 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
       // Dynamically reposition door meshes if resolution requires a layout mode change
       if (currentLayoutRef.current !== layout) {
         repositionDoors(layout);
+      } else if (onLayoutChangeRef.current) {
+        onLayoutChangeRef.current(layout);
       }
 
       const vFov = camera.fov; // 0.8 rad
@@ -1957,6 +1984,11 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
     if (latestDoorResult.clue) {
       door.clueText = latestDoorResult.clue;
     }
+    if ((latestDoorResult as any).clueRiddles) {
+      door.clueRiddles = (latestDoorResult as any).clueRiddles;
+    } else if (clueRiddlesRef.current) {
+      door.clueRiddles = clueRiddlesRef.current;
+    }
     door.openedAtTime = performance.now();
     door.lastRenderTime = 0;
     door.stampSoundPlayed = false;
@@ -2078,6 +2110,17 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
       }
     });
   }, [revealedDoors, resetKey]);
+
+  // Dynamically redraw open clue doors when activeClue or clueRiddles updates
+  useEffect(() => {
+    doorMeshesRef.current.forEach((door) => {
+      if (door.isOpen && door.status === "CLUE") {
+        if (clueRiddles) door.clueRiddles = clueRiddles;
+        if (activeClue) door.clueText = activeClue;
+        drawDoorInterior(door, performance.now());
+      }
+    });
+  }, [activeClue, clueRiddles]);
 
   return (
     <div

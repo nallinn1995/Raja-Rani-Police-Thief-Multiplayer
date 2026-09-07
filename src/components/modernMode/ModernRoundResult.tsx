@@ -33,13 +33,14 @@ export const ModernRoundResult: React.FC<ModernRoundResultProps> = ({
   } = resultData;
 
   useEffect(() => {
-    if (policeResult?.isPoliceCatchSuccessful) {
+    if (policeResult?.isCorrect) {
       soundService.playCorrectCatch();
     } else {
       soundService.playThiefEscape();
     }
-  }, [policeResult?.isPoliceCatchSuccessful]);
+  }, [policeResult?.isCorrect]);
 
+  return (
     <div
       className="min-h-screen bg-[#0A041A] bg-cover bg-center bg-no-repeat flex flex-col items-center justify-center p-4 text-white font-sans py-8 relative overflow-hidden"
       style={{ backgroundImage: "url('/assets/images/background.jpg'), url('/assets/images/background.png')" }}

@@ -777,7 +777,7 @@ export const GameInfo: React.FC<GameInfoProps> = ({ onBack, onStartGame }) => {
 
                     <div className="text-xs text-slate-300 space-y-1.5 leading-relaxed bg-[#0F0421] p-3.5 rounded-xl border border-cyan-500/20">
                       <p>• <strong>Door Mechanics:</strong> All 10 doors start closed. Click any door to open it. Click any opened door again to close it safely. Reopening shows the discovered sector.</p>
-                      <p>• <strong>Dynamic Resolution Matrix:</strong> Desktop displays a 5x2 grid; Mobile displays an ergonomic 2x5 grid with full collapseable UI responsiveness.</p>
+                      <p>• <strong>Dynamic Resolution Matrix:</strong> Desktop displays a 5x2 grid; Mobile displays an adaptive 4-4-2 grid (3 rows) with full collapsible UI responsiveness. Clue riddles dynamically match the active matrix order.</p>
                       <p>• <strong>Room Starting:</strong> In multiplayer, all players must check the rules acknowledgment checkbox before the host can trigger the synchronized start.</p>
                     </div>
                   </div>
@@ -867,7 +867,7 @@ export const GameInfo: React.FC<GameInfoProps> = ({ onBack, onStartGame }) => {
                     </div>
                   </div>
                   <p className="text-xs sm:text-sm text-slate-300 leading-relaxed mb-4">
-                    Enter the chamber of 10 ancient doors arranged dynamically (5x2 on desktop, 2x5 on mobile). 1 door conceals the Mastermind Thief (+1000 PTS), 4 are Safe (+100 PTS), 3 are explosive Traps (-1 Life), 1 holds a Secret Clue riddle, and 1 holds an Extra Life. Manage 3 lives and deduce the Thief before the 60s timer expires!
+                    Enter the chamber of 10 ancient doors arranged dynamically (5x2 on desktop, 4-4-2 on mobile). 1 door conceals the Mastermind Thief (+1000 PTS), 4 are Safe (+100 PTS), 3 are explosive Traps (-1 Life), 1 holds a Secret Clue riddle, and 1 holds an Extra Life. Manage 3 lives and deduce the Thief before the 60s timer expires!
                   </p>
                 </div>
                 <div className="p-3 bg-[#0F0422] rounded-xl border border-cyan-500/30 text-xs text-cyan-300 flex items-center justify-between flex-wrap gap-1">

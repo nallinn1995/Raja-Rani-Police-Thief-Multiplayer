@@ -74,9 +74,14 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
 
   // Door tracking
   const [revealedDoors, setRevealedDoors] = useState<Map<number, DetectiveDoorOutcome>>(new Map());
-  const [latestDoorResult, setLatestDoorResult] = useState<{ doorId: number; result: DetectiveDoorOutcome; clue?: string | null } | null>(null);
+  const [latestDoorResult, setLatestDoorResult] = useState<{ doorId: number; result: DetectiveDoorOutcome; clue?: string | null; clueRiddles?: Record<string, string> | null } | null>(null);
   const [activeClue, setActiveClue] = useState<string | null>(null);
+  const [clueRiddles, setClueRiddles] = useState<Record<string, string> | null>(null);
+  const [currentLayout, setCurrentLayout] = useState<'mobile-4-4-2' | 'desktop-5-2'>('desktop-5-2');
   const [isRequestPending, setIsRequestPending] = useState<boolean>(false);
+
+  // Derive layout-specific riddle matching current screen matrix resolution
+  const effectiveClue = (clueRiddles && clueRiddles[currentLayout]) || activeClue;
 
   // Room Players Public Roster
   const [playersRoster, setPlayersRoster] = useState<DetectivePlayerPublicState[]>(() => {
@@ -225,7 +230,7 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
         return next;
       });
 
-      setLatestDoorResult({ doorId: data.doorId, result: data.result, clue: data.clue });
+      setLatestDoorResult({ doorId: data.doorId, result: data.result, clue: data.clue, clueRiddles: data.clueRiddles });
 
       if (data.result === "SAFE") {
         showBanner(`Door #${data.doorId} is SAFE. Keep investigating!`, "safe");
@@ -240,8 +245,12 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
         const timeSec = (data.investigationTimeMs ? data.investigationTimeMs / 1000 : 0).toFixed(2);
         showBanner(`🕵️ THIEF CAUGHT! Identified in ${timeSec}s!`, "thief", 6000);
       } else if (data.result === "CLUE") {
+        if (data.clueRiddles) {
+          setClueRiddles(data.clueRiddles);
+        }
         setActiveClue(data.clue || null);
-        showBanner(`🔍 SECRET CLUE REVEALED: ${data.clue || "Check Crime Scene"}`, "info", 6000);
+        const resolvedClue = (data.clueRiddles && data.clueRiddles[currentLayout]) || data.clue;
+        showBanner(`🔍 SECRET CLUE REVEALED: ${resolvedClue || "Check Crime Scene"}`, "info", 6000);
       } else if (data.result === "LIFE") {
         showBanner(`❤️ +1 EXTRA LIFE! Vitality Restored! (${data.livesRemaining} Lives)`, "safe", 5000);
       }
@@ -292,6 +301,9 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
         if (data.myState.clue) {
           setActiveClue(data.myState.clue);
         }
+        if (data.myState.clueRiddles) {
+          setClueRiddles(data.myState.clueRiddles);
+        }
         if (data.myState.investigationTimeMs) {
           setInvestigationTimeMs(data.myState.investigationTimeMs);
         }
@@ -340,6 +352,7 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
       roomCode,
       playerId: currentPlayerId,
       doorId,
+      layout: currentLayout,
     });
   };
 
@@ -609,8 +622,10 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
           revealedDoors={revealedDoors}
           selectedDoorId={null}
           latestDoorResult={latestDoorResult}
-          activeClue={activeClue}
+          activeClue={effectiveClue}
+          clueRiddles={clueRiddles}
           onOpenDoor={handleOpenDoor}
+          onLayoutChange={setCurrentLayout}
           canInteract={canInteract}
           resetKey={resetKey}
           roomCode={roomCode}
@@ -618,13 +633,13 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
       </main>
 
       {/* PINNED SECRET CLUE BANNER (WHEN CLUE DOOR IS REVEALED) */}
-      {activeClue && (
+      {effectiveClue && (
         <div className="absolute top-16 sm:top-20 inset-x-0 flex justify-center pointer-events-none z-20 px-3 animate-fade-in">
           <div className="w-auto max-w-[92vw] sm:max-w-xl">
             <div className="px-3 sm:px-4 py-2 rounded-2xl bg-gradient-to-r from-purple-950/95 via-indigo-950/95 to-purple-950/95 border-2 border-amber-400/80 shadow-[0_0_25px_rgba(245,158,11,0.4)] flex items-center justify-center space-x-2 text-center text-xs sm:text-sm font-black text-amber-200 backdrop-blur-md animate-pulse">
               <span className="text-base shrink-0">📜</span>
               <span className="text-amber-400 uppercase tracking-wide font-black shrink-0">CLUE:</span>
-              <span className="text-white drop-shadow-md break-words">{activeClue}</span>
+              <span className="text-white drop-shadow-md break-words">{effectiveClue}</span>
             </div>
           </div>
         </div>

@@ -58,6 +58,7 @@ export const InvestigateGameView: React.FC<InvestigateGameViewProps> = ({
     onSubmitGuess(cardId, finalGuessTime);
   };
 
+  return (
     <div
       style={{ backgroundImage: "url('/assets/images/background.jpg'), url('/assets/images/background.png')" }}
       className="min-h-screen bg-[#0A041A] bg-cover bg-center bg-no-repeat flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-y-auto text-white font-sans"

@@ -29,6 +29,7 @@ export const ModernLeaderboard: React.FC<ModernLeaderboardProps> = ({
     return { label: `#${rank || '-'}`, color: 'bg-purple-900/40 text-purple-300 border-purple-700/40' };
   };
 
+  return (
     <div
       style={{ backgroundImage: "url('/assets/images/background.jpg'), url('/assets/images/background.png')" }}
       className="min-h-screen bg-[#0A041A] bg-cover bg-center bg-no-repeat relative flex flex-col items-center justify-center p-4 text-white font-sans py-8 overflow-x-hidden"
