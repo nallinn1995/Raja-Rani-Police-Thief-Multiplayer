@@ -36,7 +36,6 @@ export interface ModernAdminDashboardData {
       mantri: number;
       police: number;
       thief: number;
-      villager: number;
     };
   };
   recentMatches: Array<{
@@ -65,7 +64,6 @@ export interface ModernAdminDashboardData {
       mantri: number;
       police: number;
       thief: number;
-      villager: number;
     };
   }>;
 }
@@ -185,7 +183,6 @@ export interface PlayerStatsRecord {
     timesPolice?: number;
     timesThief?: number;
     timesMantri?: number;
-    timesVillager?: number;
   } | null;
   updatedAt: string;
 }

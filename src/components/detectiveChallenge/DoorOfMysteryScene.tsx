@@ -33,6 +33,7 @@ import {
 interface DoorMeshRef {
   frame: Mesh;
   panel: Mesh;
+  revealPlane?: Mesh;
   doorId: number;
   doorMat: StandardMaterial;
   revealMat: StandardMaterial;
@@ -75,8 +76,9 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
   const doorMeshesRef = useRef<Map<number, DoorMeshRef>>(new Map());
   const spotlightRef = useRef<PointLight | null>(null);
   const floorMeshRef = useRef<Mesh | null>(null);
-  const currentLayoutRef = useRef<{ cols: number; rows: number }>({ cols: 4, rows: 3 });
+  const currentLayoutRef = useRef<'mobile-4-4-2' | 'desktop-5-2'>('desktop-5-2');
   const thiefImgRef = useRef<HTMLImageElement | null>(null);
+  const baseTargetRef = useRef<Vector3>(new Vector3(0, 0, 0));
 
   // Keep refs for callbacks so events don't get stale closures
   const canInteractRef = useRef(canInteract);
@@ -113,8 +115,16 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
 
   // Helper 1: Generate rich procedural wooden texture for the door panel
   const createWoodDoorTexture = (scene: Scene, doorNum: number) => {
-    const texture = new DynamicTexture(`doorWoodTex-${doorNum}`, { width: 512, height: 768 }, scene, false);
+    const texture = new DynamicTexture(
+      `doorWoodTex-${doorNum}`,
+      { width: 1024, height: 1536 },
+      scene,
+      true,
+      Texture.TRILINEAR_SAMPLINGMODE
+    );
     const ctx = texture.getContext() as CanvasRenderingContext2D;
+    ctx.save();
+    ctx.scale(2, 2);
 
     // 1. Rich dark mahogany / polished oak background
     const woodGrad = ctx.createLinearGradient(0, 0, 512, 768);
@@ -262,6 +272,7 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
     ctx.font = "900 22px sans-serif";
     ctx.fillText("INVESTIGATE", 256, 604);
 
+    ctx.restore();
     texture.update();
     return texture;
   };
@@ -1269,6 +1280,9 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
     const ctx = door.revealTexture.getContext() as CanvasRenderingContext2D;
     const elapsed = now - door.openedAtTime;
 
+    ctx.save();
+    ctx.scale(2, 2);
+
     if (door.status === "THIEF") {
       if (!door.stampSoundPlayed && elapsed >= 280) {
         door.stampSoundPlayed = true;
@@ -1286,6 +1300,8 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
     } else {
       drawLockedInterior(ctx);
     }
+
+    ctx.restore();
 
     door.revealTexture.update(true);
     door.lastRenderTime = now;
@@ -1380,15 +1396,18 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
 
     const camera = cameraRef.current;
     const origRadius = camera.radius;
-    let shakeCount = 0;
     const interval = setInterval(() => {
       const offsetX = (Math.random() - 0.5) * 0.15;
       const offsetY = (Math.random() - 0.5) * 0.15;
-      camera.target = new Vector3(offsetX, offsetY, 0);
+      camera.target = new Vector3(
+        baseTargetRef.current.x + offsetX,
+        baseTargetRef.current.y + offsetY,
+        0
+      );
       shakeCount++;
       if (shakeCount > 6) {
         clearInterval(interval);
-        camera.target = new Vector3(0, 0, 0);
+        camera.target = new Vector3(baseTargetRef.current.x, baseTargetRef.current.y, 0);
         camera.radius = origRadius;
       }
     }, 40);
@@ -1405,7 +1424,8 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
         stencil: false,
         powerPreference: "high-performance",
       });
-      engine.setHardwareScalingLevel(window.devicePixelRatio > 1.5 ? 1.3 : 1.0);
+      // 1:1 hardware pixel ratio for crisp, razor-sharp rendering on all mobile displays
+      engine.setHardwareScalingLevel(1.0);
       engineRef.current = engine;
     } catch (err) {
       console.warn("Babylon initialization failed:", err);
@@ -1415,55 +1435,114 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
 
     const scene = new Scene(engine);
     sceneRef.current = scene;
-    scene.clearColor = new Color4(0.04, 0.015, 0.08, 1); // Dark Royal Chamber
+    scene.clearColor = new Color4(0, 0, 0, 0); // Transparent to show Classic palace background image
 
-    // 1. Camera setup with mobile / desktop responsiveness
-    const camera = new ArcRotateCamera("MysteryCamera", -Math.PI / 2, Math.PI / 2.3, 8.8, new Vector3(0, 0, 0), scene);
-    camera.inputs.clear(); // Fixed view for consistent gameplay
+    // 1. Camera setup with straight-on perspective to eliminate mobile vertical foreshortening
+    const camera = new ArcRotateCamera("MysteryCamera", -Math.PI / 2, Math.PI / 2.0, 14.0, new Vector3(0, 0, 0), scene);
+    camera.inputs.clear(); // Fixed view for consistent, arcade gameplay
     cameraRef.current = camera;
 
-    // Door & Spacing Dimensions
-    const doorWidth = 1.45;
-    const doorHeight = 2.1;
-    const spacingX = 1.95;
-    const spacingY = 2.45;
+    // Base Door Dimensions
+    const baseDoorWidth = 1.45;
+    const baseDoorHeight = 2.1;
+
+    type LayoutMode = 'mobile-4-4-2' | 'desktop-5-2';
 
     // Calculate optimal matrix layout based on screen dimensions and aspect ratio (10 doors total)
-    const getOptimalLayout = (aspect: number, width: number, height: number): { cols: number; rows: number } => {
-      // Mobile portrait or narrow vertical viewports: 2 columns x 5 rows
-      if (aspect < 0.95 || (width < 700 && height > width)) {
-        return { cols: 2, rows: 5 };
+    // Mobile view: 4 doors (row 1), 4 doors (row 2), 2 doors (row 3, centered)
+    // Desktop/Landscape view: 5 columns x 2 rows
+    const getOptimalLayout = (aspect: number, width: number, height: number): LayoutMode => {
+      if (aspect < 1.05 || (width < 768 && height >= width)) {
+        return 'mobile-4-4-2';
       }
-      // Landscape desktop / laptop / tablet / mobile landscape: 5 columns x 2 rows
-      return { cols: 5, rows: 2 };
+      return 'desktop-5-2';
     };
 
-    // Reposition all 10 door meshes dynamically according to active matrix mode
-    const repositionDoors = (cols: number, rows: number) => {
-      const startX = -((cols - 1) * spacingX) / 2;
-      const startY = ((rows - 1) * spacingY) / 2;
+    // Calculate position and scale for each door based on active layout mode
+    const getDoorCoordinates = (doorNum: number, layout: LayoutMode) => {
+      if (layout === 'mobile-4-4-2') {
+        // Mobile 4-4-2 layout:
+        // Row 0: 4 rooms (Doors 01, 02, 03, 04)
+        // Row 1: 4 rooms (Doors 05, 06, 07, 08)
+        // Row 2: 2 rooms (Doors 09, 10 - centered)
+        const doorScale = 0.72;
+        const spacingX = 1.28;
+        const spacingY = 1.76;
 
-      for (let row = 0; row < rows; row++) {
-        for (let col = 0; col < cols; col++) {
-          const doorNum = row * cols + col + 1;
-          if (doorNum > 10) break;
-          const posX = startX + col * spacingX;
-          const posY = startY - row * spacingY;
+        if (doorNum <= 4) {
+          const col = doorNum - 1; // 0, 1, 2, 3
+          return {
+            posX: (col - 1.5) * spacingX,
+            posY: spacingY,
+            doorScale,
+          };
+        } else if (doorNum <= 8) {
+          const col = doorNum - 5; // 0, 1, 2, 3
+          return {
+            posX: (col - 1.5) * spacingX,
+            posY: 0,
+            doorScale,
+          };
+        } else {
+          // Centered under middle doors (Door 9 under 2 & 6, Door 10 under 3 & 7)
+          const col = doorNum - 9; // 0, 1
+          return {
+            posX: (col - 0.5) * spacingX,
+            posY: -spacingY,
+            doorScale,
+          };
+        }
+      } else {
+        // Desktop landscape layout: 5x2
+        const doorScale = 1.0;
+        const spacingX = 1.95;
+        const spacingY = 2.45;
 
-          const doorData = doorMeshesRef.current.get(doorNum);
-          if (doorData) {
-            doorData.frame.position.x = posX;
-            doorData.frame.position.y = posY;
-            doorData.hingeRoot.position.x = posX - doorWidth / 2;
-            doorData.hingeRoot.position.y = posY;
-          }
+        if (doorNum <= 5) {
+          const col = doorNum - 1; // 0, 1, 2, 3, 4
+          return {
+            posX: (col - 2) * spacingX,
+            posY: spacingY / 2,
+            doorScale,
+          };
+        } else {
+          const col = doorNum - 6; // 0, 1, 2, 3, 4
+          return {
+            posX: (col - 2) * spacingX,
+            posY: -spacingY / 2,
+            doorScale,
+          };
+        }
+      }
+    };
+
+    // Reposition and scale all 10 door meshes dynamically according to active layout mode
+    const repositionDoors = (layout: LayoutMode) => {
+      for (let doorNum = 1; doorNum <= 10; doorNum++) {
+        const { posX, posY, doorScale } = getDoorCoordinates(doorNum, layout);
+        const doorData = doorMeshesRef.current.get(doorNum);
+        if (doorData) {
+          doorData.frame.scaling = new Vector3(doorScale, doorScale, 1);
+          doorData.hingeRoot.scaling = new Vector3(doorScale, doorScale, 1);
+          doorData.frame.position.x = posX;
+          doorData.frame.position.y = posY;
+          doorData.hingeRoot.position.x = posX - (baseDoorWidth * doorScale) / 2;
+          doorData.hingeRoot.position.y = posY;
         }
       }
 
       if (floorMeshRef.current) {
-        floorMeshRef.current.position.y = startY - rows * spacingY + 1.25;
+        if (layout === 'mobile-4-4-2') {
+          const doorScale = 0.72;
+          const spacingY = 1.76;
+          floorMeshRef.current.position.y = -spacingY - (baseDoorHeight * doorScale) / 2 - 0.25;
+        } else {
+          const doorScale = 1.0;
+          const spacingY = 2.45;
+          floorMeshRef.current.position.y = -spacingY / 2 - (baseDoorHeight * doorScale) / 2 - 0.25;
+        }
       }
-      currentLayoutRef.current = { cols, rows };
+      currentLayoutRef.current = layout;
     };
 
     const updateCameraResponsive = () => {
@@ -1473,29 +1552,62 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
       if (!width || !height) return;
 
       const aspect = width / height;
-      const { cols, rows } = getOptimalLayout(aspect, width, height);
+      const layout = getOptimalLayout(aspect, width, height);
 
-      // Dynamically reposition door meshes if resolution requires a matrix change
-      if (
-        currentLayoutRef.current.cols !== cols ||
-        currentLayoutRef.current.rows !== rows
-      ) {
-        repositionDoors(cols, rows);
+      // Dynamically reposition door meshes if resolution requires a layout mode change
+      if (currentLayoutRef.current !== layout) {
+        repositionDoors(layout);
       }
 
-      // Tailored camera framing for 10-door matrix layouts
-      if (cols === 2) {
-        // Mobile portrait 2x5 layout (tall matrix)
-        camera.target = new Vector3(0, -0.4, 0);
-        camera.radius = Math.max(11.2, 8.2 / aspect);
+      const vFov = camera.fov; // 0.8 rad
+      const tanFov = Math.tan(vFov / 2);
+
+      if (layout === 'mobile-4-4-2') {
+        const doorScale = 0.72;
+        const spacingX = 1.28;
+        const spacingY = 1.76;
+        const gridWidth = 3 * spacingX + baseDoorWidth * doorScale; // 4 columns
+        const gridHeight = 2 * spacingY + baseDoorHeight * doorScale; // 3 rows
+
+        // Constant, balanced padding around top, right, bottom, and left
+        const safeWidthFrac = 0.90;
+        const safeHeightFrac = 0.90;
+
+        const reqWorldWidth = gridWidth / safeWidthFrac;
+        const reqWorldHeight = gridHeight / safeHeightFrac;
+
+        const rHorizontal = reqWorldWidth / (2 * tanFov * aspect);
+        const rVertical = reqWorldHeight / (2 * tanFov);
+
+        camera.radius = Math.max(rHorizontal, rVertical);
+        camera.alpha = -Math.PI / 2;
+        camera.beta = Math.PI / 2.0;
+
+        // Perfectly centered horizontally and vertically at world origin (0, 0, 0)
+        baseTargetRef.current = new Vector3(0, 0, 0);
+        camera.target = new Vector3(0, 0, 0);
       } else {
-        // Landscape 5x2 layout (wide matrix)
-        camera.target = new Vector3(0, -0.25, 0);
-        if (aspect < 1.6) {
-          camera.radius = Math.max(8.5, 9.2 / aspect);
-        } else {
-          camera.radius = 8.5;
-        }
+        const doorScale = 1.0;
+        const spacingX = 1.95;
+        const spacingY = 2.45;
+        const gridWidth = 4 * spacingX + baseDoorWidth * doorScale; // 5 columns
+        const gridHeight = 1 * spacingY + baseDoorHeight * doorScale; // 2 rows
+
+        const safeWidthFrac = 0.90;
+        const safeHeightFrac = 0.90;
+
+        const reqWorldWidth = gridWidth / safeWidthFrac;
+        const reqWorldHeight = gridHeight / safeHeightFrac;
+
+        const rHorizontal = reqWorldWidth / (2 * tanFov * aspect);
+        const rVertical = reqWorldHeight / (2 * tanFov);
+
+        camera.radius = Math.max(rHorizontal, rVertical, 8.5);
+        camera.alpha = -Math.PI / 2;
+        camera.beta = Math.PI / 2.0;
+
+        baseTargetRef.current = new Vector3(0, 0, 0);
+        camera.target = new Vector3(0, 0, 0);
       }
     };
 
@@ -1517,6 +1629,7 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
     // 3. Reflective Floor Plane
     const floor = MeshBuilder.CreateGround("CorridorFloor", { width: 22, height: 22 }, scene);
     floor.position.y = -3.55;
+    floor.isVisible = false; // Hide floor plane so classic palace background is fully visible
     floorMeshRef.current = floor;
     const floorMat = new StandardMaterial("floorMat", scene);
     floorMat.diffuseColor = new Color3(0.07, 0.02, 0.11);
@@ -1525,117 +1638,120 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
 
     // 4. Build the 10 3D Doors Matrix dynamically
     const initialAspect = (engine.getRenderWidth() || 800) / (engine.getRenderHeight() || 600);
-    const initialLayout = getOptimalLayout(initialAspect, engine.getRenderWidth(), engine.getRenderHeight());
-    const cols = initialLayout.cols;
-    const rows = initialLayout.rows;
-    currentLayoutRef.current = { cols, rows };
-
-    const startX = -((cols - 1) * spacingX) / 2;
-    const startY = ((rows - 1) * spacingY) / 2;
+    const initialLayout = getOptimalLayout(initialAspect, engine.getRenderWidth() || 800, engine.getRenderHeight() || 600);
+    currentLayoutRef.current = initialLayout;
 
     doorMeshesRef.current.clear();
 
-    for (let row = 0; row < rows; row++) {
-      for (let col = 0; col < cols; col++) {
-        const doorNum = row * cols + col + 1;
-        if (doorNum > 10) break;
-        const posX = startX + col * spacingX;
-        const posY = startY - row * spacingY;
+    for (let doorNum = 1; doorNum <= 10; doorNum++) {
+      const { posX, posY, doorScale } = getDoorCoordinates(doorNum, initialLayout);
 
-        // Outer Stone/Gold Door Frame Backplate
-        const frame = MeshBuilder.CreateBox(
-          `doorFrame-${doorNum}`,
-          { width: doorWidth + 0.18, height: doorHeight + 0.18, depth: 0.04 },
-          scene
-        );
-        frame.position = new Vector3(posX, posY, 0.08);
+      // Outer Stone/Gold Door Frame Backplate
+      const frame = MeshBuilder.CreateBox(
+        `doorFrame-${doorNum}`,
+        { width: baseDoorWidth + 0.18, height: baseDoorHeight + 0.18, depth: 0.04 },
+        scene
+      );
+      frame.position = new Vector3(posX, posY, 0.08);
+      frame.scaling = new Vector3(doorScale, doorScale, 1);
 
-        const frameMat = new StandardMaterial(`frameMat-${doorNum}`, scene);
-        frameMat.diffuseColor = new Color3(0.18, 0.08, 0.28);
-        frameMat.specularColor = new Color3(0.85, 0.65, 0.25);
-        frameMat.emissiveColor = new Color3(0.04, 0.02, 0.07);
-        frame.material = frameMat;
+      const frameMat = new StandardMaterial(`frameMat-${doorNum}`, scene);
+      frameMat.diffuseColor = new Color3(0.18, 0.08, 0.28);
+      frameMat.specularColor = new Color3(0.85, 0.65, 0.25);
+      frameMat.emissiveColor = new Color3(0.04, 0.02, 0.07);
+      frame.material = frameMat;
 
-        // Interior compartment reveal plane inside the frame - in front of backplate, behind closed door
-        const revealPlane = MeshBuilder.CreatePlane(
-          `doorReveal-${doorNum}`,
-          { width: doorWidth - 0.02, height: doorHeight - 0.02 },
-          scene
-        );
-        revealPlane.position = new Vector3(posX, posY, 0.045);
+      // Interior compartment reveal plane inside the frame - child of frame so it automatically inherits scaling & position
+      const revealPlane = MeshBuilder.CreatePlane(
+        `doorReveal-${doorNum}`,
+        { width: baseDoorWidth - 0.02, height: baseDoorHeight - 0.02 },
+        scene
+      );
+      revealPlane.position = new Vector3(0, 0, -0.035);
+      revealPlane.parent = frame;
 
-        const revealMat = new StandardMaterial(`revealMat-${doorNum}`, scene);
-        const revealTexture = new DynamicTexture(`doorRevealTex-${doorNum}`, { width: 512, height: 768 }, scene, false);
-        drawLockedInterior(revealTexture.getContext() as CanvasRenderingContext2D);
-        revealTexture.update(true);
-        revealMat.diffuseTexture = revealTexture;
-        revealMat.emissiveTexture = revealTexture;
-        revealMat.disableLighting = true;
-        revealMat.backFaceCulling = false;
-        revealPlane.material = revealMat;
+      const revealMat = new StandardMaterial(`revealMat-${doorNum}`, scene);
+      const revealTexture = new DynamicTexture(
+        `doorRevealTex-${doorNum}`,
+        { width: 1024, height: 1536 },
+        scene,
+        true,
+        Texture.TRILINEAR_SAMPLINGMODE
+      );
+      const rInitCtx = revealTexture.getContext() as CanvasRenderingContext2D;
+      rInitCtx.save();
+      rInitCtx.scale(2, 2);
+      drawLockedInterior(rInitCtx);
+      rInitCtx.restore();
+      revealTexture.update(true);
 
-        // Hinge Pivot Node on the left edge of door
-        const hingeRoot = new Mesh(`hinge-${doorNum}`, scene);
-        hingeRoot.position = new Vector3(posX - doorWidth / 2, posY, 0);
+      revealMat.diffuseTexture = revealTexture;
+      revealMat.emissiveTexture = revealTexture;
+      revealMat.disableLighting = true;
+      revealMat.backFaceCulling = false;
+      revealPlane.material = revealMat;
 
-        // Door Panel Mesh (child of hinge pivot for realistic outward swing)
-        const panel = MeshBuilder.CreateBox(
-          `doorPanel-${doorNum}`,
-          { width: doorWidth, height: doorHeight, depth: 0.06 },
-          scene
-        );
-        // Offset panel relative to hinge root so pivot is precisely at left hinge
-        panel.position = new Vector3(doorWidth / 2, 0, 0);
-        panel.parent = hingeRoot;
+      // Hinge Pivot Node on the left edge of door
+      const hingeRoot = new Mesh(`hinge-${doorNum}`, scene);
+      hingeRoot.position = new Vector3(posX - (baseDoorWidth * doorScale) / 2, posY, 0);
+      hingeRoot.scaling = new Vector3(doorScale, doorScale, 1);
 
-        const doorMat = new StandardMaterial(`doorMat-${doorNum}`, scene);
-        const woodTex = createWoodDoorTexture(scene, doorNum);
-        doorMat.diffuseTexture = woodTex;
-        doorMat.specularColor = new Color3(0.35, 0.2, 0.1);
-        doorMat.emissiveColor = new Color3(0.05, 0.02, 0.01);
-        panel.material = doorMat;
+      // Door Panel Mesh (child of hinge pivot for realistic outward swing)
+      const panel = MeshBuilder.CreateBox(
+        `doorPanel-${doorNum}`,
+        { width: baseDoorWidth, height: baseDoorHeight, depth: 0.06 },
+        scene
+      );
+      panel.position = new Vector3(baseDoorWidth / 2, 0, 0);
+      panel.parent = hingeRoot;
 
-        // Metallic Handle Plate on the door surface (opening edge = right side)
-        // panel local space: center is 0, right edge is +doorWidth/2
-        const handleX = doorWidth / 2 - 0.16;
-        const handlePlate = MeshBuilder.CreateBox(
-          `doorHandlePlate-${doorNum}`,
-          { width: 0.09, height: 0.38, depth: 0.015 },
-          scene
-        );
-        handlePlate.position = new Vector3(handleX, 0, -0.048);
-        handlePlate.parent = panel;
+      const doorMat = new StandardMaterial(`doorMat-${doorNum}`, scene);
+      const woodTex = createWoodDoorTexture(scene, doorNum);
+      doorMat.diffuseTexture = woodTex;
+      doorMat.specularColor = new Color3(0.35, 0.2, 0.1);
+      doorMat.emissiveColor = new Color3(0.05, 0.02, 0.01);
+      panel.material = doorMat;
 
-        const handleMat = new StandardMaterial(`handleMat-${doorNum}`, scene);
-        handleMat.diffuseColor = new Color3(0.95, 0.75, 0.25); // Antique polished brass
-        handleMat.specularColor = new Color3(1.0, 0.9, 0.6);
-        handlePlate.material = handleMat;
+      // Metallic Handle Plate on the door surface (opening edge = right side)
+      const handleX = baseDoorWidth / 2 - 0.16;
+      const handlePlate = MeshBuilder.CreateBox(
+        `doorHandlePlate-${doorNum}`,
+        { width: 0.09, height: 0.38, depth: 0.015 },
+        scene
+      );
+      handlePlate.position = new Vector3(handleX, 0, -0.048);
+      handlePlate.parent = panel;
 
-        // Metallic Knob mounted on the plate
-        const handleKnob = MeshBuilder.CreateSphere(
-          `doorHandle-${doorNum}`,
-          { diameter: 0.12, segments: 16 },
-          scene
-        );
-        handleKnob.position = new Vector3(handleX, -0.03, -0.075);
-        handleKnob.parent = panel;
-        handleKnob.material = handleMat;
+      const handleMat = new StandardMaterial(`handleMat-${doorNum}`, scene);
+      handleMat.diffuseColor = new Color3(0.95, 0.75, 0.25); // Antique polished brass
+      handleMat.specularColor = new Color3(1.0, 0.9, 0.6);
+      handlePlate.material = handleMat;
 
-        doorMeshesRef.current.set(doorNum, {
-          frame,
-          panel,
-          doorId: doorNum,
-          doorMat,
-          revealMat,
-          revealTexture,
-          isOpen: false,
-          status: "LOCKED",
-          hingeRoot,
-          openedAtTime: 0,
-          lastRenderTime: 0,
-          stampSoundPlayed: false,
-        });
-      }
+      // Metallic Knob mounted on the plate
+      const handleKnob = MeshBuilder.CreateSphere(
+        `doorHandle-${doorNum}`,
+        { diameter: 0.12, segments: 16 },
+        scene
+      );
+      handleKnob.position = new Vector3(handleX, -0.03, -0.075);
+      handleKnob.parent = panel;
+      handleKnob.material = handleMat;
+
+      doorMeshesRef.current.set(doorNum, {
+        frame,
+        panel,
+        revealPlane,
+        doorId: doorNum,
+        doorMat,
+        revealMat,
+        revealTexture,
+        isOpen: false,
+        status: "LOCKED",
+        hingeRoot,
+        openedAtTime: 0,
+        lastRenderTime: 0,
+        stampSoundPlayed: false,
+      });
     }
 
     // 5. Pointer/Touch Picking Interaction
@@ -1727,8 +1843,8 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
       // Focus dynamic light on tapped door
       if (spotlightRef.current) {
         spotlightRef.current.position = new Vector3(
-          doorData.hingeRoot.position.x + 0.7,
-          doorData.hingeRoot.position.y,
+          doorData.frame.position.x,
+          doorData.frame.position.y,
           -2.2
         );
         spotlightRef.current.intensity = 0.95;
@@ -1765,9 +1881,21 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
     window.addEventListener("resize", handleResize);
     window.addEventListener("orientationchange", handleResize);
 
+    // Bulletproof container dimension observation (e.g. mobile virtual keyboard, orientation, layout reflow)
+    let resizeObserver: ResizeObserver | null = null;
+    if (canvasRef.current && canvasRef.current.parentElement) {
+      resizeObserver = new ResizeObserver(() => {
+        handleResize();
+      });
+      resizeObserver.observe(canvasRef.current.parentElement);
+    }
+
     return () => {
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("orientationchange", handleResize);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
       scene.dispose();
       engine.dispose();
       sceneRef.current = null;
@@ -1844,8 +1972,8 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
 
     // Particle FX at revealed door compartment
     const worldPos = new Vector3(
-      door.hingeRoot.position.x + 0.72,
-      door.hingeRoot.position.y,
+      door.frame.position.x,
+      door.frame.position.y,
       door.hingeRoot.position.z - 0.2
     );
     triggerParticleExplosion(sceneRef.current, worldPos, result);
@@ -1869,7 +1997,11 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
         door.lastRenderTime = 0;
         door.stampSoundPlayed = false;
         if (door.revealTexture) {
-          drawLockedInterior(door.revealTexture.getContext() as CanvasRenderingContext2D);
+          const rCtx = door.revealTexture.getContext() as CanvasRenderingContext2D;
+          rCtx.save();
+          rCtx.scale(2, 2);
+          drawLockedInterior(rCtx);
+          rCtx.restore();
           door.revealTexture.update(true);
         }
         door.revealMat.emissiveColor = new Color3(0, 0, 0);
@@ -1898,12 +2030,19 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
   }, [revealedDoors, resetKey]);
 
   return (
-    <div className="relative w-full h-full select-none overflow-hidden bg-gradient-to-b from-[#0b0317] via-[#140624] to-[#070110]">
+    <div
+      style={{ backgroundImage: "url('/assets/images/background.jpg'), url('/assets/images/background.png')" }}
+      className="relative w-full h-full select-none overflow-hidden bg-[#0A041A] bg-cover bg-center bg-no-repeat"
+    >
+      {/* Dark palace vignette overlay */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0A021A]/70 via-transparent to-[#0A021A]/85 pointer-events-none" />
+
       {/* 3D Babylon Canvas */}
       <canvas
         ref={canvasRef}
-        className="w-full h-full block touch-none outline-none cursor-pointer"
-        tabIndex={0}
+        tabIndex={-1}
+        onFocus={(e) => e.target.blur()}
+        className="w-full h-full block touch-none outline-none select-none cursor-pointer relative z-10"
         aria-label="3D Mystery Door Chamber Scene"
       />
     </div>

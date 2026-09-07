@@ -483,8 +483,8 @@ export const Welcome: React.FC<WelcomeProps> = ({
             />
           </div>
 
-          {/* 6 Character Cards Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-5">
+          {/* 5 Character Cards Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-5">
             
             {/* Card 1: RAJA */}
             <motion.div 
@@ -623,34 +623,6 @@ export const Welcome: React.FC<WelcomeProps> = ({
               </div>
               <p className="text-[10px] sm:text-xs text-white/90 font-medium leading-relaxed">
                 A wise guardian of the kingdom with a secret strategy.
-              </p>
-            </motion.div>
-
-            {/* Card 6: VILLAGER */}
-            <motion.div 
-              whileHover={{ y: -8, scale: 1.03 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-              className="relative bg-gradient-to-b from-[#21073F]/95 via-[#190632]/95 to-[#14072E]/95 border border-[#AA521B]/50 hover:border-[#FBE278] rounded-2xl p-3.5 sm:p-5 flex flex-col items-center text-center shadow-[0_0_15px_rgba(170,82,27,0.2)] hover:shadow-[0_0_30px_rgba(251,226,120,0.55)] transition-all duration-300 group cursor-pointer"
-            >
-              <div className="w-full h-28 sm:h-36 mb-3 flex items-center justify-center relative overflow-hidden rounded-xl">
-                <div className="absolute inset-0 bg-[#AA521B]/10 group-hover:bg-[#AA521B]/25 transition-all duration-300 pointer-events-none rounded-xl" />
-                <motion.img 
-                  src="/assets/images/Landing Page/villager.png" 
-                  alt="Villager" 
-                  className="w-auto h-full max-h-28 sm:max-h-36 object-contain relative z-10 filter drop-shadow-[0_0_10px_rgba(170,82,27,0.5)]"
-                  animate={{ y: [0, -5, 0] }}
-                  transition={{ duration: 3.2, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
-                />
-              </div>
-
-              <h4 className="text-sm sm:text-lg font-extrabold text-[#FBE278] tracking-wide mb-0.5">
-                Villager
-              </h4>
-              <div className="text-[9px] sm:text-xs font-bold text-[#AA521B] uppercase tracking-wider mb-1.5 sm:mb-2">
-                THE COMMONER
-              </div>
-              <p className="text-[10px] sm:text-xs text-white/90 font-medium leading-relaxed">
-                A simple citizen with instincts that can change the game.
               </p>
             </motion.div>
 

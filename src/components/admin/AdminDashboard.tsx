@@ -100,9 +100,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [maintenanceMsg, setMaintenanceMsg] = useState("");
 
   // Game Mode Availability State (admin control)
-  const [detectiveEnabled, setDetectiveEnabled] = useState(false);
+  const [detectiveEnabled, setDetectiveEnabled] = useState(true);
   const [modernEnabled, setModernEnabled] = useState(false);
-  const [detectiveButtonText, setDetectiveButtonText] = useState("Coming Soon");
+  const [detectiveButtonText, setDetectiveButtonText] = useState("Play Now");
   const [modernButtonText, setModernButtonText] = useState("Coming Soon");
   const [savingGameModeConfig, setSavingGameModeConfig] = useState(false);
 
@@ -122,7 +122,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     subtitle: "Master the strategy, understand the scoring, and dominate the kingdom!",
     classicRules: "Each player picks a secret card. The Police must guess who holds the Thief card. Correct guess yields 500 points to Police. Wrong guess yields 800 points to Thief!",
     detectiveRules: "Analyze clues, suspect statements, and crime scene logs to uncover the criminal before time runs out!",
-    modernRules: "Play with 6 Kingdom Roles: Raja, Rani, Mantri, Police, Thief, and Villager with shield abilities and witness bonuses!",
+    modernRules: "Play with 5 Kingdom Roles: Raja, Rani, Mantri, Police, and Thief with shield abilities and loot vault!",
   });
   const [cmsHomePage, setCmsHomePage] = useState({
     welcomeTitle: "Raja Rani Police Thief",
@@ -136,7 +136,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     thiefEscaped: 800,
     thiefCaught: 0,
     mantriShieldBonus: 100,
-    villagerWitnessBonus: 100,
     detectiveCorrectGuess: 500,
   });
   const [savingCms, setSavingCms] = useState(false);
@@ -2060,17 +2059,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         type="number"
                         value={cmsPointsRules.mantriShieldBonus}
                         onChange={(e) => setCmsPointsRules({ ...cmsPointsRules, mantriShieldBonus: Number(e.target.value) })}
-                        className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-[#AA521B] uppercase mb-1">
-                        👨‍🌾 Villager Witness Bonus
-                      </label>
-                      <input
-                        type="number"
-                        value={cmsPointsRules.villagerWitnessBonus}
-                        onChange={(e) => setCmsPointsRules({ ...cmsPointsRules, villagerWitnessBonus: Number(e.target.value) })}
                         className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500"
                       />
                     </div>

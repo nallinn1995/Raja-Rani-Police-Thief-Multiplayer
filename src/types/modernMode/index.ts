@@ -1,4 +1,4 @@
-export type ModernRole = 'Raja' | 'Rani' | 'Police' | 'Thief' | 'Mantri' | 'Villager';
+export type ModernRole = 'Raja' | 'Rani' | 'Police' | 'Thief' | 'Mantri';
 
 export interface ModernRoleDetails {
   role: ModernRole;
@@ -68,17 +68,6 @@ export const MODERN_ROLES_CONFIG: Record<ModernRole, ModernRoleDetails> = {
     borderColor: 'border-indigo-400',
     glowColor: 'rgba(129, 140, 248, 0.4)',
   },
-  Villager: {
-    role: 'Villager',
-    title: 'Kingdom Witness',
-    emoji: '👨',
-    image: '/assets/images/villager.png',
-    baseScore: 400,
-    description: 'Judge the Police investigation (Agree / Disagree) to earn +100 bonus.',
-    color: 'from-amber-700 to-orange-900',
-    borderColor: 'border-amber-400',
-    glowColor: 'rgba(251, 191, 36, 0.4)',
-  },
 };
 
 export interface ModernPlayerState {
@@ -103,7 +92,6 @@ export type ModernPhase =
   | 'loot-animation'
   | 'royal-phase'
   | 'investigation-phase'
-  | 'witness-phase'
   | 'result-phase'
   | 'finished';
 
@@ -129,14 +117,6 @@ export interface ModernRoundResultData {
     thiefName: string;
     isCorrect: boolean;
     catchBonus: number;
-  };
-  villagerResult: {
-    villagerId: string;
-    villagerName: string;
-    choice: 'agree' | 'disagree' | null;
-    isBonusEarned: boolean;
-    bonusType: 'witness' | 'insight' | 'none';
-    bonusPoints: number;
   };
   mantriResult: {
     mantriId: string;
@@ -202,14 +182,11 @@ export interface ModernPlayerStatsData {
   timesPolice: number;
   timesThief: number;
   timesMantri: number;
-  timesVillager: number;
   correctRajaGuesses: number;
   correctRaniGuesses: number;
   policeCatches: number;
   policeWrongGuesses: number;
   thiefEscapes: number;
-  villagerWitnessBonuses: number;
-  villagerInsightBonuses: number;
   mantriShieldSuccesses: number;
   averageMatchDuration: number;
   favoriteRole: ModernRole | string;

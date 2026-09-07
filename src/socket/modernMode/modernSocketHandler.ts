@@ -28,8 +28,4 @@ export const modernSocketHandler = {
   submitPoliceGuess(socket: Socket, roomCode: string, playerId: string, targetId: string) {
     socket.emit('modern:submitPoliceGuess', { roomCode, playerId, targetId });
   },
-
-  submitVillagerWitness(socket: Socket, roomCode: string, playerId: string, choice: 'agree' | 'disagree') {
-    socket.emit('modern:submitVillagerWitness', { roomCode, playerId, choice });
-  },
 };

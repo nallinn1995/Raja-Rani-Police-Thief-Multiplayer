@@ -103,7 +103,7 @@ export const ModernProfileTab: React.FC<ModernProfileTabProps> = ({ userId }) =>
           Kingdom Role Performance
         </h3>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 text-center">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 text-center">
           <div className="p-3 rounded-xl bg-purple-950/80 border border-amber-500/30 flex flex-col items-center">
             <img src="/assets/images/raja.png" alt="Raja" className="w-10 h-10 object-contain mb-1" />
             <div className="text-xs font-bold text-yellow-300">Raja</div>
@@ -137,13 +137,6 @@ export const ModernProfileTab: React.FC<ModernProfileTabProps> = ({ userId }) =>
             <div className="text-xs font-bold text-indigo-300">Mantri</div>
             <div className="text-sm font-black font-mono text-white mt-0.5">{stats.timesMantri}</div>
             <div className="text-[10px] text-indigo-300 font-semibold mt-1">{stats.mantriShieldSuccesses} Shields Saved</div>
-          </div>
-
-          <div className="p-3 rounded-xl bg-purple-950/80 border border-amber-600/30 flex flex-col items-center">
-            <img src="/assets/images/villager.png" alt="Villager" className="w-10 h-10 object-contain mb-1" />
-            <div className="text-xs font-bold text-amber-300">Villager</div>
-            <div className="text-sm font-black font-mono text-white mt-0.5">{stats.timesVillager}</div>
-            <div className="text-[10px] text-amber-400 font-semibold mt-1">{stats.villagerWitnessBonuses + stats.villagerInsightBonuses} Bonuses</div>
           </div>
         </div>
       </div>

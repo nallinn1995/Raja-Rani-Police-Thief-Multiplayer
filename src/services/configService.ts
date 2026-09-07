@@ -35,7 +35,6 @@ export interface PointsRules {
   thiefEscaped: number;
   thiefCaught: number;
   mantriShieldBonus: number;
-  villagerWitnessBonus: number;
   detectiveCorrectGuess: number;
 }
 
@@ -76,7 +75,7 @@ export const defaultConfig: FullSystemConfig = {
       subtitle: "Master the strategy, understand the scoring, and dominate the kingdom!",
       classicRules: "Each player picks a secret card. The Police must guess who holds the Thief card. Correct guess yields 500 points to Police. Wrong guess yields 800 points to Thief!",
       detectiveRules: "Enter the Door of Mystery with 10 dynamic doors! Track down the hidden Mastermind Thief with clues and extra lives while dodging explosive Traps with 3 lives under a 60-second countdown!",
-      modernRules: "Play with 6 Kingdom Roles: Raja, Rani, Mantri, Police, Thief, and Villager with shield abilities and witness bonuses!",
+      modernRules: "Play with 5 Kingdom Roles: Raja, Rani, Mantri, Police, and Thief with shield abilities and intuition bonuses!",
     },
     homePage: {
       welcomeTitle: "Raja Rani Police Thief",
@@ -95,7 +94,6 @@ export const defaultConfig: FullSystemConfig = {
     thiefEscaped: 800,
     thiefCaught: 0,
     mantriShieldBonus: 100,
-    villagerWitnessBonus: 100,
     detectiveCorrectGuess: 500,
   },
   systemSettings: {
@@ -104,9 +102,9 @@ export const defaultConfig: FullSystemConfig = {
     maxPlayersPerRoom: 10,
     defaultGameMode: "CLASSIC_POINTS",
     announcement: "",
-    detectiveEnabled: false,
+    detectiveEnabled: true,
     modernEnabled: false,
-    detectiveButtonText: "Coming Soon",
+    detectiveButtonText: "Play Now",
     modernButtonText: "Coming Soon",
   },
 };

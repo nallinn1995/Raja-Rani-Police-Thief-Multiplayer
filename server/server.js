@@ -829,7 +829,7 @@ app.post(
       totalRounds: parseInt(totalRounds) || 3,
       currentRound: 0,
       gameMode: gameMode || "CLASSIC_POINTS",
-      maxPlayers: gameMode === "DETECTIVE_CHALLENGE" ? Math.min(6, Math.max(1, parseInt(maxPlayers) || 1)) : (gameMode === "MODERN_MODE" ? 6 : 4),
+      maxPlayers: gameMode === "DETECTIVE_CHALLENGE" ? Math.min(6, Math.max(1, parseInt(maxPlayers) || 1)) : (gameMode === "MODERN_MODE" ? 5 : 4),
       winCondition: winCondition || "rounds",
       targetScore: winCondition === "target_score" ? (parseInt(targetScore) || 5000) : undefined,
       cardsState: [],
@@ -911,7 +911,7 @@ app.post(
       return res.status(404).json({ error: "Room not found" });
     }
 
-    const maxAllowedPlayers = room.maxPlayers || ((room.gameMode === "DETECTIVE_CHALLENGE" || room.gameMode === "MODERN_MODE") ? 6 : 4);
+    const maxAllowedPlayers = room.maxPlayers || (room.gameMode === "DETECTIVE_CHALLENGE" ? 6 : (room.gameMode === "MODERN_MODE" ? 5 : 4));
     if (room.players.length >= maxAllowedPlayers) {
       return res.status(400).json({ error: "Room is full" });
     }

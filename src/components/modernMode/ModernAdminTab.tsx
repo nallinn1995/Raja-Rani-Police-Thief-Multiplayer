@@ -113,18 +113,18 @@ export const ModernAdminTab: React.FC = () => {
             <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Game Structure</span>
             <Sparkles className="w-5 h-5 text-cyan-400" />
           </div>
-          <p className="text-3xl font-black text-white">6 Roles</p>
-          <p className="text-[11px] text-slate-500 mt-1">Raja, Rani, Mantri, Police, Thief, Villager</p>
+          <p className="text-3xl font-black text-white">5 Roles</p>
+          <p className="text-[11px] text-slate-500 mt-1">Raja, Rani, Mantri, Police, Thief</p>
         </div>
       </div>
 
-      {/* 6 Kingdom Roles Assignments Distribution */}
+      {/* 5 Kingdom Roles Assignments Distribution */}
       <div className="bg-slate-950/70 border border-purple-500/30 rounded-2xl p-4 space-y-3">
         <h3 className="text-xs font-bold text-purple-400 uppercase tracking-wider flex items-center space-x-2">
           <Crown className="w-4 h-4" />
           <span>Kingdom Role Assignments Breakdown</span>
         </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           <div className="p-3 bg-slate-900/80 border border-amber-500/30 rounded-xl text-center">
             <span className="text-lg block">👑</span>
             <span className="text-[10px] font-bold text-amber-400 uppercase block mt-1">Raja</span>
@@ -158,13 +158,6 @@ export const ModernAdminTab: React.FC = () => {
             <span className="text-[10px] font-bold text-amber-400 uppercase block mt-1">Thief</span>
             <span className="text-xl font-extrabold text-white block mt-0.5">
               {data?.metrics?.rolesCount?.thief || 0}
-            </span>
-          </div>
-          <div className="p-3 bg-slate-900/80 border border-emerald-500/30 rounded-xl text-center">
-            <span className="text-lg block">👨</span>
-            <span className="text-[10px] font-bold text-emerald-400 uppercase block mt-1">Villager</span>
-            <span className="text-xl font-extrabold text-white block mt-0.5">
-              {data?.metrics?.rolesCount?.villager || 0}
             </span>
           </div>
         </div>

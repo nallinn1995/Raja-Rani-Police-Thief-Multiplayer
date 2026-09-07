@@ -15,6 +15,11 @@ import {
   Users,
   ChevronDown,
   ChevronUp,
+  Crown,
+  Home,
+  Clock,
+  Star,
+  X,
 } from "lucide-react";
 import {
   DetectiveDoorOutcome,
@@ -99,6 +104,28 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isPlayersAccordionOpen]);
+
+  // Lock window scroll completely so detective challenge stays fixed in viewport with no layout shifts or auto-scroll
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" as any });
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    const preventScroll = () => {
+      if (window.scrollY !== 0 || window.scrollX !== 0) {
+        window.scrollTo(0, 0);
+      }
+    };
+    window.addEventListener("scroll", preventScroll, { passive: true });
+
+    return () => {
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      window.removeEventListener("scroll", preventScroll);
+    };
+  }, []);
 
   // Reset key to smoothly reset game and timer state
   const [resetKey, setResetKey] = useState<number>(() => Date.now());
@@ -340,234 +367,228 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
   const otherPlayers = playersRoster.filter((p) => p.id !== currentPlayerId);
 
   return (
-    <div className="relative w-full h-[100dvh] overflow-hidden bg-slate-950 font-sans text-white select-none">
-      {/* 3D PLAYABLE SCENE (BABYLON.JS) */}
-      <div className="absolute inset-0 z-0">
-        <DoorOfMysteryScene
-          revealedDoors={revealedDoors}
-          selectedDoorId={null}
-          latestDoorResult={latestDoorResult}
-          activeClue={activeClue}
-          onOpenDoor={handleOpenDoor}
-          canInteract={canInteract}
-          resetKey={resetKey}
-          roomCode={roomCode}
-        />
-      </div>
+    <div
+      style={{ backgroundImage: "url('/assets/images/background.jpg'), url('/assets/images/background.png')" }}
+      className="fixed inset-0 w-full h-full overflow-hidden bg-[#0A041A] bg-cover bg-center bg-no-repeat font-sans text-white select-none touch-none overscroll-none flex flex-col"
+    >
+      {/* Dark palace vignette overlay */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0A021A]/70 via-transparent to-[#0A021A]/85 pointer-events-none z-0" />
 
-      {/* 2D HUD OVERLAY (TOP BAR) - FULLY RESPONSIVE & COLLAPSIBLE */}
-      <header className="absolute top-0 left-0 right-0 z-20 px-2 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-b from-[#090214]/95 via-[#0e041e]/85 to-transparent backdrop-blur-md flex items-center justify-between gap-1.5 sm:gap-3 border-b border-purple-500/20 max-w-full">
-        {/* Left: Mode Title & Room Code */}
-        <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-purple-900/60 border border-amber-400/50 flex items-center justify-center shadow-lg shrink-0">
-            <span className="text-sm sm:text-base">🗝️</span>
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-[11px] sm:text-xs md:text-sm font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-300 to-amber-500 uppercase drop-shadow-md leading-tight truncate">
-              Door of Mystery
-            </h1>
-            <p className="text-[8px] sm:text-[10px] text-purple-300 font-semibold tracking-wide leading-tight">
-              Room <span className="font-mono text-amber-300 font-bold">{roomCode}</span>
-            </p>
-          </div>
-        </div>
-
-        {/* Center: [Attempts, Safe, Bombs] | [TIME] | [My Status] */}
-        <div className="flex items-center gap-1 sm:gap-2 shrink min-w-0">
-          {/* Attempts, Safe, Bombs */}
-          <div className="flex items-center gap-1 sm:gap-2 bg-[#130528]/90 px-1.5 sm:px-2.5 py-1 rounded-xl sm:rounded-2xl border border-purple-500/30 shadow-inner">
-            <div className="flex items-center space-x-1" title={`Attempts: ${attempts}`}>
-              <div className="w-5 h-5 rounded-md bg-amber-500/20 border border-amber-400/40 flex items-center justify-center shrink-0">
-                <Target className="w-3 h-3 text-amber-300" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[7px] sm:text-[8px] text-purple-300 uppercase font-bold leading-none hidden md:block">Attempts</span>
-                <span className="text-[10px] sm:text-xs font-black text-white leading-none mt-0.5">{attempts}</span>
-              </div>
+      {/* 2D HUD OVERLAY (TOP BAR) - FULLY RESPONSIVE 2-TIER MOBILE-FIRST LAYOUT */}
+      <header className="relative z-20 w-full px-2 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-b from-[#090214]/98 via-[#0e041e]/90 to-[#090214]/80 backdrop-blur-md border-b border-purple-500/20 shrink-0 space-y-1 sm:space-y-1.5">
+        {/* Tier 1: Navigation, Mode, Timer, Joined Detectives & Room Actions */}
+        <div className="flex items-center justify-between gap-1.5 sm:gap-3 w-full">
+          {/* Left: Mode Title & Room Code */}
+          <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0 min-w-0">
+            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-purple-900/70 border border-amber-400/50 flex items-center justify-center shadow-md shrink-0">
+              <span className="text-xs sm:text-base">🗝️</span>
             </div>
-
-            <div className="w-px h-3.5 sm:h-4 bg-purple-500/30" />
-
-            <div className="flex items-center space-x-1" title={`Safe Doors: ${safeDoorsFound} / 4`}>
-              <div className="w-5 h-5 rounded-md bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center shrink-0">
-                <Shield className="w-3 h-3 text-emerald-300" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[7px] sm:text-[8px] text-purple-300 uppercase font-bold leading-none hidden md:block">Safe</span>
-                <span className="text-[10px] sm:text-xs font-black text-emerald-300 leading-none mt-0.5">{safeDoorsFound} / 4</span>
-              </div>
-            </div>
-
-            <div className="w-px h-3.5 sm:h-4 bg-purple-500/30" />
-
-            <div className="flex items-center space-x-1" title={`Bombs: ${bombsTriggered} / 3`}>
-              <div className="w-5 h-5 rounded-md bg-rose-500/20 border border-rose-400/40 flex items-center justify-center shrink-0">
-                <Flame className="w-3 h-3 text-rose-300" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[7px] sm:text-[8px] text-purple-300 uppercase font-bold leading-none hidden md:block">Bombs</span>
-                <span className="text-[10px] sm:text-xs font-black text-rose-300 leading-none mt-0.5">{bombsTriggered} / 3</span>
-              </div>
+            <div className="min-w-0">
+              <h1 className="text-[10px] sm:text-xs md:text-sm font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-300 to-amber-500 uppercase leading-tight truncate">
+                Door of Mystery
+              </h1>
+              <p className="text-[8px] sm:text-[10px] text-purple-300 font-semibold tracking-wide leading-tight">
+                Room <span className="font-mono text-amber-300 font-bold">{roomCode}</span>
+              </p>
             </div>
           </div>
 
-          {/* Authoritative Countdown Timer */}
-          <div className="flex flex-col items-center shrink-0">
+          {/* Center: Authoritative Countdown Timer */}
+          <div className="shrink-0 flex items-center justify-center">
             <div
-              className={`px-2 sm:px-3 py-1 rounded-full border shadow-md flex items-center space-x-1 transition-colors ${
+              className={`px-2.5 sm:px-3.5 py-0.5 sm:py-1 rounded-full border shadow-md flex items-center space-x-1 transition-colors ${
                 secondsRemaining <= 10
-                  ? "bg-rose-950/90 border-rose-500 text-rose-300 animate-pulse ring-2 ring-rose-500/50"
-                  : "bg-[#140628]/90 border-amber-400/50 text-amber-300 shadow-[0_0_15px_rgba(251,191,36,0.25)]"
+                  ? "bg-rose-950/95 border-rose-500 text-rose-300 animate-pulse ring-2 ring-rose-500/50"
+                  : "bg-[#140628]/95 border-amber-400/50 text-amber-300 shadow-[0_0_15px_rgba(251,191,36,0.25)]"
               }`}
             >
               <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider text-purple-200 hidden xs:inline">Time:</span>
-              <span className="font-mono font-black text-[11px] sm:text-xs md:text-sm tabular-nums tracking-wider">
+              <span className="font-mono font-black text-xs sm:text-sm md:text-base tabular-nums tracking-wider">
                 {formatTimer(secondsRemaining)}
               </span>
             </div>
           </div>
 
-          {/* My Status */}
-          <div className="flex items-center bg-[#130528]/90 px-1.5 sm:px-2.5 py-1 rounded-xl sm:rounded-2xl border border-purple-500/30 shadow-inner shrink-0">
-            <div className="flex flex-col">
-              <span className="text-[7px] sm:text-[8px] text-purple-300 uppercase font-bold leading-none hidden md:block">My Status</span>
-              <span
-                className={`text-[9px] sm:text-[10px] md:text-xs font-black tracking-wider uppercase leading-none mt-0.5 ${
-                  myStatus === "CAUGHT"
-                    ? "text-amber-400"
-                    : myStatus === "ELIMINATED"
-                    ? "text-rose-400"
-                    : myStatus === "TIMEOUT"
-                    ? "text-slate-400"
-                    : "text-cyan-400"
-                }`}
+          {/* Right: Joined Detectives Roster, Sound Mute & Exit */}
+          <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
+            {/* Other Detectives: Single Player View */}
+            {otherPlayers.length === 1 && (
+              <div
+                key={otherPlayers[0].id}
+                className="flex items-center space-x-1 px-1.5 py-0.5 sm:py-1 rounded-lg sm:rounded-xl bg-purple-950/80 border border-purple-700/40 shadow-sm shrink-0"
+                title={`${otherPlayers[0].name}: ${otherPlayers[0].lives} lives, Status: ${otherPlayers[0].status}`}
               >
-                {myStatus} {investigationTimeMs && `(${(investigationTimeMs / 1000).toFixed(1)}s)`}
-              </span>
-            </div>
+                <span className="text-[10px] sm:text-xs">🕵️</span>
+                <span className="text-[9px] sm:text-xs font-bold text-white truncate max-w-[45px] sm:max-w-[75px]">
+                  {otherPlayers[0].name}
+                </span>
+                <span
+                  className={`text-[7px] sm:text-[8px] font-black uppercase px-1 py-0.2 rounded ${
+                    otherPlayers[0].status === "CAUGHT"
+                      ? "bg-amber-400 text-black"
+                      : otherPlayers[0].status === "ELIMINATED"
+                      ? "bg-rose-600 text-white"
+                      : otherPlayers[0].status === "TIMEOUT"
+                      ? "bg-slate-700 text-slate-300"
+                      : "bg-cyan-500/30 text-cyan-300"
+                  }`}
+                >
+                  {otherPlayers[0].status === "CAUGHT"
+                    ? "CAUGHT"
+                    : otherPlayers[0].status === "ELIMINATED"
+                    ? "OUT"
+                    : "SEARCH"}
+                </span>
+              </div>
+            )}
+
+            {/* Other Detectives: Accordion Dropdown if > 1 Player */}
+            {otherPlayers.length > 1 && (
+              <div className="relative" ref={playersAccordionRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsPlayersAccordionOpen((prev) => !prev)}
+                  className={`flex items-center space-x-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg sm:rounded-xl border transition-all cursor-pointer select-none text-[9px] sm:text-xs font-bold shadow-md ${
+                    isPlayersAccordionOpen
+                      ? "bg-purple-900 border-amber-400 text-amber-200 ring-2 ring-amber-400/40"
+                      : "bg-[#16062b]/90 hover:bg-[#250a45] border-purple-500/40 text-purple-200 hover:text-white"
+                  }`}
+                  title="Toggle Joined Detectives Roster"
+                >
+                  <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-cyan-400 shrink-0" />
+                  <span className="font-black">
+                    {otherPlayers.length} <span className="hidden sm:inline">Detectives</span>
+                  </span>
+                  {isPlayersAccordionOpen ? (
+                    <ChevronUp className="w-3 h-3 text-amber-300 shrink-0" />
+                  ) : (
+                    <ChevronDown className="w-3 h-3 text-purple-300 shrink-0" />
+                  )}
+                </button>
+
+                {/* Accordion Dropdown Menu */}
+                {isPlayersAccordionOpen && (
+                  <div className="absolute top-full right-0 mt-2 z-50 w-60 sm:w-72 bg-gradient-to-b from-[#1c0736] via-[#120424] to-[#0a0114] border-2 border-amber-400/60 shadow-[0_0_30px_rgba(0,0,0,0.9)] rounded-2xl p-3 backdrop-blur-xl animate-fade-in space-y-2">
+                    <div className="flex items-center justify-between border-b border-purple-500/30 pb-1.5">
+                      <div className="flex items-center space-x-1.5">
+                        <Users className="w-3.5 h-3.5 text-amber-400" />
+                        <span className="text-[11px] sm:text-xs font-black text-amber-200 uppercase tracking-wide">
+                          Joined Detectives ({otherPlayers.length})
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => setIsPlayersAccordionOpen(false)}
+                        className="text-purple-300 hover:text-white text-xs font-bold px-1.5 py-0.5 rounded hover:bg-purple-800/50 transition cursor-pointer"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
+                      {otherPlayers.map((p) => (
+                        <div
+                          key={p.id}
+                          className="flex items-center justify-between p-2 rounded-xl bg-purple-950/70 border border-purple-700/40 shadow-inner"
+                        >
+                          <div className="flex items-center space-x-2 min-w-0">
+                            <span className="text-sm">🕵️</span>
+                            <div className="flex flex-col min-w-0">
+                              <span className="text-xs font-extrabold text-white truncate max-w-[100px] sm:max-w-[130px]">
+                                {p.name}
+                              </span>
+                              <span className="text-[10px] text-rose-400 font-mono">
+                                {"❤️".repeat(Math.max(0, p.lives))}
+                                {p.lives === 0 && <span className="text-slate-400 text-[9px] ml-1">Out</span>}
+                              </span>
+                            </div>
+                          </div>
+
+                          <span
+                            className={`text-[9px] font-black uppercase px-2 py-0.5 rounded shadow-sm shrink-0 ${
+                              p.status === "CAUGHT"
+                                ? "bg-amber-400 text-black font-black"
+                                : p.status === "ELIMINATED"
+                                ? "bg-rose-600 text-white"
+                                : p.status === "TIMEOUT"
+                                ? "bg-slate-700 text-slate-300"
+                                : "bg-cyan-500/30 text-cyan-300 border border-cyan-400/30"
+                            }`}
+                          >
+                            {p.status === "CAUGHT" ? "🏆 CAUGHT" : p.status === "ELIMINATED" ? "💀 OUT" : "🔍 SEARCH"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Mute Button */}
+            <button
+              onClick={toggleMute}
+              className="p-1 sm:p-1.5 rounded-lg sm:rounded-xl bg-[#16062b]/80 border border-purple-500/30 text-purple-300 hover:text-white transition shadow cursor-pointer shrink-0"
+              title={isAudioMuted ? "Unmute Audio" : "Mute Audio"}
+            >
+              {isAudioMuted ? <VolumeX className="w-3.5 h-3.5 text-rose-400" /> : <Volume2 className="w-3.5 h-3.5 text-amber-400" />}
+            </button>
+
+            {/* Exit Room Button */}
+            <button
+              onClick={() => setShowExitConfirm(true)}
+              className="flex items-center gap-1 px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-lg sm:rounded-xl bg-rose-600/20 hover:bg-rose-600/40 border border-rose-500/40 text-rose-300 hover:text-white transition shadow cursor-pointer text-[9px] sm:text-xs font-bold shrink-0"
+              title="Exit Room"
+            >
+              <LogOut className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-400" />
+              <span className="hidden sm:inline">Exit</span>
+            </button>
           </div>
         </div>
 
-        {/* Right: Joined Detectives (Inline if 1, Accordion if > 1) + Lives Hearts + Mute + Exit */}
-        <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
-          {/* Other Detectives: Single Player View */}
-          {otherPlayers.length === 1 && (
-            <div
-              key={otherPlayers[0].id}
-              className="flex items-center space-x-1 sm:space-x-1.5 px-1.5 sm:px-2 py-1 rounded-xl bg-purple-950/70 border border-purple-700/40 shadow-sm shrink-0"
-              title={`${otherPlayers[0].name}: ${otherPlayers[0].lives} lives, Status: ${otherPlayers[0].status}`}
+        {/* Tier 2: Gameplay Counters (Attempts, Safe, Bombs), My Status, and Lives Hearts */}
+        <div className="flex items-center justify-between gap-1.5 sm:gap-3 w-full pt-0.5">
+          {/* Left: Attempts, Safe, Bombs Chips */}
+          <div className="flex items-center gap-1 sm:gap-2 bg-[#130528]/95 px-2 py-0.5 sm:py-1 rounded-lg sm:rounded-xl border border-purple-500/30 shadow-inner shrink-0">
+            <div className="flex items-center space-x-1" title={`Attempts: ${attempts}`}>
+              <Target className="w-3 h-3 text-amber-300 shrink-0" />
+              <span className="text-[10px] sm:text-xs font-black text-white">{attempts}</span>
+            </div>
+
+            <div className="w-px h-3 bg-purple-500/30" />
+
+            <div className="flex items-center space-x-1" title={`Safe Doors: ${safeDoorsFound} / 4`}>
+              <Shield className="w-3 h-3 text-emerald-300 shrink-0" />
+              <span className="text-[10px] sm:text-xs font-black text-emerald-300">{safeDoorsFound}/4</span>
+            </div>
+
+            <div className="w-px h-3 bg-purple-500/30" />
+
+            <div className="flex items-center space-x-1" title={`Bombs: ${bombsTriggered} / 3`}>
+              <Flame className="w-3 h-3 text-rose-300 shrink-0" />
+              <span className="text-[10px] sm:text-xs font-black text-rose-300">{bombsTriggered}/3</span>
+            </div>
+          </div>
+
+          {/* Center: My Status Badge */}
+          <div className="flex items-center bg-[#130528]/95 px-2 py-0.5 sm:py-1 rounded-lg sm:rounded-xl border border-purple-500/30 shadow-inner min-w-0 shrink">
+            <span
+              className={`text-[8px] sm:text-[10px] md:text-xs font-black tracking-wider uppercase truncate leading-none ${
+                myStatus === "CAUGHT"
+                  ? "text-amber-400"
+                  : myStatus === "ELIMINATED"
+                  ? "text-rose-400"
+                  : myStatus === "TIMEOUT"
+                  ? "text-slate-400"
+                  : "text-cyan-400"
+              }`}
             >
-              <span className="text-xs">🕵️</span>
-              <span className="text-[9px] sm:text-xs font-bold text-white truncate max-w-[55px] sm:max-w-[75px]">
-                {otherPlayers[0].name}
-              </span>
-              <span className="text-[8px] sm:text-[9px] text-rose-400 font-mono">
-                {"❤️".repeat(Math.max(0, otherPlayers[0].lives))}
-              </span>
-              <span
-                className={`text-[7px] sm:text-[8px] font-black uppercase px-1 py-0.2 rounded ${
-                  otherPlayers[0].status === "CAUGHT"
-                    ? "bg-amber-400 text-black"
-                    : otherPlayers[0].status === "ELIMINATED"
-                    ? "bg-rose-600 text-white"
-                    : otherPlayers[0].status === "TIMEOUT"
-                    ? "bg-slate-700 text-slate-300"
-                    : "bg-cyan-500/30 text-cyan-300"
-                }`}
-              >
-                {otherPlayers[0].status === "CAUGHT"
-                  ? "CAUGHT"
-                  : otherPlayers[0].status === "ELIMINATED"
-                  ? "OUT"
-                  : "SEARCH"}
-              </span>
-            </div>
-          )}
+              {myStatus === "INVESTIGATING" ? "INVESTIGATING" : myStatus}
+              {investigationTimeMs && ` (${(investigationTimeMs / 1000).toFixed(1)}s)`}
+            </span>
+          </div>
 
-          {/* Other Detectives: Accordion Dropdown if > 1 Player */}
-          {otherPlayers.length > 1 && (
-            <div className="relative" ref={playersAccordionRef}>
-              <button
-                type="button"
-                onClick={() => setIsPlayersAccordionOpen((prev) => !prev)}
-                className={`flex items-center space-x-1 sm:space-x-1.5 px-2 py-1 rounded-xl border transition-all cursor-pointer select-none text-[10px] sm:text-xs font-bold shadow-md ${
-                  isPlayersAccordionOpen
-                    ? "bg-purple-900 border-amber-400 text-amber-200 ring-2 ring-amber-400/40"
-                    : "bg-[#16062b]/90 hover:bg-[#250a45] border-purple-500/40 text-purple-200 hover:text-white"
-                }`}
-                title="Toggle Joined Detectives Roster"
-              >
-                <Users className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                <span className="font-black">
-                  {otherPlayers.length} <span className="hidden sm:inline">Detectives</span>
-                </span>
-                {isPlayersAccordionOpen ? (
-                  <ChevronUp className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-                ) : (
-                  <ChevronDown className="w-3.5 h-3.5 text-purple-300 shrink-0" />
-                )}
-              </button>
-
-              {/* Accordion Dropdown Menu */}
-              {isPlayersAccordionOpen && (
-                <div className="absolute top-full right-0 mt-2 z-50 w-60 sm:w-72 bg-gradient-to-b from-[#1c0736] via-[#120424] to-[#0a0114] border-2 border-amber-400/60 shadow-[0_0_30px_rgba(0,0,0,0.9)] rounded-2xl p-3 backdrop-blur-xl animate-fade-in space-y-2">
-                  <div className="flex items-center justify-between border-b border-purple-500/30 pb-1.5">
-                    <div className="flex items-center space-x-1.5">
-                      <Users className="w-3.5 h-3.5 text-amber-400" />
-                      <span className="text-[11px] sm:text-xs font-black text-amber-200 uppercase tracking-wide">
-                        Joined Detectives ({otherPlayers.length})
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => setIsPlayersAccordionOpen(false)}
-                      className="text-purple-300 hover:text-white text-xs font-bold px-1.5 py-0.5 rounded hover:bg-purple-800/50 transition cursor-pointer"
-                    >
-                      ✕
-                    </button>
-                  </div>
-
-                  <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
-                    {otherPlayers.map((p) => (
-                      <div
-                        key={p.id}
-                        className="flex items-center justify-between p-2 rounded-xl bg-purple-950/70 border border-purple-700/40 shadow-inner"
-                      >
-                        <div className="flex items-center space-x-2 min-w-0">
-                          <span className="text-sm">🕵️</span>
-                          <div className="flex flex-col min-w-0">
-                            <span className="text-xs font-extrabold text-white truncate max-w-[100px] sm:max-w-[130px]">
-                              {p.name}
-                            </span>
-                            <span className="text-[10px] text-rose-400 font-mono">
-                              {"❤️".repeat(Math.max(0, p.lives))}
-                              {p.lives === 0 && <span className="text-slate-400 text-[9px] ml-1">Out</span>}
-                            </span>
-                          </div>
-                        </div>
-
-                        <span
-                          className={`text-[9px] font-black uppercase px-2 py-0.5 rounded shadow-sm shrink-0 ${
-                            p.status === "CAUGHT"
-                              ? "bg-amber-400 text-black font-black"
-                              : p.status === "ELIMINATED"
-                              ? "bg-rose-600 text-white"
-                              : p.status === "TIMEOUT"
-                              ? "bg-slate-700 text-slate-300"
-                              : "bg-cyan-500/30 text-cyan-300 border border-cyan-400/30"
-                          }`}
-                        >
-                          {p.status === "CAUGHT" ? "🏆 CAUGHT" : p.status === "ELIMINATED" ? "💀 OUT" : "🔍 SEARCH"}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Lives Hearts */}
-          <div className="flex items-center space-x-0.5 sm:space-x-1 px-1.5 sm:px-2 py-1 bg-[#150529]/80 rounded-xl border border-purple-500/30 shadow-inner">
+          {/* Right: Lives Hearts */}
+          <div className="flex items-center space-x-1 px-2 py-0.5 sm:py-1 bg-[#150529]/90 rounded-lg sm:rounded-xl border border-purple-500/30 shadow-inner shrink-0">
             {Array.from({ length: Math.max(3, lives) }, (_, i) => i + 1).map((heartNum) => (
               <Heart
                 key={heartNum}
@@ -579,142 +600,221 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
               />
             ))}
           </div>
-
-          {/* Mute Button */}
-          <button
-            onClick={toggleMute}
-            className="p-1 sm:p-1.5 rounded-xl bg-[#16062b]/80 border border-purple-500/30 text-purple-300 hover:text-white transition shadow cursor-pointer"
-            title={isAudioMuted ? "Unmute Audio" : "Mute Audio"}
-          >
-            {isAudioMuted ? <VolumeX className="w-3.5 h-3.5 text-rose-400" /> : <Volume2 className="w-3.5 h-3.5 text-amber-400" />}
-          </button>
-
-          {/* Exit Room Button */}
-          <button
-            onClick={() => setShowExitConfirm(true)}
-            className="flex items-center gap-1 px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-xl bg-rose-600/20 hover:bg-rose-600/40 border border-rose-500/40 text-rose-300 hover:text-white transition shadow cursor-pointer text-[10px] sm:text-xs font-bold"
-            title="Exit Room"
-          >
-            <LogOut className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-400" />
-            <span className="hidden sm:inline">Exit</span>
-          </button>
         </div>
       </header>
 
+      {/* 3D PLAYABLE SCENE (BABYLON.JS) - FILLS ENTIRE REMAINING AREA WITH PERFECT 4-WAY CENTERING */}
+      <main className="relative flex-1 w-full h-full overflow-hidden">
+        <DoorOfMysteryScene
+          revealedDoors={revealedDoors}
+          selectedDoorId={null}
+          latestDoorResult={latestDoorResult}
+          activeClue={activeClue}
+          onOpenDoor={handleOpenDoor}
+          canInteract={canInteract}
+          resetKey={resetKey}
+          roomCode={roomCode}
+        />
+      </main>
+
       {/* PINNED SECRET CLUE BANNER (WHEN CLUE DOOR IS REVEALED) */}
       {activeClue && (
-        <div className="absolute top-14 sm:top-16 left-1/2 transform -translate-x-1/2 z-20 w-[92%] max-w-xl pointer-events-none animate-fade-in">
-          <div className="px-4 py-2 rounded-2xl bg-gradient-to-r from-purple-950/95 via-indigo-950/95 to-purple-950/95 border-2 border-amber-400/80 shadow-[0_0_25px_rgba(245,158,11,0.4)] flex items-center justify-center space-x-2.5 text-center text-xs sm:text-sm font-black text-amber-200 backdrop-blur-md animate-pulse">
-            <span className="text-base">📜</span>
-            <span className="text-amber-400 uppercase tracking-wide font-black">SECRET CLUE:</span>
-            <span className="text-white drop-shadow-md">{activeClue}</span>
+        <div className="absolute top-16 sm:top-20 inset-x-0 flex justify-center pointer-events-none z-20 px-3 animate-fade-in">
+          <div className="w-auto max-w-[92vw] sm:max-w-xl">
+            <div className="px-3 sm:px-4 py-2 rounded-2xl bg-gradient-to-r from-purple-950/95 via-indigo-950/95 to-purple-950/95 border-2 border-amber-400/80 shadow-[0_0_25px_rgba(245,158,11,0.4)] flex items-center justify-center space-x-2 text-center text-xs sm:text-sm font-black text-amber-200 backdrop-blur-md animate-pulse">
+              <span className="text-base shrink-0">📜</span>
+              <span className="text-amber-400 uppercase tracking-wide font-black shrink-0">CLUE:</span>
+              <span className="text-white drop-shadow-md break-words">{activeClue}</span>
+            </div>
           </div>
         </div>
       )}
 
-      {/* DYNAMIC ALERT BANNER */}
+      {/* DYNAMIC ALERT BANNER - FULLY RESPONSIVE, CENTERED & ZERO OVERFLOW */}
       {bannerMessage && (
-        <div className="absolute top-16 sm:top-20 left-1/2 transform -translate-x-1/2 z-30 w-[90%] max-w-md pointer-events-none animate-bounce">
-          <div
-            className={`px-4 py-2.5 rounded-2xl border backdrop-blur-xl shadow-2xl flex items-center justify-center space-x-2.5 text-center text-xs sm:text-sm font-black tracking-wide ${
-              bannerMessage.type === "safe"
-                ? "bg-emerald-950/90 border-emerald-400 text-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.4)]"
-                : bannerMessage.type === "bomb"
-                ? "bg-rose-950/90 border-rose-500 text-rose-200 shadow-[0_0_25px_rgba(239,68,68,0.5)]"
-                : bannerMessage.type === "thief"
-                ? "bg-amber-950/90 border-amber-400 text-amber-200 shadow-[0_0_30px_rgba(245,158,11,0.6)]"
-                : "bg-purple-950/90 border-purple-400 text-purple-200"
-            }`}
-          >
-            {bannerMessage.type === "bomb" && <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />}
-            {bannerMessage.type === "thief" && <Trophy className="w-4 h-4 text-amber-400 shrink-0" />}
-            {bannerMessage.type === "safe" && <Shield className="w-4 h-4 text-emerald-400 shrink-0" />}
-            <span>{bannerMessage.text}</span>
+        <div className="fixed top-14 sm:top-16 inset-x-0 flex justify-center pointer-events-none z-40 px-3">
+          <div className="w-auto max-w-[90vw] sm:max-w-md animate-bounce mx-auto">
+            <div
+              className={`px-3.5 py-1.5 rounded-full border backdrop-blur-xl shadow-2xl flex items-center justify-center space-x-2 text-center text-xs sm:text-sm font-black tracking-wide break-words ${
+                bannerMessage.type === "safe"
+                  ? "bg-emerald-950/95 border-emerald-400 text-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.4)]"
+                  : bannerMessage.type === "bomb"
+                  ? "bg-rose-950/95 border-rose-500 text-rose-200 shadow-[0_0_25px_rgba(239,68,68,0.5)]"
+                  : bannerMessage.type === "thief"
+                  ? "bg-amber-950/95 border-amber-400 text-amber-200 shadow-[0_0_30px_rgba(245,158,11,0.6)]"
+                  : "bg-purple-950/95 border-purple-400 text-purple-200"
+              }`}
+            >
+              {bannerMessage.type === "bomb" && <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />}
+              {bannerMessage.type === "thief" && <Trophy className="w-4 h-4 text-amber-400 shrink-0" />}
+              {bannerMessage.type === "safe" && <Shield className="w-4 h-4 text-emerald-400 shrink-0" />}
+              <span className="break-words line-clamp-2">{bannerMessage.text}</span>
+            </div>
           </div>
         </div>
       )}
 
-      {/* FINAL LEADERBOARD & RESULT MODAL */}
+      {/* FINAL LEADERBOARD & RESULT MODAL - MATCHING ROYAL REFERENCE DESIGN */}
       {showResultModal && finalResults && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto">
-          <div className="relative w-full max-w-2xl bg-gradient-to-b from-[#1c0836] via-[#120324] to-[#0a0114] border-2 border-amber-400/60 rounded-3xl p-5 sm:p-8 shadow-[0_0_50px_rgba(245,158,11,0.4)] text-white font-sans max-h-[95vh] flex flex-col justify-between">
-            {/* Header */}
-            <div className="text-center mb-4">
-              <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center shadow-[0_0_25px_rgba(245,158,11,0.6)] mb-2">
-                <Trophy className="w-8 h-8 text-black" />
+        <div className="fixed inset-0 z-50 overflow-y-auto p-4 sm:p-6 bg-black/85 backdrop-blur-md animate-fade-in flex min-h-full">
+          {/* Main Modal Frame - Vertically and Horizontally Centered with Constant Padding */}
+          <div className="relative w-full max-w-lg bg-gradient-to-b from-[#18042b] via-[#120224] to-[#0a0114] border-2 border-amber-400/80 rounded-3xl p-4 sm:p-6 shadow-[0_0_50px_rgba(245,158,11,0.35)] text-white font-sans flex flex-col gap-3 m-auto">
+            {/* Ambient Palace Torch Glow Accents */}
+            <div className="absolute -top-10 -left-10 w-40 h-40 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -top-10 -right-10 w-40 h-40 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
+
+            {/* Top Right Circular Close Button */}
+            <button
+              onClick={onLeaveGame}
+              className="absolute top-3 right-3 sm:top-4 sm:right-4 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#200738]/90 border border-purple-400/60 hover:border-amber-400 text-purple-200 hover:text-white flex items-center justify-center shadow-[0_0_15px_rgba(168,85,247,0.4)] transition cursor-pointer z-20 group"
+              title="Close & Return to Home"
+            >
+              <X className="w-4 h-4 text-amber-300 group-hover:scale-110 transition-transform" />
+            </button>
+
+            {/* Header: Trophy, Laurels & 3D Ribbon Banner */}
+            <div className="flex flex-col items-center text-center relative pt-1">
+              {/* Circular Halo Ring with Laurel Leaves & Golden Trophy */}
+              <div className="relative flex items-center justify-center mb-1">
+                <div className="absolute w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-amber-400/20 blur-xl animate-pulse" />
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-b from-amber-400/30 via-purple-900/50 to-[#120324] border-2 border-amber-400/80 flex items-center justify-center shadow-[0_0_25px_rgba(245,158,11,0.5),inset_0_0_15px_rgba(251,191,36,0.3)] relative">
+                  {/* Laurel Wreath SVG */}
+                  <svg className="absolute inset-0 w-full h-full text-amber-400 pointer-events-none drop-shadow-[0_0_6px_rgba(245,158,11,0.8)]" viewBox="0 0 100 100" fill="currentColor">
+                    <path d="M 28,70 C 20,55 20,38 32,24 C 28,32 26,45 32,58 Z" opacity="0.9" />
+                    <circle cx="23" cy="45" r="2.2" />
+                    <circle cx="26" cy="33" r="2.2" />
+                    <circle cx="33" cy="24" r="2.2" />
+                    <path d="M 72,70 C 80,55 80,38 68,24 C 72,32 74,45 68,58 Z" opacity="0.9" />
+                    <circle cx="77" cy="45" r="2.2" />
+                    <circle cx="74" cy="33" r="2.2" />
+                    <circle cx="67" cy="24" r="2.2" />
+                  </svg>
+                  {/* Golden Trophy with Star */}
+                  <div className="relative flex flex-col items-center justify-center">
+                    <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-amber-300 drop-shadow-[0_0_12px_rgba(251,191,36,0.9)]" />
+                    <Star className="w-3 h-3 text-amber-200 fill-amber-200 absolute -top-1" />
+                  </div>
+                </div>
               </div>
-              <h2 className="text-xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-300 to-amber-500 uppercase tracking-wide">
-                Detective Challenge Complete
-              </h2>
-              <p className="text-xs sm:text-sm text-purple-300 mt-0.5">
-                The hidden Thief was behind <strong className="text-amber-400 font-mono">Door #{finalResults.secretLayout.thiefDoor}</strong>
-              </p>
+
+              {/* 3D Royal Purple & Gold Ribbon */}
+              <div className="relative w-full max-w-xs sm:max-w-sm my-1 flex justify-center items-center">
+                <div className="w-full bg-gradient-to-r from-[#2c094d] via-[#48117d] to-[#2c094d] border-y-2 border-amber-400 px-4 sm:px-6 py-1.5 sm:py-2 rounded-lg shadow-[0_6px_20px_rgba(0,0,0,0.8),0_0_25px_rgba(245,158,11,0.3)] flex flex-col items-center">
+                  <span className="text-[9px] sm:text-[10px] font-black tracking-[0.25em] text-amber-300 uppercase drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
+                    DETECTIVE CHALLENGE
+                  </span>
+                  <h2 className="text-xl sm:text-2xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-b from-amber-100 via-yellow-300 to-amber-500 uppercase drop-shadow-[0_2px_8px_rgba(245,158,11,0.5)] leading-tight mt-0.5">
+                    COMPLETE
+                  </h2>
+                </div>
+              </div>
+
+              {/* Door Announcement Pill */}
+              <div className="mt-1 px-3 sm:px-4 py-1 rounded-xl bg-[#1a052e]/90 border border-amber-400/50 shadow-[0_0_15px_rgba(0,0,0,0.6)] flex items-center justify-center space-x-1.5 text-xs sm:text-sm text-purple-200">
+                <span>The hidden Thief was behind</span>
+                <span className="text-amber-400 font-black font-mono tracking-wide">Door #{finalResults.secretLayout.thiefDoor}</span>
+              </div>
             </div>
 
-            {/* Leaderboard Table / Cards */}
-            <div className="space-y-2 sm:space-y-2.5 my-2 overflow-y-auto max-h-[40vh] pr-1">
+            {/* Non-collapsible Leaderboard / Player Cards - No Inner Scroll */}
+            <div className="space-y-2">
               {finalResults.leaderboard.map((entry: DetectiveLeaderboardEntry) => {
                 const isMe = entry.id === currentPlayerId;
+                const isFirst = entry.rank === 1;
 
                 return (
                   <div
                     key={entry.id}
-                    className={`p-3 sm:p-3.5 rounded-2xl border flex items-center justify-between gap-2 transition ${
-                      isMe
-                        ? "bg-gradient-to-r from-purple-900/80 to-indigo-950/80 border-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.3)] ring-1 ring-amber-400/40"
-                        : "bg-[#18082e]/80 border-purple-700/40"
+                    className={`p-2.5 sm:p-3.5 rounded-2xl border-2 flex items-center justify-between gap-2 transition ${
+                      isFirst
+                        ? "bg-gradient-to-r from-[#2c0847]/95 via-[#1e0536]/95 to-[#2c0847]/95 border-amber-400/80 shadow-[0_0_20px_rgba(245,158,11,0.25)]"
+                        : isMe
+                        ? "bg-gradient-to-r from-purple-950/90 to-indigo-950/90 border-amber-400/60 shadow-md"
+                        : "bg-[#18082e]/85 border-purple-700/40"
                     }`}
                   >
-                    {/* Rank Badge */}
-                    <div className="flex items-center space-x-2.5 sm:space-x-3">
-                      <div
-                        className={`w-7 h-7 sm:w-9 sm:h-9 rounded-xl font-black text-xs sm:text-base flex items-center justify-center shrink-0 shadow-md ${
-                          entry.rank === 1
-                            ? "bg-gradient-to-br from-yellow-300 to-amber-500 text-black shadow-[0_0_12px_rgba(245,158,11,0.6)]"
-                            : entry.rank === 2
-                            ? "bg-gradient-to-br from-slate-200 to-slate-400 text-slate-950"
-                            : entry.rank === 3
-                            ? "bg-gradient-to-br from-amber-700 to-amber-900 text-amber-200"
-                            : "bg-purple-950/80 text-purple-300 border border-purple-600/40"
-                        }`}
-                      >
-                        #{entry.rank}
+                    {/* Left: Medallion with Crown on Top */}
+                    <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
+                      <div className="relative shrink-0 pt-2">
+                        {isFirst && (
+                          <Crown className="w-4 h-4 text-amber-300 fill-amber-300 absolute top-0 left-1/2 -translate-x-1/2 drop-shadow-[0_0_6px_rgba(245,158,11,0.8)]" />
+                        )}
+                        <div
+                          className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full font-black text-sm sm:text-base flex items-center justify-center shrink-0 shadow-md ${
+                            isFirst
+                              ? "bg-gradient-to-b from-yellow-300 via-amber-400 to-amber-600 text-slate-950 border border-amber-200 shadow-[0_0_12px_rgba(245,158,11,0.6)]"
+                              : entry.rank === 2
+                              ? "bg-gradient-to-b from-slate-200 to-slate-400 text-slate-950 border border-slate-300"
+                              : entry.rank === 3
+                              ? "bg-gradient-to-b from-amber-700 to-amber-900 text-amber-200 border border-amber-600"
+                              : "bg-purple-950/80 text-purple-300 border border-purple-600/40"
+                          }`}
+                        >
+                          #{entry.rank}
+                        </div>
                       </div>
 
-                      {/* Name & Details */}
-                      <div>
+                      {/* Name & Subtitle & 3 Stats Row */}
+                      <div className="min-w-0">
                         <div className="flex items-center space-x-1.5">
-                          <h4 className="font-extrabold text-xs sm:text-sm text-white">{entry.name}</h4>
+                          <h4 className="font-extrabold text-xs sm:text-sm text-white truncate max-w-[110px] sm:max-w-[160px]">
+                            {entry.name}
+                          </h4>
                           {isMe && (
-                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-400 text-black font-black uppercase">
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-400 text-slate-950 font-black uppercase shrink-0">
                               YOU
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center space-x-2 text-[10px] sm:text-xs text-purple-300 mt-0.5">
-                          <span>
-                            {entry.status === "CAUGHT" ? (
-                              <strong className="text-amber-300">THIEF CAUGHT</strong>
-                            ) : entry.status === "ELIMINATED" ? (
-                              <strong className="text-rose-400">ELIMINATED</strong>
-                            ) : (
-                              <strong className="text-slate-400">TIMEOUT</strong>
-                            )}
-                          </span>
-                          {entry.investigationTimeSec && (
-                            <span>• {entry.investigationTimeSec.toFixed(1)}s</span>
+
+                        <div className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-amber-300 leading-tight mt-0.5">
+                          {entry.status === "CAUGHT" ? (
+                            <span>THIEF CAUGHT</span>
+                          ) : entry.status === "ELIMINATED" ? (
+                            <span className="text-rose-400">BOMB DETONATED</span>
+                          ) : (
+                            <span className="text-slate-400">TIME EXPIRED</span>
                           )}
-                          <span>• {entry.accuracyPercent}% ACC</span>
-                          <span>• {"❤️".repeat(entry.livesRemaining)}</span>
+                        </div>
+
+                        {/* 3 Stats in a Row */}
+                        <div className="flex items-center gap-2 sm:gap-3 text-[9px] sm:text-[11px] text-purple-200 mt-1">
+                          <div className="flex items-center space-x-1" title="Time Taken">
+                            <Clock className="w-3 h-3 text-amber-400 shrink-0" />
+                            <span className="font-bold">{entry.investigationTimeSec ? `${entry.investigationTimeSec.toFixed(1)}s` : "--"}</span>
+                            <span className="text-purple-400 text-[8px] uppercase">TIME</span>
+                          </div>
+                          <div className="flex items-center space-x-1" title="Accuracy">
+                            <Target className="w-3 h-3 text-rose-400 shrink-0" />
+                            <span className="font-bold">{entry.accuracyPercent}%</span>
+                            <span className="text-purple-400 text-[8px] uppercase">ACC</span>
+                          </div>
+                          <div className="flex items-center space-x-1" title="Lives Remaining">
+                            <Heart className="w-3 h-3 text-rose-500 fill-rose-500 shrink-0" />
+                            <span className="font-bold">{entry.livesRemaining}</span>
+                            <span className="text-purple-400 text-[8px] uppercase">{entry.livesRemaining === 1 ? "LIFE" : "LIVES"}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    {/* Final Score */}
-                    <div className="text-right shrink-0">
-                      <span className="text-[9px] text-purple-300 font-bold uppercase block">Score</span>
-                      <span className="text-base sm:text-2xl font-black text-amber-300 font-mono tracking-tight">
+                    {/* Right: Score Card with Crown & Evaluation Pill */}
+                    <div className="p-2 sm:p-2.5 rounded-xl bg-[#140426]/90 border border-purple-500/40 text-center shrink-0 min-w-[72px] sm:min-w-[84px] shadow-inner">
+                      <Crown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400 fill-amber-400 mx-auto" />
+                      <span className="text-[8px] sm:text-[9px] text-purple-300 font-bold uppercase tracking-wider block leading-tight">
+                        SCORE
+                      </span>
+                      <span className="text-sm sm:text-lg font-black text-amber-300 font-mono tracking-tight block leading-tight mt-0.5">
                         {entry.finalScore.toFixed(2)}
+                      </span>
+                      <span className="inline-block px-1.5 py-0.2 rounded-full text-[7px] sm:text-[8px] font-black uppercase bg-purple-900/90 border border-amber-400/60 text-amber-300 tracking-wide mt-1">
+                        {entry.finalScore >= 90
+                          ? "EXCELLENT!"
+                          : entry.finalScore >= 75
+                          ? "GREAT JOB!"
+                          : entry.finalScore >= 50
+                          ? "GOOD EFFORT!"
+                          : "COMPLETED"}
                       </span>
                     </div>
                   </div>
@@ -722,50 +822,106 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
               })}
             </div>
 
-            {/* My Personal Investigation Breakdown */}
+            {/* YOUR SCORE BREAKDOWN Card */}
             {(() => {
               const myEntry = finalResults.leaderboard.find((e) => e.id === currentPlayerId);
               if (!myEntry) return null;
 
               return (
-                <div className="p-3 sm:p-4 rounded-2xl bg-[#150729]/90 border border-purple-600/30 my-2">
-                  <div className="flex items-center justify-between text-xs font-bold text-purple-200 uppercase mb-2">
-                    <span className="flex items-center gap-1">
-                      <Award className="w-4 h-4 text-amber-400" />
-                      <span>Your Score Breakdown</span>
+                <div className="rounded-2xl bg-gradient-to-b from-[#18062e]/95 to-[#120324]/95 border border-purple-500/40 p-2.5 sm:p-3.5 shadow-xl">
+                  {/* Card Header */}
+                  <div className="flex items-center justify-between text-[11px] sm:text-xs font-bold uppercase mb-2">
+                    <span className="flex items-center gap-1.5 text-white font-black tracking-wide">
+                      <Award className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span>YOUR SCORE BREAKDOWN</span>
                     </span>
-                    <span className="text-amber-300 font-mono font-black">{myEntry.finalScore.toFixed(2)} / 100 Pts</span>
+                    <span className="text-amber-300 font-mono font-black tracking-wider">
+                      {myEntry.finalScore.toFixed(2)} / 100 PTS
+                    </span>
                   </div>
-                  <div className="grid grid-cols-4 gap-2 text-center text-[10px] sm:text-xs">
-                    <div className="p-1.5 rounded-lg bg-purple-950/60 border border-purple-800/40">
-                      <span className="text-purple-300 block">Accuracy (40)</span>
-                      <strong className="text-white font-mono">{myEntry.breakdown.accuracyScore.toFixed(1)}</strong>
+
+                  {/* 4 Score Breakdown Cards */}
+                  <div className="grid grid-cols-4 gap-1.5 sm:gap-2 text-center">
+                    {/* Accuracy Card */}
+                    <div className="p-1.5 sm:p-2 rounded-xl bg-purple-950/60 border border-purple-800/40 flex flex-col items-center justify-between">
+                      <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-rose-500/20 flex items-center justify-center mb-1">
+                        <Target className="w-3 h-3 text-rose-400" />
+                      </div>
+                      <strong className="text-white font-mono text-xs sm:text-sm font-black block">
+                        {myEntry.breakdown.accuracyScore.toFixed(1)}
+                      </strong>
+                      <span className="text-purple-300 text-[9px] sm:text-[10px] block leading-tight mt-0.5">Accuracy</span>
+                      <span className="text-purple-400 text-[8px] sm:text-[9px] font-mono">(40)</span>
                     </div>
-                    <div className="p-1.5 rounded-lg bg-purple-950/60 border border-purple-800/40">
-                      <span className="text-purple-300 block">Time (30)</span>
-                      <strong className="text-white font-mono">{myEntry.breakdown.timeScore.toFixed(1)}</strong>
+
+                    {/* Time Card */}
+                    <div className="p-1.5 sm:p-2 rounded-xl bg-purple-950/60 border border-purple-800/40 flex flex-col items-center justify-between">
+                      <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-amber-500/20 flex items-center justify-center mb-1">
+                        <Clock className="w-3 h-3 text-amber-400" />
+                      </div>
+                      <strong className="text-white font-mono text-xs sm:text-sm font-black block">
+                        {myEntry.breakdown.timeScore.toFixed(1)}
+                      </strong>
+                      <span className="text-purple-300 text-[9px] sm:text-[10px] block leading-tight mt-0.5">Time</span>
+                      <span className="text-purple-400 text-[8px] sm:text-[9px] font-mono">(30)</span>
                     </div>
-                    <div className="p-1.5 rounded-lg bg-purple-950/60 border border-purple-800/40">
-                      <span className="text-purple-300 block">Lives (20)</span>
-                      <strong className="text-white font-mono">{myEntry.breakdown.livesScore.toFixed(1)}</strong>
+
+                    {/* Lives Card */}
+                    <div className="p-1.5 sm:p-2 rounded-xl bg-purple-950/60 border border-purple-800/40 flex flex-col items-center justify-between">
+                      <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-rose-500/20 flex items-center justify-center mb-1">
+                        <Heart className="w-3 h-3 text-rose-400 fill-rose-400" />
+                      </div>
+                      <strong className="text-white font-mono text-xs sm:text-sm font-black block">
+                        {myEntry.breakdown.livesScore.toFixed(1)}
+                      </strong>
+                      <span className="text-purple-300 text-[9px] sm:text-[10px] block leading-tight mt-0.5">Lives</span>
+                      <span className="text-purple-400 text-[8px] sm:text-[9px] font-mono">(20)</span>
                     </div>
-                    <div className="p-1.5 rounded-lg bg-purple-950/60 border border-purple-800/40">
-                      <span className="text-purple-300 block">Efficiency (10)</span>
-                      <strong className="text-white font-mono">{myEntry.breakdown.efficiencyScore.toFixed(1)}</strong>
+
+                    {/* Efficiency Card */}
+                    <div className="p-1.5 sm:p-2 rounded-xl bg-purple-950/60 border border-purple-800/40 flex flex-col items-center justify-between">
+                      <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-yellow-500/20 flex items-center justify-center mb-1">
+                        <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                      </div>
+                      <strong className="text-white font-mono text-xs sm:text-sm font-black block">
+                        {myEntry.breakdown.efficiencyScore.toFixed(1)}
+                      </strong>
+                      <span className="text-purple-300 text-[9px] sm:text-[10px] block leading-tight mt-0.5">Efficiency</span>
+                      <span className="text-purple-400 text-[8px] sm:text-[9px] font-mono">(10)</span>
                     </div>
                   </div>
                 </div>
               );
             })()}
 
-            {/* Action Buttons: Play Again & Return */}
-            <div className="flex items-center gap-3 pt-3 border-t border-purple-700/30">
+            {/* Commentary / Quote Ribbon */}
+            {(() => {
+              const myEntry = finalResults.leaderboard.find((e) => e.id === currentPlayerId);
+              return (
+                <div className="relative px-3 sm:px-4 py-1.5 rounded-xl bg-gradient-to-r from-[#1b0533] via-[#2a084e] to-[#1b0533] border border-amber-400/60 shadow-[0_0_15px_rgba(245,158,11,0.2)] text-center">
+                  <span className="text-amber-400 font-serif text-base mr-1">“</span>
+                  <span className="text-amber-200 text-xs sm:text-sm font-semibold italic tracking-wide">
+                    {myEntry?.status === "CAUGHT"
+                      ? myEntry.finalScore >= 90
+                        ? "Excellent investigation!"
+                        : "Great detective work! You caught the thief!"
+                      : myEntry?.status === "ELIMINATED"
+                      ? "Perilous mission! Watch out for bombs next time!"
+                      : "The thief slipped into shadows! Keep investigating!"}
+                  </span>
+                  <span className="text-amber-400 font-serif text-base ml-1">”</span>
+                </div>
+              );
+            })()}
+
+            {/* Action Buttons: Play Again & Return to Home */}
+            <div className="flex items-center gap-2.5 sm:gap-3 pt-1">
               {isHost ? (
                 <button
                   onClick={handlePlayAgain}
-                  className="flex-1 py-3 px-4 rounded-xl font-bold bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 hover:from-amber-300 hover:to-yellow-400 transition-all shadow-[0_0_20px_rgba(245,158,11,0.4)] flex items-center justify-center space-x-2 cursor-pointer transform hover:scale-[1.02]"
+                  className="flex-1 py-2.5 sm:py-3 px-4 rounded-2xl font-black bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-300 hover:to-yellow-300 text-slate-950 transition-all shadow-[0_0_20px_rgba(245,158,11,0.4)] flex items-center justify-center space-x-2 cursor-pointer transform hover:scale-[1.02] active:scale-95 text-xs sm:text-sm"
                 >
-                  <RotateCcw className="w-4 h-4" />
+                  <RotateCcw className="w-4 h-4 text-slate-950 stroke-[2.5]" />
                   <span>Play Again</span>
                 </button>
               ) : (
@@ -776,9 +932,9 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
 
               <button
                 onClick={onLeaveGame}
-                className="py-3 px-5 rounded-xl font-bold bg-slate-900/80 hover:bg-slate-800 border border-purple-500/30 text-purple-200 hover:text-white transition flex items-center justify-center space-x-2 cursor-pointer"
+                className="flex-1 py-2.5 sm:py-3 px-4 rounded-2xl font-bold bg-gradient-to-r from-[#17052c] to-[#250847] hover:bg-[#320a5e] border-2 border-purple-500/50 hover:border-amber-400 text-white transition-all shadow-[0_0_20px_rgba(0,0,0,0.6)] flex items-center justify-center space-x-2 cursor-pointer transform hover:scale-[1.02] active:scale-95 text-xs sm:text-sm"
               >
-                <LogOut className="w-4 h-4" />
+                <Home className="w-4 h-4 text-purple-300" />
                 <span>Return to Home</span>
               </button>
             </div>

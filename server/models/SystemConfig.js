@@ -57,7 +57,7 @@ const systemConfigSchema = new mongoose.Schema(
         },
         modernRules: {
           type: String,
-          default: "Play with 6 Kingdom Roles: Raja, Rani, Mantri, Police, Thief, and Villager with shield abilities and witness bonuses!",
+          default: "Play with 5 Kingdom Roles: Raja, Rani, Mantri, Police, and Thief with shield abilities and intuition bonuses!",
         },
       },
       homePage: {
@@ -89,7 +89,6 @@ const systemConfigSchema = new mongoose.Schema(
       thiefEscaped: { type: Number, default: 800 },
       thiefCaught: { type: Number, default: 0 },
       mantriShieldBonus: { type: Number, default: 100 },
-      villagerWitnessBonus: { type: Number, default: 100 },
       detectiveCorrectGuess: { type: Number, default: 500 },
     },
     systemSettings: {
@@ -98,9 +97,9 @@ const systemConfigSchema = new mongoose.Schema(
       maxPlayersPerRoom: { type: Number, default: 10 },
       defaultGameMode: { type: String, default: "CLASSIC_POINTS" },
       announcement: { type: String, default: "" },
-      detectiveEnabled: { type: Boolean, default: false },
+      detectiveEnabled: { type: Boolean, default: true },
       modernEnabled: { type: Boolean, default: false },
-      detectiveButtonText: { type: String, default: "Coming Soon" },
+      detectiveButtonText: { type: String, default: "Play Now" },
       modernButtonText: { type: String, default: "Coming Soon" },
     },
   },

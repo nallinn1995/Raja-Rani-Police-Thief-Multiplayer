@@ -29,8 +29,12 @@ export const ModernLeaderboard: React.FC<ModernLeaderboardProps> = ({
     return { label: `#${rank || '-'}`, color: 'bg-purple-900/40 text-purple-300 border-purple-700/40' };
   };
 
-  return (
-    <div className="min-h-screen bg-[#11052C] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#3A1054] via-[#11052C] to-[#0A0217] flex flex-col items-center justify-center p-4 text-white font-sans py-8">
+    <div
+      style={{ backgroundImage: "url('/assets/images/background.jpg'), url('/assets/images/background.png')" }}
+      className="min-h-screen bg-[#0A041A] bg-cover bg-center bg-no-repeat relative flex flex-col items-center justify-center p-4 text-white font-sans py-8 overflow-x-hidden"
+    >
+      {/* Dark palace vignette overlay */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0A021A]/70 via-transparent to-[#0A021A]/85 pointer-events-none" />
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}

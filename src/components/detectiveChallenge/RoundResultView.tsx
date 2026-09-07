@@ -17,8 +17,12 @@ export const RoundResultView: React.FC<RoundResultViewProps> = ({
 }) => {
   const actualThiefCard = result.cards.find((c) => c.cardId === result.actualThiefCardId);
 
-  return (
-    <div className="min-h-screen bg-[#11052C] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#3A1054] via-[#11052C] to-[#0A0217] flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-y-auto text-white font-sans">
+    <div
+      style={{ backgroundImage: "url('/assets/images/background.jpg'), url('/assets/images/background.png')" }}
+      className="min-h-screen bg-[#0A041A] bg-cover bg-center bg-no-repeat flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-y-auto text-white font-sans"
+    >
+      {/* Dark palace vignette overlay */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0A021A]/70 via-transparent to-[#0A021A]/85 pointer-events-none" />
       {/* Background Particles */}
       <div className="absolute inset-0 pointer-events-none opacity-40">
         {[...Array(20)].map((_, i) => (

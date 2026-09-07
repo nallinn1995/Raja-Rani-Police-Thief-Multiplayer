@@ -62,7 +62,7 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
   // Detective Challenge Rules State
   const isDetectiveChallenge = (room as any).gameMode === 'DETECTIVE_CHALLENGE';
   const isModernMode = (room as any).gameMode === 'MODERN_MODE';
-  const maxPlayers = room.maxPlayers || (isModernMode ? 6 : (isDetectiveChallenge ? 1 : 4));
+  const maxPlayers = room.maxPlayers || (isModernMode ? 5 : (isDetectiveChallenge ? 1 : 4));
   const isHost = room.players.find((p) => p.id === currentPlayerId)?.isHost;
   const isRoomFull = room.players.length >= maxPlayers;
 

@@ -163,13 +163,6 @@ export const AchievementBadgeIcon: React.FC<{
             <Lock className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-200 absolute bottom-1" />
           </div>
         );
-      case 'TRUSTED_WITNESS':
-        return (
-          <div className="relative flex items-center justify-center">
-            <Shield className="w-7 h-7 sm:w-10 sm:h-10 text-amber-300 filter drop-shadow-[0_0_8px_rgba(252,211,77,0.8)]" />
-            <Award className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-200 absolute inset-0 m-auto" />
-          </div>
-        );
       case 'ROYAL_GUARDIAN':
         return (
           <div className="relative flex items-center justify-center">
@@ -392,18 +385,6 @@ const DEFAULT_ACHIEVEMENTS_TEMPLATE: Omit<AchievementItem, 'isUnlocked' | 'progr
     iconSrc: '/assets/achievements/escape_artist.png',
   },
   {
-    id: 'ach-16',
-    code: 'TRUSTED_WITNESS',
-    title: 'Trusted Witness',
-    description: 'Earn 20 Witness / Insight Bonuses as Villager.',
-    tier: 'Rare',
-    category: 'Modern Mode',
-    xpReward: 200,
-    coinReward: 400,
-    progressTotal: 20,
-    iconSrc: '/assets/achievements/trusted_witness.png',
-  },
-  {
     id: 'ach-17',
     code: 'ROYAL_GUARDIAN',
     title: 'Royal Guardian',
@@ -573,10 +554,6 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({ userAchievem
         break;
       case 'ESCAPE_ARTIST':
         progressCurrent = Math.min(20, userStats?.modernMode?.thiefEscapes || 0);
-        if (progressCurrent >= 20 || isUnlocked) isUnlocked = true;
-        break;
-      case 'TRUSTED_WITNESS':
-        progressCurrent = Math.min(20, (userStats?.modernMode?.villagerWitnessBonuses || 0) + (userStats?.modernMode?.villagerInsightBonuses || 0));
         if (progressCurrent >= 20 || isUnlocked) isUnlocked = true;
         break;
       case 'ROYAL_GUARDIAN':

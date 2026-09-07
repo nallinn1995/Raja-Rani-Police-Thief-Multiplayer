@@ -11,7 +11,6 @@ const modernModeAchievementSchema = new mongoose.Schema(
         "QUEENS_INTUITION",
         "MASTER_DETECTIVE",
         "ESCAPE_ARTIST",
-        "TRUSTED_WITNESS",
         "ROYAL_GUARDIAN",
         "KINGDOM_SAVIOR",
       ],

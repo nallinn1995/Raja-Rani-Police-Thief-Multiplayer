@@ -22,7 +22,7 @@ export class ModernModeService {
    * Initializes state for a Modern Mode room.
    */
   static createRoomState(roomCode, players, options = {}) {
-    const roleList = ["Raja", "Rani", "Police", "Thief", "Mantri", "Villager"];
+    const roleList = ["Raja", "Rani", "Police", "Thief", "Mantri"];
     const shuffledRoles = shuffle(roleList);
 
     const baseScores = {
@@ -31,7 +31,6 @@ export class ModernModeService {
       Police: 500,
       Thief: 0,
       Mantri: 700,
-      Villager: 400,
     };
 
     const modernPlayers = players.map((p, index) => {
@@ -68,7 +67,7 @@ export class ModernModeService {
       totalRounds: options.totalRounds || 3,
       winCondition: options.winCondition || "rounds",
       targetScore: options.targetScore || 5000,
-      phase: "rules", // rules -> mantri-shield -> royal-phase -> investigation-phase -> witness-phase -> result
+      phase: "rules", // rules -> mantri-shield -> royal-phase -> investigation-phase -> result
       readyPlayers: readyPlayersSet,
       players: modernPlayers,
       mantriShieldTargetId: null,
@@ -80,9 +79,6 @@ export class ModernModeService {
       raniGuessSuccess: false,
       policeGuessId: null,
       policeGuessSuccess: false,
-      villagerChoice: null,
-      villagerBonusEarned: false,
-      villagerBonusType: "none",
       startTime: Date.now(),
     };
   }
@@ -104,11 +100,8 @@ export class ModernModeService {
     modernState.raniGuessSuccess = false;
     modernState.policeGuessId = null;
     modernState.policeGuessSuccess = false;
-    modernState.villagerChoice = null;
-    modernState.villagerBonusEarned = false;
-    modernState.villagerBonusType = "none";
 
-    const roleList = ["Raja", "Rani", "Police", "Thief", "Mantri", "Villager"];
+    const roleList = ["Raja", "Rani", "Police", "Thief", "Mantri"];
     const shuffledRoles = shuffle(roleList);
 
     const baseScores = {
@@ -117,7 +110,6 @@ export class ModernModeService {
       Police: 500,
       Thief: 0,
       Mantri: 700,
-      Villager: 400,
     };
 
     modernState.players.forEach((p, index) => {
@@ -223,7 +215,6 @@ export class ModernModeService {
     const police = modernState.players.find((p) => p.role === "Police");
     const thief = modernState.players.find((p) => p.role === "Thief");
     const mantri = modernState.players.find((p) => p.role === "Mantri");
-    const villager = modernState.players.find((p) => p.role === "Villager");
 
     // 1. Raja Intuition Check
     if (raja) {
@@ -257,7 +248,7 @@ export class ModernModeService {
         thief.score = 0;
 
         modernState.players.forEach((p) => {
-          if (["Raja", "Rani", "Mantri", "Villager"].includes(p.role)) {
+          if (["Raja", "Rani", "Mantri"].includes(p.role)) {
             if (p.lootedPoints > 0) {
               p.score += p.lootedPoints;
             }
@@ -266,22 +257,6 @@ export class ModernModeService {
       } else {
         modernState.policeGuessSuccess = false;
         police.score = 0;
-      }
-    }
-
-    // 5. Villager Witness Statement Bonus Check
-    if (villager) {
-      if (modernState.policeGuessSuccess && modernState.villagerChoice === "agree") {
-        modernState.villagerBonusEarned = true;
-        modernState.villagerBonusType = "witness";
-        villager.bonusPoints += 100;
-      } else if (!modernState.policeGuessSuccess && modernState.villagerChoice === "disagree") {
-        modernState.villagerBonusEarned = true;
-        modernState.villagerBonusType = "insight";
-        villager.bonusPoints += 100;
-      } else {
-        modernState.villagerBonusEarned = false;
-        modernState.villagerBonusType = "none";
       }
     }
 
@@ -322,7 +297,6 @@ export class ModernModeService {
       if (p.role === "Rani" && modernState.raniGuessSuccess) awards.push("Royal Genius");
       if (p.role === "Police" && modernState.policeGuessSuccess) awards.push("Master Detective");
       if (p.role === "Thief" && !modernState.policeGuessSuccess) awards.push("Escape Artist");
-      if (p.role === "Villager" && modernState.villagerBonusEarned) awards.push("Trusted Witness");
       if (p.role === "Mantri" && modernState.mantriShieldSuccess) awards.push("Royal Guardian");
 
       p.awards = awards;
@@ -363,14 +337,6 @@ export class ModernModeService {
         thiefName: thief ? thief.name : "",
         isCorrect: modernState.policeGuessSuccess,
         catchBonus: modernState.policeGuessSuccess ? 100 : 0,
-      },
-      villagerResult: {
-        villagerId: villager ? villager.id : "",
-        villagerName: villager ? villager.name : "",
-        choice: modernState.villagerChoice,
-        isBonusEarned: modernState.villagerBonusEarned,
-        bonusType: modernState.villagerBonusType,
-        bonusPoints: modernState.villagerBonusEarned ? 100 : 0,
       },
       mantriResult: {
         mantriId: mantri ? mantri.id : "",
@@ -485,9 +451,6 @@ export class ModernModeService {
           raniGuessSuccess: modernState.raniGuessSuccess,
           policeGuessId: modernState.policeGuessId,
           policeGuessSuccess: modernState.policeGuessSuccess,
-          villagerChoice: modernState.villagerChoice,
-          villagerBonusEarned: modernState.villagerBonusEarned,
-          villagerBonusType: modernState.villagerBonusType,
         },
         winnerId: resultData.winner ? resultData.winner.playerId : null,
         winnerName: resultData.winner ? resultData.winner.name : null,
@@ -582,12 +545,6 @@ export class ModernModeService {
           if (modernState.mantriProtectedThief) {
             stats.mantriProtectedThiefCount = (stats.mantriProtectedThiefCount || 0) + 1;
           }
-        } else if (p.role === "Villager") {
-          stats.timesVillager += 1;
-          if (modernState.villagerBonusEarned) {
-            if (modernState.villagerBonusType === "witness") stats.villagerWitnessBonuses += 1;
-            else if (modernState.villagerBonusType === "insight") stats.villagerInsightBonuses += 1;
-          }
         }
 
         await stats.save();
@@ -638,7 +595,6 @@ export class ModernModeService {
         { id: "QUEENS_INTUITION", condition: stats.correctRaniGuesses >= 10 },
         { id: "MASTER_DETECTIVE", condition: stats.policeCatches >= 25 },
         { id: "ESCAPE_ARTIST", condition: stats.thiefEscapes >= 20 },
-        { id: "TRUSTED_WITNESS", condition: stats.villagerWitnessBonuses + stats.villagerInsightBonuses >= 20 },
       ];
 
       for (const item of achievementsToTest) {

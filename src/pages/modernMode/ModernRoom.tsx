@@ -37,7 +37,7 @@ export const ModernRoom: React.FC<ModernRoomProps> = ({
         name: p.name,
         isHost: !!p.isHost,
         score: p.score || 0,
-        role: p.role || 'Villager',
+        role: p.role || 'Mantri',
       })) as ModernPlayerState[];
     }
     return [];
@@ -91,7 +91,7 @@ export const ModernRoom: React.FC<ModernRoomProps> = ({
               name: p.name,
               isHost: !!p.isHost,
               score: p.score || 0,
-              role: p.role || 'Villager',
+              role: p.role || 'Mantri',
             })) as ModernPlayerState[];
           }
           return prev;
@@ -99,7 +99,7 @@ export const ModernRoom: React.FC<ModernRoomProps> = ({
       }
       const ready = data.readyPlayerIds.includes(currentPlayerId);
       setIsReady(ready);
-      setAllReady(data.readyCount >= 6);
+      setAllReady(data.readyCount >= 5);
     });
 
     socket.on('modern:gameStateUpdate', (data: {
@@ -146,8 +146,6 @@ export const ModernRoom: React.FC<ModernRoomProps> = ({
         soundService.playPoliceSiren();
       } else if (data.icon === '🏛️' || tTitle.includes('shield') || tTitle.includes('mantri')) {
         soundService.playShieldCast();
-      } else if (data.icon === '⚖️' || data.icon === '👨' || tTitle.includes('witness') || tTitle.includes('villager')) {
-        soundService.playGavelStrike();
       } else if (data.icon === '👑' || tTitle.includes('royal')) {
         soundService.playRoyalFanfare();
       } else {
@@ -251,14 +249,6 @@ export const ModernRoom: React.FC<ModernRoomProps> = ({
     toast.success('Choice submitted and locked!');
   };
 
-  // Villager Witness Statement choice handler
-  const handleVillagerWitnessChoice = (choice: 'agree' | 'disagree') => {
-    soundService.playGavelStrike();
-    modernSocketHandler.submitVillagerWitness(socket, roomCode, currentPlayerId, choice);
-    setHasSubmittedAction(true);
-    toast.success(`Witness statement (${choice.toUpperCase()}) submitted!`);
-  };
-
   // Render Result Screen or Leaderboard
   if (currentPhase === 'result-phase' && resultData) {
     if (showLeaderboard) {
@@ -280,7 +270,12 @@ export const ModernRoom: React.FC<ModernRoomProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-[#11052C] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#3A1054] via-[#11052C] to-[#0A0217] text-white font-sans flex flex-col justify-between relative overflow-hidden">
+    <div
+      className="min-h-screen bg-[#0A041A] bg-cover bg-center bg-no-repeat text-white font-sans flex flex-col justify-between relative overflow-hidden"
+      style={{ backgroundImage: "url('/assets/images/background.jpg'), url('/assets/images/background.png')" }}
+    >
+      {/* Dark Royal Vignette & Shadow Overlay - matching Classic mode */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0A021A]/70 via-transparent to-[#0A021A]/85 pointer-events-none" />
       {/* Top Header */}
       <ModernHeader
         roomCode={roomCode}
@@ -302,7 +297,6 @@ export const ModernRoom: React.FC<ModernRoomProps> = ({
           mantriDecision={mantriDecision}
           onMantriDecisionChange={(decision) => setMantriDecision(decision)}
           onConfirmAction={handleConfirmAction}
-          onVillagerWitnessChoice={handleVillagerWitnessChoice}
           onMantriShieldChoice={handleMantriShieldChoice}
         />
 
@@ -328,7 +322,7 @@ export const ModernRoom: React.FC<ModernRoomProps> = ({
         <ModernRulesModal
           isHost={isHost}
           readyCount={readyCount}
-          totalPlayers={6}
+          totalPlayers={5}
           isReady={isReady}
           allReady={allReady}
           onToggleReady={handleToggleReady}

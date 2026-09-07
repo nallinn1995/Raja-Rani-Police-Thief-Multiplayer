@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, BookOpen, SlidersHorizontal, Bell } from 'lucide-react';
 import { configService, FullSystemConfig } from '../services/configService';
-import { PWAInstallBanner } from './pwa/PWAInstallBanner';
 
 interface HomePageProps {
   onCreateRoom: () => void;
@@ -47,11 +46,11 @@ export const HomePage: React.FC<HomePageProps> = ({
       <div className="home-gold-frame backdrop-blur-2xl relative z-10 max-w-[440px] sm:max-w-md w-full flex flex-col items-center shadow-2xl">
 
         {/* Top Centered Title Image Asset */}
-        <div className="text-center mb-3 sm:mb-4 relative w-full flex flex-col items-center pt-1">
+        <div className="text-center mb-3 sm:mb-4 relative z-10 w-full flex flex-col items-center pt-1 sm:pt-2">
           <img
             src="/assets/images/Auth/section_centered_iimage.png"
             alt="Raja Rani Police Thief"
-            className="w-full max-w-[210px] sm:max-w-[240px] object-contain drop-shadow-[0_6px_16px_rgba(0,0,0,0.8)] transform hover:scale-105 transition-transform duration-300"
+            className="w-full max-w-[170px] xs:max-w-[190px] sm:max-w-[230px] object-contain drop-shadow-[0_6px_16px_rgba(0,0,0,0.8)] transform hover:scale-105 transition-transform duration-300"
           />
           {/* Subtitle with Golden Arrow Flourishes */}
           <div className="flex items-center justify-center gap-2 mt-2 text-[#D8C7E0] text-[11px] sm:text-xs font-semibold tracking-wide">
@@ -91,9 +90,6 @@ export const HomePage: React.FC<HomePageProps> = ({
             </div>
           </button>
         </div>
-
-        {/* PWA "Add to Home Screen" Banner for Mobile Users */}
-        <PWAInstallBanner className="w-full max-w-sm mb-3.5" />
 
         {/* GAME RULES & ROLE SCORING BOTTOM CONTAINER */}
         <div className="w-full max-w-sm bg-[#0D031F]/90 border border-purple-500/40 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xl backdrop-blur-md">

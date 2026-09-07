@@ -940,8 +940,8 @@ useEffect(() => {
         <source src="/assets/audio/royal_kingdom_bgm.ogg" type="audio/ogg" />
       </audio>
 
-      {/* Sticky App Header after login for all screens */}
-      {appState !== "welcome" && currentUser && (
+      {/* Sticky App Header after login for all screens (except during active gameplay) */}
+      {appState !== "welcome" && currentUser && appState !== "playing" && (
         <AppHeader
           currentUser={currentUser}
           room={room}

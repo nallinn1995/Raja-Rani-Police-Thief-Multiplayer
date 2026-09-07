@@ -2428,39 +2428,6 @@ export const ProfileDashboard: React.FC<ProfileDashboardProps> = ({ user, onBack
                   </div>
                 </div>
               )}
-
-              {/* Villager (Modern Mode) */}
-              {(roleModeFilter === 'all' || roleModeFilter === 'modern') && (
-                <div className="bg-[#12072B] hover:bg-[#160836] border border-amber-600/50 rounded-2xl p-5 shadow-lg flex flex-col justify-between transition-all">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="w-16 h-16 rounded-2xl bg-amber-600/10 border-2 border-amber-500 p-1.5 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(245,158,11,0.25)]">
-                      <img src="/assets/images/villager.png" alt="Villager" className="w-full h-full object-contain" />
-                    </div>
-                    <div>
-                      <h4 className="font-extrabold text-amber-300 text-lg">Villager</h4>
-                      <p className="text-xs text-purple-300 font-medium">Kingdom Witness</p>
-                    </div>
-                  </div>
-                  <div className="space-y-2.5 text-xs border-t border-[#251245] pt-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-purple-300">Times Assigned</span>
-                      <span className="font-bold text-white">{modernMode.timesVillager || 0}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-purple-300">Witness & Insight Bonuses</span>
-                      <span className="font-extrabold text-amber-400">
-                        {(modernMode.villagerWitnessBonuses || 0) + (modernMode.villagerInsightBonuses || 0)} Earned
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-purple-300">Bonus Points Total</span>
-                      <span className="font-bold text-yellow-300">
-                        +{((modernMode.villagerWitnessBonuses || 0) + (modernMode.villagerInsightBonuses || 0)) * 100} pts
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         )}

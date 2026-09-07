@@ -121,6 +121,30 @@ export const DetectiveRulesModal: React.FC<DetectiveRulesModalProps> = ({
     }
   };
 
+  const touchStartX = React.useRef<number | null>(null);
+  const touchEndX = React.useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.targetTouches[0].clientX;
+    touchEndX.current = null;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.targetTouches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartX.current === null || touchEndX.current === null) return;
+    const distance = touchStartX.current - touchEndX.current;
+    if (distance > 35 && currentSlide < RULE_STEPS.length - 1) {
+      nextSlide();
+    } else if (distance < -35 && currentSlide > 0) {
+      prevSlide();
+    }
+    touchStartX.current = null;
+    touchEndX.current = null;
+  };
+
   const activeStep = RULE_STEPS[currentSlide];
 
   return (
@@ -160,23 +184,38 @@ export const DetectiveRulesModal: React.FC<DetectiveRulesModalProps> = ({
           </div>
         </div>
 
-        {/* Carousel Content Card */}
-        <div className="relative min-h-[220px] sm:min-h-[260px] flex items-center mb-4">
+        {/* Carousel Content Card - Swipeable on mobile with touch */}
+        <div
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          className="relative min-h-[220px] sm:min-h-[260px] flex items-center mb-4 touch-pan-y select-none"
+        >
           <AnimatePresence mode="wait">
             <motion.div
               key={activeStep.id}
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.25}
+              onDragEnd={(_, info) => {
+                if (info.offset.x < -35 && currentSlide < RULE_STEPS.length - 1) {
+                  nextSlide();
+                } else if (info.offset.x > 35 && currentSlide > 0) {
+                  prevSlide();
+                }
+              }}
               initial={{ opacity: 0, x: 25 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -25 }}
               transition={{ duration: 0.22 }}
-              className={`w-full p-4 sm:p-6 rounded-2xl bg-gradient-to-br ${activeStep.color} border ${activeStep.borderColor} shadow-xl flex flex-col justify-between relative overflow-hidden`}
+              className={`w-full p-4 sm:p-6 rounded-2xl bg-gradient-to-br ${activeStep.color} border ${activeStep.borderColor} shadow-xl flex flex-col justify-between relative overflow-hidden cursor-grab active:cursor-grabbing`}
             >
               <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-3 min-w-0">
                   <div className="w-12 h-12 rounded-xl bg-black/40 border border-white/20 flex items-center justify-center text-2xl shrink-0 shadow-inner">
                     {activeStep.emoji}
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/10 border border-white/20 text-cyan-200">
                       {activeStep.badge}
                     </span>
@@ -185,7 +224,7 @@ export const DetectiveRulesModal: React.FC<DetectiveRulesModalProps> = ({
                     </h3>
                   </div>
                 </div>
-                <span className="text-xs font-mono font-bold text-gray-400">
+                <span className="text-xs font-mono font-black text-cyan-300/90 whitespace-nowrap shrink-0 ml-3 self-start bg-black/40 px-2 py-0.5 rounded-md border border-cyan-500/30">
                   {currentSlide + 1} / {RULE_STEPS.length}
                 </span>
               </div>

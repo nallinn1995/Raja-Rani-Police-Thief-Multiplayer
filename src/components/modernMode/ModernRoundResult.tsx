@@ -26,7 +26,6 @@ export const ModernRoundResult: React.FC<ModernRoundResultProps> = ({
     rajaResult,
     raniResult,
     policeResult,
-    villagerResult,
     mantriResult,
     thiefResult,
     scores,
@@ -41,8 +40,12 @@ export const ModernRoundResult: React.FC<ModernRoundResultProps> = ({
     }
   }, [policeResult?.isPoliceCatchSuccessful]);
 
-  return (
-    <div className="min-h-screen bg-[#11052C] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#3A1054] via-[#11052C] to-[#0A0217] flex flex-col items-center justify-center p-4 text-white font-sans py-8">
+    <div
+      className="min-h-screen bg-[#0A041A] bg-cover bg-center bg-no-repeat flex flex-col items-center justify-center p-4 text-white font-sans py-8 relative overflow-hidden"
+      style={{ backgroundImage: "url('/assets/images/background.jpg'), url('/assets/images/background.png')" }}
+    >
+      {/* Dark Royal Vignette & Shadow Overlay - matching Classic mode */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0A021A]/70 via-transparent to-[#0A021A]/85 pointer-events-none" />
       <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -165,26 +168,6 @@ export const ModernRoundResult: React.FC<ModernRoundResultProps> = ({
               <div className="text-xs text-rose-400 font-semibold flex items-center gap-1.5">
                 <XCircle className="w-4 h-4" />
                 <span>THIEF ESCAPED! Police score = 0 pts.</span>
-              </div>
-            )}
-          </div>
-
-          {/* Villager Result */}
-          <div className="p-4 rounded-2xl bg-purple-950/70 border border-amber-600/40">
-            <div className="flex items-center gap-2 mb-2 text-amber-300 font-bold text-sm">
-              <span>👨 Villager Witness</span>
-            </div>
-            {villagerResult.isBonusEarned ? (
-              <div className="text-xs text-green-400 font-semibold flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>
-                  Selected {villagerResult.choice?.toUpperCase()} (+100 {villagerResult.bonusType} bonus)
-                </span>
-              </div>
-            ) : (
-              <div className="text-xs text-gray-400 flex items-center gap-1.5">
-                <XCircle className="w-4 h-4 text-gray-500" />
-                <span>No witness bonus awarded.</span>
               </div>
             )}
           </div>

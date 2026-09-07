@@ -16,7 +16,7 @@ export const ModernHeader: React.FC<ModernHeaderProps> = ({
   currentPhase,
   timerSeconds,
   maxTimerSeconds = 25,
-  playerCount = 6,
+  playerCount = 5,
 }) => {
   const [isMuted, setIsMuted] = useState<boolean>(() => soundService.isMuted());
 
@@ -59,12 +59,6 @@ export const ModernHeader: React.FC<ModernHeaderProps> = ({
           title: '🚨 Investigation in Progress',
           subtitle: 'Police is identifying the culprit...',
           color: 'from-blue-600 via-cyan-600 to-slate-800',
-        };
-      case 'witness-phase':
-        return {
-          title: '👨 Witness Statement',
-          subtitle: 'Villager is judging the investigation...',
-          color: 'from-amber-600 to-orange-600',
         };
       case 'result-phase':
         return {

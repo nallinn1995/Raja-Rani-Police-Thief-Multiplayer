@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, CheckCircle2, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Shield, CheckCircle2 } from 'lucide-react';
 import { ModernRole, MODERN_ROLES_CONFIG } from '../../types/modernMode';
 
 interface ModernActionBarProps {
@@ -11,7 +11,6 @@ interface ModernActionBarProps {
   mantriDecision: 'yes' | 'no' | null;
   onMantriDecisionChange: (decision: 'yes' | 'no') => void;
   onConfirmAction: (targetId?: string) => void;
-  onVillagerWitnessChoice?: (choice: 'agree' | 'disagree') => void;
   onMantriShieldChoice?: (targetId: string | null) => void;
 }
 
@@ -24,7 +23,6 @@ export const ModernActionBar: React.FC<ModernActionBarProps> = ({
   mantriDecision,
   onMantriDecisionChange,
   onConfirmAction,
-  onVillagerWitnessChoice,
   onMantriShieldChoice,
 }) => {
   if (!myRole) return null;
@@ -257,58 +255,6 @@ export const ModernActionBar: React.FC<ModernActionBarProps> = ({
         <div className="text-center text-xs text-purple-300 flex items-center justify-center gap-2 py-1">
           <span className="animate-pulse text-cyan-400">🚨</span>
           <span>Police is actively investigating who stole the kingdom loot...</span>
-        </div>
-      );
-    }
-
-    // 4. VILLAGER WITNESS PHASE
-    if (currentPhase === 'witness-phase') {
-      if (myRole === 'Villager') {
-        return (
-          <div className="flex flex-col items-center justify-center gap-3 text-center">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg overflow-hidden">
-                {roleConfig?.image ? (
-                  <img src={roleConfig.image} alt="Villager" className="w-full h-full object-contain" />
-                ) : (
-                  <span className="text-xl">👨</span>
-                )}
-              </div>
-              <h4 className="font-bold text-amber-300 text-sm">
-                Witness Statement Popup
-              </h4>
-            </div>
-            <p className="text-xs text-purple-200 max-w-md">
-              Do you trust the Police investigation? Select your choice:
-            </p>
-
-            <div className="flex gap-4 mt-1">
-              <button
-                disabled={hasSubmittedAction}
-                onClick={() => onVillagerWitnessChoice && onVillagerWitnessChoice('agree')}
-                className="px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg transition"
-              >
-                <ThumbsUp className="w-4 h-4" />
-                <span>👍 Agree (+100 if Police Correct)</span>
-              </button>
-
-              <button
-                disabled={hasSubmittedAction}
-                onClick={() => onVillagerWitnessChoice && onVillagerWitnessChoice('disagree')}
-                className="px-5 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg transition"
-              >
-                <ThumbsDown className="w-4 h-4" />
-                <span>👎 Disagree (+100 if Police Wrong)</span>
-              </button>
-            </div>
-          </div>
-        );
-      }
-
-      return (
-        <div className="text-center text-xs text-purple-300 flex items-center justify-center gap-2 py-1">
-          <span className="animate-bounce text-amber-400">👨</span>
-          <span>Villager is submitting witness statement...</span>
         </div>
       );
     }

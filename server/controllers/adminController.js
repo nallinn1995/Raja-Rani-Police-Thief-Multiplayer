@@ -28,7 +28,7 @@ export const systemConfig = {
       subtitle: "Master the strategy, understand the scoring, and dominate the kingdom!",
       classicRules: "Each player picks a secret card. The Police must guess who holds the Thief card. Correct guess yields 500 points to Police. Wrong guess yields 800 points to Thief!",
       detectiveRules: "Analyze clues, suspect statements, and crime scene logs to uncover the criminal before time runs out!",
-      modernRules: "Play with 6 Kingdom Roles: Raja, Rani, Mantri, Police, Thief, and Villager with shield abilities and witness bonuses!",
+      modernRules: "Play with 5 Kingdom Roles: Raja, Rani, Mantri, Police, and Thief with shield abilities and intuition bonuses!",
     },
     homePage: {
       welcomeTitle: "Raja Rani Police Thief",
@@ -53,7 +53,6 @@ export const systemConfig = {
     thiefEscaped: 800,
     thiefCaught: 0,
     mantriShieldBonus: 100,
-    villagerWitnessBonus: 100,
     detectiveCorrectGuess: 500,
   },
 };
@@ -878,7 +877,7 @@ export async function resetPlayerStatsRecord(req, res) {
       );
       await ModernModeStats.findOneAndUpdate(
         { userId: stats.userId },
-        { gamesPlayed: 0, gamesWon: 0, totalScore: 0, highestScore: 0, currentWinStreak: 0, longestWinStreak: 0, timesRaja: 0, timesRani: 0, timesPolice: 0, timesThief: 0, timesMantri: 0, timesVillager: 0 }
+        { gamesPlayed: 0, gamesWon: 0, totalScore: 0, highestScore: 0, currentWinStreak: 0, longestWinStreak: 0, timesRaja: 0, timesRani: 0, timesPolice: 0, timesThief: 0, timesMantri: 0 }
       );
     }
 
@@ -1075,7 +1074,6 @@ export async function getModernModeAdminData(req, res) {
       mantri: 0,
       police: 0,
       thief: 0,
-      villager: 0,
     };
 
     allStats.forEach((st) => {
@@ -1085,7 +1083,6 @@ export async function getModernModeAdminData(req, res) {
       rolesCount.mantri += st.timesMantri || 0;
       rolesCount.police += st.timesPolice || 0;
       rolesCount.thief += st.timesThief || 0;
-      rolesCount.villager += st.timesVillager || 0;
     });
 
     const avgScorePerPlayer = totalPlayers > 0 ? Math.round(totalScoreSum / totalPlayers) : 0;
@@ -1117,7 +1114,6 @@ export async function getModernModeAdminData(req, res) {
           mantri: item.timesMantri || 0,
           police: item.timesPolice || 0,
           thief: item.timesThief || 0,
-          villager: item.timesVillager || 0,
         },
       })),
     });

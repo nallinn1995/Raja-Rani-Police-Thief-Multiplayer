@@ -71,13 +71,6 @@ export const ModernRoleCard: React.FC<ModernRoleCardProps> = ({
       }
       return { label: 'Waiting...', icon: Clock, bg: 'bg-purple-950/90 text-purple-300 border border-purple-500/30' };
     }
-    if (currentPhase === 'witness-phase') {
-      if (player.role === 'Villager') {
-        return player.hasSubmittedAction
-          ? { label: 'Statement Saved', icon: CheckCircle2, bg: 'bg-amber-950/90 text-amber-300 border border-amber-500/40' }
-          : { label: 'Judging...', icon: Clock, bg: 'bg-amber-950/90 text-amber-200 border border-amber-500/40 animate-pulse' };
-      }
-    }
     if (player.isShielded) {
       return { label: 'Protected by Shield', icon: Shield, bg: 'bg-yellow-950/90 text-yellow-300 border border-yellow-500/60' };
     }

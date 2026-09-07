@@ -181,7 +181,7 @@ export const GameInfo: React.FC<GameInfoProps> = ({ onBack, onStartGame }) => {
                   </div>
                   <h3 className="font-bold text-purple-200 text-sm mb-1">Modern Kingdom Mode</h3>
                   <p className="text-xs text-slate-400 leading-relaxed">
-                    Strategic 6-player kingdom RPG featuring Mantri secret shield, Thief automatic loot vault, Royal & Police phases, and Villager witness statements!
+                    Strategic 5-player kingdom RPG featuring Mantri secret shield, Thief automatic loot vault, and Royal & Police phases!
                   </p>
                 </div>
 
@@ -389,24 +389,6 @@ export const GameInfo: React.FC<GameInfoProps> = ({ onBack, onStartGame }) => {
                     </div>
                     <p className="text-xs text-slate-300 mt-1 leading-relaxed">
                       Pre-game secret protection! Shields 1 player from Thief loot. Preventing theft earns a <strong>+100 Support Bonus</strong>!
-                    </p>
-                  </div>
-                </div>
-
-                {/* 6. VILLAGER */}
-                <div className="p-5 rounded-2xl bg-[#180933] border border-orange-500/40 flex items-start space-x-3.5">
-                  <div className="w-12 h-12 rounded-xl bg-orange-500/20 border border-orange-400/50 flex flex-shrink-0 items-center justify-center">
-                    <img src="/assets/images/villager.png" alt="Villager" className="w-9 h-9 object-contain drop-shadow" />
-                  </div>
-                  <div>
-                    <div className="flex items-center space-x-1.5 flex-wrap">
-                      <h3 className="font-black text-base text-orange-300">Villager (Citizen)</h3>
-                      <span className="px-2 py-0.5 bg-orange-500/20 text-orange-300 text-[10px] font-bold rounded-full">
-                        400 PTS
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                      Witnesses Police interrogation! Casts a verdict (Agree/Disagree). Correct verdict yields <strong>+100 Witness/Insight Bonus</strong>!
                     </p>
                   </div>
                 </div>
@@ -635,8 +617,8 @@ export const GameInfo: React.FC<GameInfoProps> = ({ onBack, onStartGame }) => {
                   {[
                     {
                       step: 1,
-                      title: "6-Player Royal Court Setup",
-                      desc: "Accommodates 6 players with expanded roles: Raja, Rani, Mantri, Police, Thief, and Villager.",
+                      title: "5-Player Royal Court Setup",
+                      desc: "Accommodates 5 players with expanded roles: Raja, Rani, Mantri, Police, and Thief.",
                       icon: Building2,
                     },
                     {
@@ -648,14 +630,14 @@ export const GameInfo: React.FC<GameInfoProps> = ({ onBack, onStartGame }) => {
                     {
                       step: 3,
                       title: "Police Investigation & Interrogation",
-                      desc: "Police leads the courtroom investigation, questions witnesses, and identifies the Thief.",
+                      desc: "Police leads the courtroom investigation, questions suspects, and identifies the Thief.",
                       icon: Search,
                     },
                     {
                       step: 4,
-                      title: "Witness Testimony & Villager Clues",
-                      desc: "Villager can give truthful clues or bluff to throw off suspicion and claim bonus witness points.",
-                      icon: Mic,
+                      title: "Royal Court Mutual Intuition",
+                      desc: "Raja and Rani secretly identify each other during Royal Court to earn +100 intuition bonus points.",
+                      icon: Crown,
                     },
                     {
                       step: 5,
@@ -860,15 +842,15 @@ export const GameInfo: React.FC<GameInfoProps> = ({ onBack, onStartGame }) => {
                     </div>
                     <div>
                       <h3 className="font-black text-lg text-purple-300">Modern Kingdom Mode</h3>
-                      <span className="text-[11px] text-purple-400 font-medium">6-Player Kingdom RPG</span>
+                      <span className="text-[11px] text-purple-400 font-medium">5-Player Kingdom RPG</span>
                     </div>
                   </div>
                   <p className="text-xs sm:text-sm text-slate-300 leading-relaxed mb-4">
-                    Featuring 6 active roles (Raja, Rani, Police, Thief, Mantri, Villager). Includes Mantri secret shield, Thief automatic loot vault, Royal & Police phases, and interactive Villager witness verdicts!
+                    Featuring 5 active roles (Raja, Rani, Police, Thief, Mantri). Includes Mantri secret shield, Thief automatic loot vault, and Royal & Police phases!
                   </p>
                 </div>
                 <div className="p-3 bg-[#0F0422] rounded-xl border border-purple-800/40 text-xs text-slate-400">
-                  🏛️ 6-player RPG with secret shields & witness statements.
+                  🏛️ 5-player RPG with secret shields & intuition bonuses.
                 </div>
               </div>
 
@@ -979,10 +961,6 @@ export const GameInfo: React.FC<GameInfoProps> = ({ onBack, onStartGame }) => {
                       <strong className="text-indigo-300">+40 XP</strong>
                     </li>
                     <li className="flex justify-between items-center bg-[#180933] p-2 rounded-xl border border-purple-900/40">
-                      <span>Villager Verdict Bonus</span>
-                      <strong className="text-orange-300">+30 XP</strong>
-                    </li>
-                    <li className="flex justify-between items-center bg-[#180933] p-2 rounded-xl border border-purple-900/40">
                       <span>Royal Intuition Match</span>
                       <strong className="text-amber-300">+35 XP</strong>
                     </li>
@@ -1052,8 +1030,8 @@ export const GameInfo: React.FC<GameInfoProps> = ({ onBack, onStartGame }) => {
                   color: "text-purple-400",
                 },
                 {
-                  title: "Modern Kingdom RPG (6P)",
-                  desc: "Mantri secret shield, Thief automatic loot vault, Royal & Police phases, and Villager witness statements.",
+                  title: "Modern Kingdom RPG (5P)",
+                  desc: "Mantri secret shield, Thief automatic loot vault, Royal & Police phases, and 5 Kingdom roles.",
                   icon: Building2,
                   color: "text-indigo-400",
                 },

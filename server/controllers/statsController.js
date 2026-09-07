@@ -969,7 +969,6 @@ export async function getProfileDataById(userId, limit = 15) {
       ROYAL_GENIUS: 300,
       QUEENS_INTUITION: 300,
       ESCAPE_ARTIST: 250,
-      TRUSTED_WITNESS: 200,
       ROYAL_GUARDIAN: 300,
       KINGDOM_SAVIOR: 500,
     };
