@@ -26,22 +26,34 @@ const activeGames = new Map();
 
 export class DetectiveMysteryGameService {
   /**
-   * Generates a fresh random door mapping on the server.
+   * Generates an independent, validated 10-door secret layout.
    * Exactly 10 doors: 1 Thief, 4 Safe, 3 Bombs, 1 Clue, 1 Life.
    */
-  static generateDoors() {
+  static generatePlayerLayout(preferredThiefDoor = null) {
     const doorIds = Array.from({ length: DETECTIVE_CONFIG.TOTAL_DOORS }, (_, i) => i + 1);
-    
-    // Shuffle array using Fisher-Yates
-    for (let i = doorIds.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [doorIds[i], doorIds[j]] = [doorIds[j], doorIds[i]];
+
+    let thiefDoor;
+    let otherDoors;
+
+    if (preferredThiefDoor && preferredThiefDoor >= 1 && preferredThiefDoor <= DETECTIVE_CONFIG.TOTAL_DOORS) {
+      thiefDoor = preferredThiefDoor;
+      otherDoors = doorIds.filter((d) => d !== thiefDoor);
+    } else {
+      const thiefIdx = Math.floor(Math.random() * doorIds.length);
+      thiefDoor = doorIds[thiefIdx];
+      otherDoors = doorIds.filter((d) => d !== thiefDoor);
     }
 
-    const thiefDoor = doorIds[0];
-    const bombDoors = new Set(doorIds.slice(1, 1 + DETECTIVE_CONFIG.BOMB_DOORS));
-    const clueDoor = doorIds[1 + DETECTIVE_CONFIG.BOMB_DOORS];
-    const lifeDoor = doorIds[1 + DETECTIVE_CONFIG.BOMB_DOORS + DETECTIVE_CONFIG.CLUE_DOORS];
+    // Shuffle the remaining 9 doors using Fisher-Yates
+    for (let i = otherDoors.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [otherDoors[i], otherDoors[j]] = [otherDoors[j], otherDoors[i]];
+    }
+
+    const bombDoors = new Set(otherDoors.slice(0, DETECTIVE_CONFIG.BOMB_DOORS));
+    const clueDoor = otherDoors[DETECTIVE_CONFIG.BOMB_DOORS];
+    const lifeDoor = otherDoors[DETECTIVE_CONFIG.BOMB_DOORS + DETECTIVE_CONFIG.CLUE_DOORS];
+    const safeDoors = otherDoors.slice(DETECTIVE_CONFIG.BOMB_DOORS + DETECTIVE_CONFIG.CLUE_DOORS);
 
     const mapping = new Map();
     for (let i = 1; i <= DETECTIVE_CONFIG.TOTAL_DOORS; i++) {
@@ -58,19 +70,67 @@ export class DetectiveMysteryGameService {
       }
     }
 
-    // Generate coordinated, valid riddles for each screen resolution matrix layout
+    // Layout signature for comparing complete layouts across players
+    const signature = Array.from({ length: DETECTIVE_CONFIG.TOTAL_DOORS }, (_, i) => `${i + 1}:${mapping.get(i + 1)}`).join(",");
+
+    // Generate coordinated, valid riddles that point to THIS player's own thief door
     const layoutRiddles = this.generateLayoutRiddles(thiefDoor);
 
     return {
       thiefDoor,
-      bombDoors: Array.from(bombDoors),
+      bombDoors: Array.from(bombDoors).sort((a, b) => a - b),
       clueDoor,
       lifeDoor,
+      safeDoors: Array.from(safeDoors).sort((a, b) => a - b),
       riddle: layoutRiddles.defaultRiddle,
       clueRiddles: layoutRiddles.riddles,
       riddleType: layoutRiddles.archetype,
       mapping,
+      signature,
     };
+  }
+
+  /**
+   * Generates independent secret layouts for all players in a match.
+   * Guarantees:
+   * 1. Every player gets a complete 10-door layout (1 Thief, 4 Safe, 3 Bomb, 1 Clue, 1 Life).
+   * 2. No two players receive the exact same complete secret layout in the match.
+   * 3. Thief doors are distributed independently across players.
+   */
+  static generateUniqueLayoutsForPlayers(players) {
+    const playerCount = players.length;
+    // Permute available doors 1..10 to assign distinct thief doors where possible
+    const availableThiefDoors = Array.from({ length: DETECTIVE_CONFIG.TOTAL_DOORS }, (_, i) => i + 1);
+    for (let i = availableThiefDoors.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [availableThiefDoors[i], availableThiefDoors[j]] = [availableThiefDoors[j], availableThiefDoors[i]];
+    }
+
+    const playerLayouts = new Map();
+    const usedSignatures = new Set();
+
+    players.forEach((p, index) => {
+      let layout;
+      let attempts = 0;
+      const preferredThief = index < availableThiefDoors.length ? availableThiefDoors[index] : null;
+
+      do {
+        layout = this.generatePlayerLayout(preferredThief);
+        attempts++;
+      } while (playerCount > 1 && usedSignatures.has(layout.signature) && attempts < 100);
+
+      usedSignatures.add(layout.signature);
+      playerLayouts.set(p.id, layout);
+    });
+
+    return playerLayouts;
+  }
+
+  /**
+   * Legacy alias for generatePlayerLayout.
+   */
+  static generateDoors() {
+    return this.generatePlayerLayout();
   }
 
   /**
@@ -209,14 +269,16 @@ export class DetectiveMysteryGameService {
       clearTimeout(existing.timerTimeout);
     }
 
-    const secretLayout = this.generateDoors();
+    const playerLayouts = this.generateUniqueLayoutsForPlayers(players);
     const now = Date.now();
     const endsAt = now + DETECTIVE_CONFIG.GAME_DURATION * 1000;
 
     const playerStates = new Map();
     players.forEach((p) => {
+      const secretLayout = playerLayouts.get(p.id);
       playerStates.set(p.id, {
         id: p.id,
+        socketId: p.socketId || null,
         userId: p.userId || null,
         guestDeviceId: p.guestDeviceId || null,
         name: p.name,
@@ -225,7 +287,10 @@ export class DetectiveMysteryGameService {
         attempts: 0,
         bombsTriggered: 0,
         safeDoorsFound: 0,
-        revealedDoors: new Map(), // doorId -> result ("SAFE" | "BOMB" | "THIEF")
+        cluesFound: 0,
+        lifeDoorsFound: 0,
+        secretLayout, // Server-only private secret layout for this player
+        revealedDoors: new Map(), // doorId -> result ("SAFE" | "BOMB" | "THIEF" | "CLUE" | "LIFE")
         status: "INVESTIGATING", // "INVESTIGATING" | "CAUGHT" | "ELIMINATED" | "TIMEOUT"
         caughtAt: null,
         investigationTimeMs: null,
@@ -241,7 +306,6 @@ export class DetectiveMysteryGameService {
       startedAt: now,
       endsAt,
       duration: DETECTIVE_CONFIG.GAME_DURATION,
-      secretLayout,
       players: playerStates,
       io,
       timerTimeout: null,
@@ -258,7 +322,7 @@ export class DetectiveMysteryGameService {
     const publicState = this.getPublicGameState(game);
     io.to(upperCode).emit("detective:gameStarted", publicState);
 
-    console.log(`[DetectiveMystery] Started game in ${upperCode}. Thief Door: #${secretLayout.thiefDoor}`);
+    console.log(`[DetectiveMystery] Started game in ${upperCode} with ${players.length} detectives (independent layouts).`);
     return game;
   }
 
@@ -348,11 +412,15 @@ export class DetectiveMysteryGameService {
       return; // prevent rapid double clicks
     }
 
+    if (socket?.id) {
+      player.socketId = socket.id;
+    }
+
     player.isProcessing = true;
 
     try {
-      // Determine door outcome authoritatively
-      const outcome = game.secretLayout.mapping.get(numDoorId) || "SAFE";
+      // Determine door outcome authoritatively from player's private secret layout
+      const outcome = player.secretLayout.mapping.get(numDoorId) || "SAFE";
       player.attempts += 1;
       player.revealedDoors.set(numDoorId, outcome);
 
@@ -369,11 +437,13 @@ export class DetectiveMysteryGameService {
           player.status = "ELIMINATED";
         }
       } else if (outcome === "LIFE") {
-        player.lives += 1; // grant extra life
+        player.lifeDoorsFound += 1;
+        player.lives = Math.min(DETECTIVE_CONFIG.STARTING_LIVES, player.lives + 1); // Strictly capped at 3
       } else if (outcome === "CLUE") {
-        const layoutKey = (clientLayout && game.secretLayout.clueRiddles?.[clientLayout]) ? clientLayout : 'desktop-5-2';
-        clue = game.secretLayout.clueRiddles?.[layoutKey] || game.secretLayout.riddle;
-        clueRiddles = game.secretLayout.clueRiddles || null;
+        player.cluesFound += 1;
+        const layoutKey = (clientLayout && player.secretLayout.clueRiddles?.[clientLayout]) ? clientLayout : 'desktop-5-2';
+        clue = player.secretLayout.clueRiddles?.[layoutKey] || player.secretLayout.riddle;
+        clueRiddles = player.secretLayout.clueRiddles || null;
       } else if (outcome === "THIEF") {
         player.status = "CAUGHT";
         player.caughtAt = Date.now();
@@ -395,7 +465,7 @@ export class DetectiveMysteryGameService {
         investigationTimeMs,
       });
 
-      // 2. Broadcast public status update to room
+      // 2. Broadcast public status update to room (NO doorId or outcome leaked)
       game.io.to(upperCode).emit("detective:playerUpdated", {
         playerId: player.id,
         name: player.name,
@@ -409,13 +479,12 @@ export class DetectiveMysteryGameService {
 
       console.log(`[DetectiveMystery] ${player.name} opened Door #${numDoorId} -> ${outcome} (Lives: ${player.lives})`);
 
-      // 3. Check if all players in room are now resolved
+      // 3. Check if any player caught their thief or all players in room are resolved
       const allResolved = Array.from(game.players.values()).every(
         (p) => p.status === "CAUGHT" || p.status === "ELIMINATED"
       );
 
-      if (allResolved) {
-        console.log(`[DetectiveMystery] All players in ${upperCode} resolved! Finalizing match.`);
+      if (outcome === "THIEF" || allResolved) {
         this.finishGame(upperCode);
       }
     } finally {
@@ -550,6 +619,13 @@ export class DetectiveMysteryGameService {
       game.timerTimeout = null;
     }
 
+    // Any player still investigating at match end is timed out
+    game.players.forEach((p) => {
+      if (p.status === "INVESTIGATING") {
+        p.status = "TIMEOUT";
+      }
+    });
+
     const leaderboardEntries = this.calculateScoresAndRanks(game);
     const championEntry = leaderboardEntries[0];
 
@@ -574,21 +650,83 @@ export class DetectiveMysteryGameService {
       },
     }));
 
-    // Broadcast completion to all players
-    game.io.to(roomCode).emit("detective:gameFinished", {
-      roomCode,
-      leaderboard: finalLeaderboard,
-      champion: championEntry ? {
-        id: championEntry.player.id,
-        name: championEntry.player.name,
-        finalScore: championEntry.finalScore,
-        status: championEntry.player.status,
-      } : null,
-      secretLayout: {
-        thiefDoor: game.secretLayout.thiefDoor,
-        bombDoors: game.secretLayout.bombDoors,
-      },
-    });
+    const championPayload = championEntry ? {
+      id: championEntry.player.id,
+      name: championEntry.player.name,
+      finalScore: championEntry.finalScore,
+      status: championEntry.player.status,
+    } : null;
+
+    // Send personalized results to each player socket (containing only their own secret layout)
+    let socketsInRoom = [];
+    try {
+      if (typeof game.io?.in === "function") {
+        socketsInRoom = await game.io.in(roomCode).fetchSockets();
+      }
+    } catch (err) {
+      console.warn("[DetectiveMystery] Error fetching sockets in room:", err);
+    }
+
+    const notifiedSocketIds = new Set();
+
+    if (socketsInRoom && socketsInRoom.length > 0) {
+      for (const s of socketsInRoom) {
+        const p = Array.from(game.players.values()).find((pl) => pl.socketId === s.id);
+        if (p && p.secretLayout) {
+          s.emit("detective:gameFinished", {
+            roomCode,
+            leaderboard: finalLeaderboard.map((entry) => ({
+              ...entry,
+              thiefDoor: entry.id === p.id ? p.secretLayout.thiefDoor : undefined,
+            })),
+            champion: championPayload,
+            secretLayout: {
+              thiefDoor: p.secretLayout.thiefDoor,
+              bombDoors: p.secretLayout.bombDoors,
+            },
+          });
+          notifiedSocketIds.add(s.id);
+        }
+      }
+    }
+
+    for (const p of game.players.values()) {
+      if (p.socketId && !notifiedSocketIds.has(p.socketId) && p.secretLayout) {
+        game.io.to(p.socketId).emit("detective:gameFinished", {
+          roomCode,
+          leaderboard: finalLeaderboard.map((entry) => ({
+            ...entry,
+            thiefDoor: entry.id === p.id ? p.secretLayout.thiefDoor : undefined,
+          })),
+          champion: championPayload,
+          secretLayout: {
+            thiefDoor: p.secretLayout.thiefDoor,
+            bombDoors: p.secretLayout.bombDoors,
+          },
+        });
+        notifiedSocketIds.add(p.socketId);
+      }
+    }
+
+    // Room fallback broadcast without leaking secret layouts
+    if (typeof game.io?.to === "function") {
+      const roomTarget = game.io.to(roomCode);
+      if (typeof roomTarget.except === "function" && notifiedSocketIds.size > 0) {
+        roomTarget.except(Array.from(notifiedSocketIds)).emit("detective:gameFinished", {
+          roomCode,
+          leaderboard: finalLeaderboard,
+          champion: championPayload,
+          secretLayout: null,
+        });
+      } else if (notifiedSocketIds.size === 0) {
+        roomTarget.emit("detective:gameFinished", {
+          roomCode,
+          leaderboard: finalLeaderboard,
+          champion: championPayload,
+          secretLayout: null,
+        });
+      }
+    }
 
     console.log(`[DetectiveMystery] Match finished in ${roomCode}. Winner: ${championEntry?.player?.name} (${championEntry?.finalScore} pts)`);
 
@@ -732,11 +870,11 @@ export class DetectiveMysteryGameService {
         roundLogs: [
           {
             roundNumber: 1,
-            actualThiefCardId: `door-${game.secretLayout.thiefDoor}`,
-            thiefName: `Door #${game.secretLayout.thiefDoor}`,
+            actualThiefCardId: champion?.player?.secretLayout?.thiefDoor ? `door-${champion.player.secretLayout.thiefDoor}` : "door-1",
+            thiefName: champion?.player?.secretLayout?.thiefDoor ? `Door #${champion.player.secretLayout.thiefDoor}` : "Mystery Door",
             playerSelections: leaderboardEntries.map((e) => ({
               username: e.player.name,
-              selectedCardId: e.player.status === "CAUGHT" ? `door-${game.secretLayout.thiefDoor}` : "none",
+              selectedCardId: e.player.status === "CAUGHT" && e.player.secretLayout?.thiefDoor ? `door-${e.player.secretLayout.thiefDoor}` : "none",
               isCorrect: e.player.status === "CAUGHT",
               guessTime: e.investigationTimeSec || 0,
             })),
@@ -769,8 +907,8 @@ export class DetectiveMysteryGameService {
           {
             roundNumber: 1,
             policeName: champion ? champion.player.name : "All Detectives",
-            actualThief: `Door #${game.secretLayout.thiefDoor}`,
-            policeSelected: champion ? `Door #${game.secretLayout.thiefDoor}` : "None",
+            actualThief: champion?.player?.secretLayout?.thiefDoor ? `Door #${champion.player.secretLayout.thiefDoor}` : "Mystery Door",
+            policeSelected: champion?.player?.secretLayout?.thiefDoor ? `Door #${champion.player.secretLayout.thiefDoor}` : "None",
             isCorrect: champion?.player.status === "CAUGHT",
             guessTime: champion?.investigationTimeSec || 0,
           },
@@ -805,8 +943,8 @@ export class DetectiveMysteryGameService {
         bombsTriggered: player.bombsTriggered,
         status: player.status,
         investigationTimeMs: player.investigationTimeMs,
-        clue: player && player.revealedDoors && Array.from(player.revealedDoors.values()).includes("CLUE") ? game.secretLayout.riddle : null,
-        clueRiddles: player && player.revealedDoors && Array.from(player.revealedDoors.values()).includes("CLUE") ? (game.secretLayout.clueRiddles || null) : null,
+        clue: player && player.revealedDoors && Array.from(player.revealedDoors.values()).includes("CLUE") ? (player.secretLayout?.riddle || null) : null,
+        clueRiddles: player && player.revealedDoors && Array.from(player.revealedDoors.values()).includes("CLUE") ? (player.secretLayout?.clueRiddles || null) : null,
         revealedDoors: Array.from(player.revealedDoors.entries()).map(([doorId, result]) => ({
           doorId,
           result,

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Play, Users, ChevronLeft, ChevronRight, X, Shield, Bomb, Clock, Trophy } from "lucide-react";
+import { Play, Users, ChevronLeft, ChevronRight, Shield, Bomb, Clock, Trophy } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface DetectiveRulesModalProps {
@@ -20,7 +20,7 @@ const RULE_STEPS = [
     title: "STEP 1: The Chamber of 10 Doors",
     subtitle: "Dynamic 5x2 Mystery Grid",
     description: "Before you stands a grand chamber of 10 ancient wooden mystery doors arranged in a dynamic 5x2 matrix (adaptive 4-4-2 on mobile).",
-    detail: "Exactly 1 door conceals the escaped Mastermind Thief! Detectives investigate simultaneously in real-time to capture the Thief.",
+    detail: "Every detective receives a unique hidden mystery. Find your Mastermind Thief before time runs out!",
     color: "from-cyan-950/95 via-blue-950/95 to-[#080214]/95",
     borderColor: "border-cyan-500/50",
     badge: "10 Doors Matrix",

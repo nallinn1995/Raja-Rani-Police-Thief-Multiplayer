@@ -725,10 +725,19 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
               </div>
 
               {/* Door Announcement Pill */}
-              <div className="mt-1 px-3 sm:px-4 py-1 rounded-xl bg-[#1a052e]/90 border border-amber-400/50 shadow-[0_0_15px_rgba(0,0,0,0.6)] flex items-center justify-center space-x-1.5 text-xs sm:text-sm text-purple-200">
-                <span>The hidden Thief was behind</span>
-                <span className="text-amber-400 font-black font-mono tracking-wide">Door #{finalResults.secretLayout.thiefDoor}</span>
-              </div>
+              {(() => {
+                const myEntry = finalResults.leaderboard.find((e: DetectiveLeaderboardEntry) => e.id === currentPlayerId);
+                const myThief = myEntry?.thiefDoor ?? finalResults.secretLayout?.thiefDoor;
+                const formattedDoor = myThief ? (myThief < 10 ? `0${myThief}` : `${myThief}`) : null;
+                return (
+                  <div className="mt-1 px-3 sm:px-4 py-1 rounded-xl bg-[#1a052e]/90 border border-amber-400/50 shadow-[0_0_15px_rgba(0,0,0,0.6)] flex items-center justify-center space-x-1.5 text-xs sm:text-sm text-purple-200">
+                    <span>Your hidden Thief was behind</span>
+                    <span className="text-amber-400 font-black font-mono tracking-wide">
+                      {formattedDoor ? `Door #${formattedDoor}` : "Unknown"}
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Non-collapsible Leaderboard / Player Cards - No Inner Scroll */}

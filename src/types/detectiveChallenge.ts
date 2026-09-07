@@ -154,6 +154,7 @@ export interface DetectiveLeaderboardEntry {
   attempts: number;
   bombsTriggered: number;
   safeDoorsFound: number;
+  thiefDoor?: number;
   breakdown: {
     accuracyScore: number;
     timeScore: number;
@@ -171,10 +172,10 @@ export interface DetectiveGameFinishedPayload {
     finalScore: number;
     status: DetectivePlayerStatus;
   } | null;
-  secretLayout: {
+  secretLayout?: {
     thiefDoor: number;
     bombDoors: number[];
-  };
+  } | null;
 }
 
 export interface DetectiveReconnectSyncPayload {
