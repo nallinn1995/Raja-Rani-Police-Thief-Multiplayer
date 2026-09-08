@@ -44,14 +44,14 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
 
   return (
     <div
-      className="min-h-screen text-white font-sans bg-[#0A041A] bg-cover bg-center bg-no-repeat flex items-center justify-center p-4 relative overflow-hidden"
+      className="min-h-screen text-white font-sans bg-[#0A041A] bg-cover bg-center bg-no-repeat flex items-center justify-center p-3 sm:p-4 relative overflow-y-auto"
       style={{ backgroundImage: "url('/assets/images/background.jpg'), url('/assets/images/background.png')" }}
     >
       {/* Dark Royal Vignette & Shadow Overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#0A021A]/70 via-transparent to-[#0A021A]/85 pointer-events-none" />
       <button
         onClick={onBackToHome}
-        className="fixed top-6 left-6 z-40 p-3 bg-[#1D0C3A]/90 hover:bg-[#2A1452] border border-[#3A1C61] rounded-full text-gray-300 hover:text-white shadow-lg transition-all duration-200 flex items-center justify-center group"
+        className="fixed top-4 left-4 sm:top-6 sm:left-6 z-40 p-2.5 sm:p-3 bg-[#1D0C3A]/90 hover:bg-[#2A1452] border border-[#3A1C61] rounded-full text-gray-300 hover:text-white shadow-lg transition-all duration-200 flex items-center justify-center group cursor-pointer"
         title="Back to Home"
       >
         <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />

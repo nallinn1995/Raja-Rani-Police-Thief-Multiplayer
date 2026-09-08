@@ -571,14 +571,15 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({ userAchievem
     // =========================================================================
     // 1. If progressCurrent reaches or exceeds progressTotal, it MUST be unlocked!
     //    Prevents any achievement in any mode from ever showing full progress (e.g. 3/3, 5/5) with a locked state.
-    if (progressCurrent >= template.progressTotal) {
+    const progressGoal = template.progressTotal ?? 1;
+    if (progressCurrent >= progressGoal) {
       isUnlocked = true;
-      progressCurrent = template.progressTotal;
+      progressCurrent = progressGoal;
     }
 
     // 2. If unlocked, progressCurrent MUST always be displayed as full (progressTotal).
     if (isUnlocked) {
-      progressCurrent = template.progressTotal;
+      progressCurrent = progressGoal;
     }
 
     if (isUnlocked && !unlockedAt) {

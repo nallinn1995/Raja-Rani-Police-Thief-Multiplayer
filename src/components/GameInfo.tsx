@@ -14,16 +14,11 @@ import {
   Award,
   Radio,
   Star,
-  Clock,
   Layers,
   Search,
-  Eye,
-  FileText,
   Building2,
-  UserCheck,
   ShieldAlert,
   Bot,
-  Heart,
 } from "lucide-react";
 import { XP_CONFIG } from "../config/xpConfig";
 

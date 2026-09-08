@@ -23,7 +23,7 @@ export const InstallGuideModal: React.FC<InstallGuideModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.92, y: 15 }}
           transition={{ duration: 0.25, ease: 'easeOut' }}
-          className="relative w-full max-w-sm rounded-3xl bg-gradient-to-b from-[#21073F] via-[#14072E] to-[#080320] border-2 border-[#FFD700]/60 p-6 text-white shadow-[0_0_40px_rgba(251,226,120,0.3)]"
+          className="relative w-full max-w-sm max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-3xl bg-gradient-to-b from-[#21073F] via-[#14072E] to-[#080320] border-2 border-[#FFD700]/60 p-5 sm:p-6 text-white shadow-[0_0_40px_rgba(251,226,120,0.3)] my-auto"
         >
           {/* Close Button */}
           <button

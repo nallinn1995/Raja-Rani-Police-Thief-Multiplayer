@@ -43,7 +43,7 @@ export const RoundResult: React.FC<RoundResultProps> = ({ result, isHost, onNext
 
   return (
     <div
-      className={`min-h-screen text-white font-sans transition-all duration-500 bg-[#0A041A] bg-cover bg-center bg-no-repeat flex items-center justify-center p-4 relative overflow-hidden ${result.isCorrect ? 'animate-flash-green' : 'animate-flash-red'}`}
+      className={`min-h-screen text-white font-sans transition-all duration-500 bg-[#0A041A] bg-cover bg-center bg-no-repeat flex items-center justify-center p-3 sm:p-4 relative overflow-y-auto ${result.isCorrect ? 'animate-flash-green' : 'animate-flash-red'}`}
       style={{ backgroundImage: "url('/assets/images/background.jpg'), url('/assets/images/background.png')" }}
     >
       {/* Dark Royal Vignette & Shadow Overlay */}
@@ -61,12 +61,13 @@ export const RoundResult: React.FC<RoundResultProps> = ({ result, isHost, onNext
               left: Math.random() * 100 + '%',
               animationDuration: Math.random() * 3 + 2 + 's',
               animationDelay: Math.random() * 2 + 's',
+              opacity: Math.random() * 0.7 + 0.3,
             }}
           />
         ))}
       </div>
 
-      <div className="bg-[#1D0C3A] border border-[#5A2C81] p-6 sm:p-8 rounded-3xl max-w-md w-full shadow-[0_0_50px_rgba(147,51,234,0.3)] relative z-10 animate-fade-in backdrop-blur-xl">
+      <div className="bg-[#1D0C3A] border border-[#5A2C81] p-4 sm:p-8 rounded-2xl sm:rounded-3xl max-w-md w-full shadow-[0_0_50px_rgba(147,51,234,0.3)] relative z-10 animate-fade-in backdrop-blur-xl my-auto">
         <div className="text-center mb-6">
           <div className="mb-2">
             <span className="px-3 py-1 rounded-full bg-[#11052C] border border-purple-500/40 text-xs font-bold text-yellow-300">

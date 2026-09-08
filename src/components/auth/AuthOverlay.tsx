@@ -146,7 +146,7 @@ export const AuthOverlay: React.FC<AuthOverlayProps> = ({
       {/* Centered Royal Modal Container */}
       <div
         ref={modalContentRef}
-        className="relative w-full max-w-[440px] sm:max-w-[460px] auth-modal-card rounded-[26px] p-4 sm:p-6 text-white overflow-hidden my-auto transition-all duration-300 select-none shadow-[0_0_60px_rgba(168,38,178,0.45)]"
+        className="relative w-full max-w-[440px] sm:max-w-[460px] max-h-[calc(100dvh-1.5rem)] overflow-y-auto auth-modal-card rounded-[26px] p-4 sm:p-6 text-white my-auto transition-all duration-300 select-none shadow-[0_0_60px_rgba(168,38,178,0.45)]"
       >
         {/* Ornate Royal Corner Embellishments with Purple Gemstones */}
         <img

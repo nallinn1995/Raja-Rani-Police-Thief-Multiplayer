@@ -408,9 +408,14 @@ async function runTests() {
     const players = [{ id: "p1", name: "Alice", socketId: "s1" }];
     const game = DetectiveMysteryGameService.startGame("ROOM_RACE", players, io);
     const p1 = game.players.get("p1");
-
     // Simulate rapid concurrent clicks
-    const doorToClick = p1.secretLayout.safeDoors[0];
+    let doorToClick = 1;
+    for (const [door, outcome] of p1.secretLayout.mapping.entries()) {
+      if (outcome === "SAFE") {
+        doorToClick = door;
+        break;
+      }
+    }
     const p1Open1 = DetectiveMysteryGameService.openDoor("ROOM_RACE", "p1", doorToClick, p1Socket);
     const p1Open2 = DetectiveMysteryGameService.openDoor("ROOM_RACE", "p1", doorToClick, p1Socket);
 

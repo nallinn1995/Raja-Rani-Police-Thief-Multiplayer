@@ -27,7 +27,7 @@ export const InstallConfirmModal: React.FC<InstallConfirmModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.92, y: 15 }}
           transition={{ duration: 0.22, ease: 'easeOut' }}
-          className="relative w-full max-w-sm rounded-3xl bg-gradient-to-b from-[#21073F] via-[#14072E] to-[#080320] border-2 border-[#FFD700]/70 p-6 text-white shadow-[0_0_50px_rgba(251,226,120,0.4)] my-auto text-center"
+          className="relative w-full max-w-sm max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-3xl bg-gradient-to-b from-[#21073F] via-[#14072E] to-[#080320] border-2 border-[#FFD700]/70 p-5 sm:p-6 text-white shadow-[0_0_50px_rgba(251,226,120,0.4)] my-auto text-center"
         >
           {/* Close Button */}
           <button

@@ -381,10 +381,10 @@ export const BabylonRoleCardScene: React.FC<BabylonRoleCardSceneProps> = ({
       if (!width || !height) return;
 
       const aspect = width / height;
-      const isMobile = window.innerWidth < 640;
+      const isMobile = aspect < 1.15 || (width < 640 && height >= width);
 
       if (isMobile) {
-        // Mobile 2x2 Grid: fits both vertically and horizontally with safe padding
+        // Mobile / Portrait 2x2 Grid: fits both vertically and horizontally with safe padding
         const vertUnits = 5.2;
         const horizUnits = 3.6;
         const radiusForVert = vertUnits / (2 * Math.tan(camera.fov / 2));
@@ -392,7 +392,7 @@ export const BabylonRoleCardScene: React.FC<BabylonRoleCardSceneProps> = ({
         camera.radius = Math.max(radiusForVert, radiusForHoriz, 6.8);
         camera.target = new Vector3(0, 0, 0);
       } else {
-        // Desktop 1x4 Horizontal Row: calculates required camera distance so all 4 cards never clip on any resolution/aspect ratio
+        // Desktop / Landscape 1x4 Horizontal Row: calculates required camera distance so all 4 cards never clip
         const vertUnits = 3.2;
         const horizUnits = 6.6;
         const radiusForVert = vertUnits / (2 * Math.tan(camera.fov / 2));
@@ -418,7 +418,8 @@ export const BabylonRoleCardScene: React.FC<BabylonRoleCardSceneProps> = ({
     pointLight.diffuse = new Color3(1.0, 0.9, 0.5);
     pointLight.intensity = 0.5;
 
-    const isMobileInit = window.innerWidth < 640;
+    const initialAspect = (engine.getRenderWidth() || 800) / (engine.getRenderHeight() || 600);
+    const isMobileInit = initialAspect < 1.15 || (window.innerWidth < 640 && window.innerHeight >= window.innerWidth);
 
     // 3. Build 4 Physical 3D Box Cards (Proportionately scaled to fit beautifully on all screens)
     activeCards.forEach((card, idx) => {
@@ -455,8 +456,9 @@ export const BabylonRoleCardScene: React.FC<BabylonRoleCardSceneProps> = ({
 
     // 4. Cinematic 3D Card Shuffle Animation on Mount & Round Start
     const playShuffleAnimation = () => {
-      playCardShuffleSound();
-      const isMobile = window.innerWidth < 640;
+      soundService.playCardShuffle();
+      const aspect = (engine.getRenderWidth() || 800) / (engine.getRenderHeight() || 600);
+      const isMobile = aspect < 1.15 || (window.innerWidth < 640 && window.innerHeight >= window.innerWidth);
 
       activeCards.forEach((card, idx) => {
         const mesh = cardMeshesRef.current[card.id];
@@ -558,7 +560,8 @@ export const BabylonRoleCardScene: React.FC<BabylonRoleCardSceneProps> = ({
     const handleResize = () => {
       engine.resize();
       updateCameraResponsive();
-      const isMobileNow = window.innerWidth < 640;
+      const aspectNow = (engine.getRenderWidth() || 800) / (engine.getRenderHeight() || 600);
+      const isMobileNow = aspectNow < 1.15 || (window.innerWidth < 640 && window.innerHeight >= window.innerWidth);
       activeCards.forEach((card, idx) => {
         const mesh = cardMeshesRef.current[card.id];
         if (mesh && !hasFlippedRef.current[card.id] && (!mesh.animations || !mesh.animations.length)) {

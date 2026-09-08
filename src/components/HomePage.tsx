@@ -31,11 +31,11 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* Subtle Vignette Overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-purple-950/25 via-transparent to-purple-950/35 pointer-events-none" />
 
-      {/* Floating Back Navigation Arrow (Left Side) */}
+      {/* Floating Back Navigation Arrow (Top-Left) */}
       {onBack && (
         <button
           onClick={onBack}
-          className="fixed top-1/2 left-3 sm:left-6 -translate-y-1/2 z-40 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#1D0C3A]/80 hover:bg-[#2A1452] border-2 border-[#FFD700] text-gray-200 hover:text-white shadow-[0_0_20px_rgba(255,215,0,0.4)] backdrop-blur-md transition-all duration-200 flex items-center justify-center group cursor-pointer"
+          className="fixed top-4 left-3 sm:top-6 sm:left-6 z-40 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#1D0C3A]/90 hover:bg-[#2A1452] border-2 border-[#FFD700] text-gray-200 hover:text-white shadow-[0_0_20px_rgba(255,215,0,0.4)] backdrop-blur-md transition-all duration-200 flex items-center justify-center group cursor-pointer"
           title="Back to Landing Page"
         >
           <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6 group-hover:-translate-x-0.5 transition-transform" />

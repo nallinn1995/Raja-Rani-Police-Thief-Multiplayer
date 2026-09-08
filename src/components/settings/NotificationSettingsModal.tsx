@@ -54,7 +54,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.94, y: 10 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
-          className="relative w-full max-w-md overflow-hidden rounded-3xl bg-gradient-to-b from-[#22073E] via-[#15042A] to-[#0A0216] border-2 border-[#FFD700]/70 p-6 sm:p-7 shadow-[0_0_50px_rgba(255,215,0,0.3)] text-white"
+          className="relative w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-3xl bg-gradient-to-b from-[#22073E] via-[#15042A] to-[#0A0216] border-2 border-[#FFD700]/70 p-5 sm:p-7 shadow-[0_0_50px_rgba(255,215,0,0.3)] text-white my-auto"
         >
           {/* Ambient Glow */}
           <div className="absolute -top-14 -right-14 w-40 h-40 bg-[#AC41D7]/20 rounded-full blur-3xl pointer-events-none" />

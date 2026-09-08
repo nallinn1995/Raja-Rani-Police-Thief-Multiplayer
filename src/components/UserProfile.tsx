@@ -42,29 +42,30 @@ export const UserProfile: React.FC<UserProfileProps> = ({
     <div className="relative z-40" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white transition duration-200 cursor-pointer"
+        className="flex items-center gap-1.5 sm:gap-2 px-1.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white transition duration-200 cursor-pointer shrink-0"
+        title={`Logged in as ${user.username}`}
       >
-        <div className="w-7 h-7 rounded-full overflow-hidden border border-yellow-400/80 shadow-inner flex-shrink-0">
+        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full overflow-hidden border border-yellow-400/80 shadow-inner flex-shrink-0">
           <img src={avatarUrl} alt={user.username} className="w-full h-full object-cover" />
         </div>
-        <span className="text-sm font-semibold max-w-[100px] truncate">
+        <span className="text-xs sm:text-sm font-semibold max-w-[70px] sm:max-w-[100px] truncate hidden xs:inline">
           {user.username}
         </span>
         {user.isGuest && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/30 text-amber-300 border border-amber-500/40">
+          <span className="text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0.5 rounded bg-amber-500/30 text-amber-300 border border-amber-500/40 hidden sm:inline">
             Guest
           </span>
         )}
         {isAdmin && !user.isGuest && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/40 text-amber-300 border border-amber-400/60 font-bold">
+          <span className="text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0.5 rounded bg-amber-500/40 text-amber-300 border border-amber-400/60 font-bold hidden sm:inline">
             Admin
           </span>
         )}
-        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-56 bg-gray-900/95 backdrop-blur-xl rounded-2xl border border-purple-500/30 shadow-2xl overflow-hidden py-1 text-white z-50">
+        <div className="absolute right-0 mt-2 w-56 max-w-[calc(100vw-1.5rem)] bg-gray-900/95 backdrop-blur-xl rounded-2xl border border-purple-500/30 shadow-2xl overflow-hidden py-1 text-white z-50">
           <div className="px-4 py-3 border-b border-gray-800">
             <p className="text-xs text-gray-400">Signed in as</p>
             <p className="text-sm font-bold truncate text-purple-300 flex items-center justify-between">

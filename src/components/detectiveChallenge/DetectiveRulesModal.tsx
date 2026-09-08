@@ -168,7 +168,7 @@ export const DetectiveRulesModal: React.FC<DetectiveRulesModalProps> = ({
         ))}
       </div>
 
-      <div className="relative w-full max-w-2xl bg-gradient-to-b from-[#160830] to-[#0d041c] border-2 border-cyan-500/40 rounded-3xl p-4 sm:p-7 shadow-[0_0_50px_rgba(34,211,238,0.2)] flex flex-col justify-between max-h-[92vh] overflow-y-auto">
+      <div className="relative w-full max-w-2xl bg-gradient-to-b from-[#160830] to-[#0d041c] border-2 border-cyan-500/40 rounded-3xl p-4 sm:p-7 shadow-[0_0_50px_rgba(34,211,238,0.2)] flex flex-col justify-between max-h-[92dvh] overflow-y-auto">
         {/* Header Bar */}
         <div className="flex items-center justify-between border-b border-purple-900/60 pb-3 mb-4">
           <div className="flex items-center space-x-2.5">

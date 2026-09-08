@@ -288,24 +288,24 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
       <div className="relative z-10 w-full max-w-5xl mx-auto">
         {/* Top Header Banner */}
-        <div className="bg-[#1D0C3A]/95 backdrop-blur-xl rounded-[calc(2rem-2px)] shadow-[0_0_40px_rgba(147,51,234,0.3)] border border-[#3A1C61] p-6 mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <h1 className="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#fff6d6] via-[#ffd700] to-[#b8860b] title-font tracking-wide">
+        <div className="bg-[#1D0C3A]/95 backdrop-blur-xl rounded-2xl sm:rounded-[calc(2rem-2px)] shadow-[0_0_40px_rgba(147,51,234,0.3)] border border-[#3A1C61] p-3.5 sm:p-6 mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 sm:gap-4 mb-3 sm:mb-4">
+            <h1 className="text-base sm:text-xl md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#fff6d6] via-[#ffd700] to-[#b8860b] title-font tracking-wide truncate min-w-0">
               Hi {currentPlayerName}, Welcome to {room.name}
             </h1>
 
-            <div className="flex items-center space-x-3 sm:space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-4 shrink-0 self-end sm:self-auto">
               {room.gameState === "guessing" && (
                 <div
-                  className={`flex items-center space-x-2 bg-red-50 px-4 py-2 rounded-full border ${timeLeft <= 10 ? "border-red-400" : "border-red-200"
+                  className={`flex items-center space-x-1.5 sm:space-x-2 bg-red-50 px-2.5 sm:px-4 py-1 sm:py-2 rounded-full border ${timeLeft <= 10 ? "border-red-400" : "border-red-200"
                     } shadow-sm`}
                 >
                   <Heart
-                    className={`w-5 h-5 text-red-500 ${timeLeft <= 10 ? "animate-ping" : "animate-pulse"
+                    className={`w-4 h-4 sm:w-5 sm:h-5 text-red-500 ${timeLeft <= 10 ? "animate-ping" : "animate-pulse"
                       }`}
                   />
                   <span
-                    className={`font-bold ${timeLeft <= 10 ? "text-red-600 animate-pulse" : "text-red-500"
+                    className={`text-xs sm:text-sm font-bold ${timeLeft <= 10 ? "text-red-600 animate-pulse" : "text-red-500"
                       }`}
                   >
                     {timeLeft}s
@@ -314,12 +314,12 @@ export const GameBoard: React.FC<GameBoardProps> = ({
               )}
               <button
                 onClick={handleShowChat}
-                className="p-2.5 text-fuchsia-400 hover:text-white transition-colors relative bg-[#11052C] border border-[#3A1C61] rounded-full drop-shadow-md cursor-pointer"
+                className="p-2 sm:p-2.5 text-fuchsia-400 hover:text-white transition-colors relative bg-[#11052C] border border-[#3A1C61] rounded-full drop-shadow-md cursor-pointer shrink-0"
                 title="Open Chat"
               >
-                <MessageCircle className="w-6 h-6" />
+                <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6" />
                 {unreadMsgs > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center border border-[#1D0C3A]">
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 sm:w-5 sm:h-5 text-[10px] sm:text-xs flex items-center justify-center border border-[#1D0C3A]">
                     {unreadMsgs > 9 ? "9+" : unreadMsgs}
                   </span>
                 )}
@@ -328,21 +328,21 @@ export const GameBoard: React.FC<GameBoardProps> = ({
               {onLeaveRoom && (
                 <button
                   onClick={() => {
-                    if (window.confirm("Are you sure you want to leave this game room?")) {
-                      onLeaveRoom();
-                    }
+                    sessionStorage.removeItem("roomCode");
+                    sessionStorage.removeItem("playerId");
+                    sessionStorage.setItem("appState", "home");
+                    onLeaveRoom();
                   }}
-                  className="flex items-center gap-1 px-3 py-2 text-xs font-bold text-red-300 bg-red-950/80 hover:bg-red-900 border border-red-500/40 rounded-full shadow-md transition-colors cursor-pointer"
+                  className="p-2 sm:p-2.5 text-rose-400 hover:text-white transition-colors bg-[#11052C] border border-[#3A1C61] rounded-full drop-shadow-md cursor-pointer shrink-0"
                   title="Leave Room"
                 >
-                  <LogOut className="w-4 h-4" />
-                  <span className="hidden sm:inline">Leave Room</span>
+                  <LogOut className="w-5 h-5 sm:w-6 sm:h-6" />
                 </button>
               )}
             </div>
           </div>
 
-          <div className="flex justify-between text-xs sm:text-sm text-gray-400 font-sans tracking-wide">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm text-gray-400 font-sans tracking-wide">
             <span>
               {room.winCondition === "target_score" ? (
                 <>
@@ -364,7 +364,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         </div>
 
         {/* 4 Player Hero Cards Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 mb-4 sm:mb-6">
           {room.players.map((player) => {
             const playerRole = getPlayerRole(player.id);
             const isRoleRevealed = Boolean(

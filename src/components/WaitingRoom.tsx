@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Socket } from 'socket.io-client';
-import { Users, Share2, Crown, MessageCircle, Copy, Play, Shield, BookOpen } from 'lucide-react';
+import { Users, Share2, Crown, MessageCircle, Copy, Shield } from 'lucide-react';
 import { Player, ChatMessage } from '../types/game';
 import { Chat } from './Chat';
 import { toast } from "react-toastify";
@@ -156,8 +156,8 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
         ))}
       </div>
 
-      <div className="bg-[#1D0C3A]/95 backdrop-blur-xl rounded-[calc(2rem-2px)] p-6 sm:p-8 border border-[#3A1C61] w-full max-w-md shadow-[0_0_40px_rgba(147,51,234,0.3)] relative z-10">
-        <div className="text-center mb-8">
+      <div className="bg-[#1D0C3A]/95 backdrop-blur-xl rounded-[calc(2rem-2px)] p-4 sm:p-8 border border-[#3A1C61] w-full max-w-md shadow-[0_0_40px_rgba(147,51,234,0.3)] relative z-10 my-auto">
+        <div className="text-center mb-6 sm:mb-8">
           <div className="flex items-center justify-center space-x-2 mb-2">
             {isDetectiveChallenge && (
               <span className="px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 text-xs font-black tracking-widest uppercase flex items-center gap-1.5 shadow-[0_0_15px_rgba(34,211,238,0.3)]">
@@ -166,7 +166,7 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
               </span>
             )}
           </div>
-          <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#fff6d6] via-[#ffd700] to-[#b8860b] mb-4 title-font tracking-wide" style={{ filter: 'drop-shadow(2px 2px 2px rgba(0,0,0,0.8))' }}>{room.name}</h1>
+          <h1 className="text-2xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#fff6d6] via-[#ffd700] to-[#b8860b] mb-3 sm:mb-4 title-font tracking-wide break-words" style={{ filter: 'drop-shadow(2px 2px 2px rgba(0,0,0,0.8))' }}>{room.name}</h1>
           <div className="flex items-center justify-center space-x-3 mb-4">
             <span className="text-gray-300 font-sans tracking-wide">Room Code:</span>
             <code 

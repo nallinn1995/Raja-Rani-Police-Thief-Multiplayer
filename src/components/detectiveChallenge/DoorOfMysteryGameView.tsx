@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Socket } from "socket.io-client";
 import {
   Shield,
@@ -390,9 +390,9 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
 
   const canInteract = !isGameOver && myStatus === "INVESTIGATING" && lives > 0 && !isRequestPending;
 
-  const otherPlayers = useMemo(() => {
+  const otherPlayers: DetectivePlayerPublicState[] = useMemo(() => {
     return playersRoster.filter(
-      (p) => p.id && String(p.id).trim() !== String(currentPlayerId).trim()
+      (p: DetectivePlayerPublicState) => p.id && String(p.id).trim() !== String(currentPlayerId).trim()
     );
   }, [playersRoster, currentPlayerId]);
 

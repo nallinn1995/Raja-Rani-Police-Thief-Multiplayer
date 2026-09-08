@@ -32,8 +32,6 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onBack, onRoomCreated, c
   const [gameMode, setGameMode] = useState<GameMode>(GameMode.CLASSIC_POINTS);
   const [detectiveMaxPlayers, setDetectiveMaxPlayers] = useState<number>(1);
 
-  // Detective mode is permanently enabled
-  const detectiveEnabled = true;
 
   // Modern mode availability from admin config
   const [modernEnabled, setModernEnabled] = useState(
@@ -315,11 +313,11 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onBack, onRoomCreated, c
               )}
 
               {/* Next Step Button */}
-              <div className="pt-2 sm:pt-4">
+              <div className="pt-2 sm:pt-4 flex justify-center">
                 <button
                   type="button"
                   onClick={handleNextStep}
-                  className="w-full py-2.5 sm:py-3 px-6 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider text-black bg-gradient-to-r from-yellow-400 via-amber-300 to-yellow-500 hover:from-yellow-300 hover:to-amber-400 shadow-[0_0_20px_rgba(250,204,21,0.4)] hover:shadow-[0_0_28px_rgba(250,204,21,0.7)] transition-all transform active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-auto py-2.5 sm:py-3 px-6 sm:px-8 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider text-black bg-gradient-to-r from-yellow-400 via-amber-300 to-yellow-500 hover:from-yellow-300 hover:to-amber-400 shadow-[0_0_20px_rgba(250,204,21,0.4)] hover:shadow-[0_0_28px_rgba(250,204,21,0.7)] transition-all transform hover:scale-[1.02] active:scale-[0.99] inline-flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span>Continue: Select Game Mode</span>
                   <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />

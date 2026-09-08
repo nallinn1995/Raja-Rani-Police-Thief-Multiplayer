@@ -499,6 +499,14 @@ export const ProfileDashboard: React.FC<ProfileDashboardProps> = ({ user, onBack
         </div>
       </aside>
 
+      {/* Mobile Drawer Backdrop */}
+      {isMobileSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+          onClick={() => setIsMobileSidebarOpen(false)}
+        />
+      )}
+
       {/* Main Dashboard Workspace Content */}
       <main className="flex-1 w-full max-w-full min-w-0 p-3 sm:p-6 lg:p-8 max-w-7xl mx-auto overflow-y-auto overflow-x-hidden">
         {/* Header */}

@@ -53,7 +53,7 @@ export class DetectiveMysteryGameService {
     const bombDoors = new Set(otherDoors.slice(0, DETECTIVE_CONFIG.BOMB_DOORS));
     const clueDoor = otherDoors[DETECTIVE_CONFIG.BOMB_DOORS];
     const lifeDoor = otherDoors[DETECTIVE_CONFIG.BOMB_DOORS + DETECTIVE_CONFIG.CLUE_DOORS];
-    const safeDoors = otherDoors.slice(DETECTIVE_CONFIG.BOMB_DOORS + DETECTIVE_CONFIG.CLUE_DOORS);
+    const safeDoors = otherDoors.slice(DETECTIVE_CONFIG.BOMB_DOORS + DETECTIVE_CONFIG.CLUE_DOORS + DETECTIVE_CONFIG.LIFE_DOORS);
 
     const mapping = new Map();
     for (let i = 1; i <= DETECTIVE_CONFIG.TOTAL_DOORS; i++) {
