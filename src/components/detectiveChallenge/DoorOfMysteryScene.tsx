@@ -29,6 +29,7 @@ import {
   playThiefCaughtSound,
   playStampSlamSound,
 } from "../../utils/mysteryAudio";
+import { performanceManager } from "../../services/performanceManager";
 
 interface DoorMeshRef {
   frame: Mesh;
@@ -39,6 +40,7 @@ interface DoorMeshRef {
   revealMat: StandardMaterial;
   revealTexture: DynamicTexture;
   isOpen: boolean;
+  isSettled: boolean;
   status: "LOCKED" | "SAFE" | "BOMB" | "THIEF" | "CLUE" | "LIFE";
   clueText?: string | null;
   clueRiddles?: Record<string, string> | null;
@@ -62,7 +64,7 @@ interface DoorOfMysterySceneProps {
   roomCode?: string;
 }
 
-export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
+const DoorOfMysterySceneComponent: React.FC<DoorOfMysterySceneProps> = ({
   revealedDoors,
   latestDoorResult,
   activeClue,
@@ -127,17 +129,18 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
 
   // Helper 1: Generate rich procedural wooden texture for the door panel
   const createWoodDoorTexture = (scene: Scene, doorNum: number) => {
+    const { width, height } = performanceManager.getDoorTextureDimensions();
     const texture = new DynamicTexture(
       `doorWoodTex-${doorNum}`,
-      { width: 1024, height: 1536 },
+      { width, height },
       scene,
       true,
       Texture.TRILINEAR_SAMPLINGMODE
     );
-    texture.anisotropicFilteringLevel = 16;
+    texture.anisotropicFilteringLevel = performanceManager.getAnisotropicLevel();
     const ctx = texture.getContext() as CanvasRenderingContext2D;
     ctx.save();
-    ctx.scale(2, 2);
+    ctx.scale(width / 512, height / 768);
 
     // 1. Rich dark mahogany / polished oak background
     const woodGrad = ctx.createLinearGradient(0, 0, 512, 768);
@@ -1306,9 +1309,10 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
     if (!door.revealTexture) return;
     const ctx = door.revealTexture.getContext() as CanvasRenderingContext2D;
     const elapsed = now - door.openedAtTime;
+    const { width, height } = performanceManager.getDoorTextureDimensions();
 
     ctx.save();
-    ctx.scale(2, 2);
+    ctx.scale(width / 512, height / 768);
 
     if (door.status === "THIEF") {
       if (!door.stampSoundPlayed && elapsed >= 280) {
@@ -1342,8 +1346,11 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
   // Build Particle Effect for Bomb (Fire/Sparks), Thief (Golden Rays), Clue (Arcane Sparkles), or Life (Crimson/Pink)
   const triggerParticleExplosion = (scene: Scene, position: Vector3, type: DetectiveDoorOutcome) => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const particleMult = performanceManager.getParticleMultiplier();
+    if (particleMult <= 0) return;
 
-    const particleSystem = new ParticleSystem(`particles-${type}`, 60, scene);
+    const maxParticles = Math.max(10, Math.round(60 * particleMult));
+    const particleSystem = new ParticleSystem(`particles-${type}`, maxParticles, scene);
     particleSystem.particleTexture = new Texture(
       "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
       scene
@@ -1361,7 +1368,7 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
       particleSystem.maxSize = 0.22;
       particleSystem.minLifeTime = 0.3;
       particleSystem.maxLifeTime = 0.8;
-      particleSystem.emitRate = 120;
+      particleSystem.emitRate = Math.round(120 * particleMult);
       particleSystem.direction1 = new Vector3(-2, -2, -2);
       particleSystem.direction2 = new Vector3(2, 2, -2);
       particleSystem.gravity = new Vector3(0, -9.81, 0);
@@ -1373,7 +1380,7 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
       particleSystem.maxSize = 0.18;
       particleSystem.minLifeTime = 0.5;
       particleSystem.maxLifeTime = 1.2;
-      particleSystem.emitRate = 80;
+      particleSystem.emitRate = Math.round(80 * particleMult);
       particleSystem.direction1 = new Vector3(-1, 2, -1);
       particleSystem.direction2 = new Vector3(1, 3, 1);
       particleSystem.gravity = new Vector3(0, 2, 0);
@@ -1385,7 +1392,7 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
       particleSystem.maxSize = 0.16;
       particleSystem.minLifeTime = 0.5;
       particleSystem.maxLifeTime = 1.0;
-      particleSystem.emitRate = 70;
+      particleSystem.emitRate = Math.round(70 * particleMult);
       particleSystem.direction1 = new Vector3(-1, 1, -1);
       particleSystem.direction2 = new Vector3(1, 2, 1);
       particleSystem.gravity = new Vector3(0, 0.5, 0);
@@ -1397,7 +1404,7 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
       particleSystem.maxSize = 0.18;
       particleSystem.minLifeTime = 0.5;
       particleSystem.maxLifeTime = 1.1;
-      particleSystem.emitRate = 70;
+      particleSystem.emitRate = Math.round(70 * particleMult);
       particleSystem.direction1 = new Vector3(-1, 1, -1);
       particleSystem.direction2 = new Vector3(1, 2.5, 1);
       particleSystem.gravity = new Vector3(0, 1.5, 0);
@@ -1409,7 +1416,7 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
       particleSystem.maxSize = 0.12;
       particleSystem.minLifeTime = 0.4;
       particleSystem.maxLifeTime = 0.8;
-      particleSystem.emitRate = 40;
+      particleSystem.emitRate = Math.round(40 * particleMult);
       particleSystem.direction1 = new Vector3(-1, -1, -1);
       particleSystem.direction2 = new Vector3(1, 1, 1);
     }
@@ -1472,9 +1479,8 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
         stencil: false,
         powerPreference: "high-performance",
       });
-      // Native retina / high-DPI hardware pixel ratio for crisp, razor-sharp rendering on mobile displays
-      const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
-      engine.setHardwareScalingLevel(1 / dpr);
+      // Adaptive GPU scaling to prevent mobile device heating and thermal throttling
+      engine.setHardwareScalingLevel(performanceManager.getHardwareScalingLevel());
       engineRef.current = engine;
     } catch (err) {
       console.warn("Babylon initialization failed:", err);
@@ -1703,6 +1709,19 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
 
     doorMeshesRef.current.clear();
 
+    // Shared materials across all 10 doors to drastically minimize shader program and uniform buffer overhead
+    const sharedFrameMat = new StandardMaterial("doorSharedFrameMat", scene);
+    sharedFrameMat.diffuseColor = new Color3(0.18, 0.08, 0.28);
+    sharedFrameMat.specularColor = new Color3(0.85, 0.65, 0.25);
+    sharedFrameMat.emissiveColor = new Color3(0.04, 0.02, 0.07);
+
+    const sharedHandleMat = new StandardMaterial("doorSharedHandleMat", scene);
+    sharedHandleMat.diffuseColor = new Color3(0.95, 0.75, 0.25); // Antique polished brass
+    sharedHandleMat.specularColor = new Color3(1.0, 0.9, 0.6);
+
+    const { width: revTexW, height: revTexH } = performanceManager.getDoorTextureDimensions();
+    const anisotropicLevel = performanceManager.getAnisotropicLevel();
+
     for (let doorNum = 1; doorNum <= 10; doorNum++) {
       const { posX, posY, doorScale } = getDoorCoordinates(doorNum, initialLayout);
 
@@ -1714,12 +1733,7 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
       );
       frame.position = new Vector3(posX, posY, 0.08);
       frame.scaling = new Vector3(doorScale, doorScale, 1);
-
-      const frameMat = new StandardMaterial(`frameMat-${doorNum}`, scene);
-      frameMat.diffuseColor = new Color3(0.18, 0.08, 0.28);
-      frameMat.specularColor = new Color3(0.85, 0.65, 0.25);
-      frameMat.emissiveColor = new Color3(0.04, 0.02, 0.07);
-      frame.material = frameMat;
+      frame.material = sharedFrameMat;
 
       // Interior compartment reveal plane inside the frame - child of frame so it automatically inherits scaling & position
       const revealPlane = MeshBuilder.CreatePlane(
@@ -1733,15 +1747,15 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
       const revealMat = new StandardMaterial(`revealMat-${doorNum}`, scene);
       const revealTexture = new DynamicTexture(
         `doorRevealTex-${doorNum}`,
-        { width: 1024, height: 1536 },
+        { width: revTexW, height: revTexH },
         scene,
         true,
         Texture.TRILINEAR_SAMPLINGMODE
       );
-      revealTexture.anisotropicFilteringLevel = 16;
+      revealTexture.anisotropicFilteringLevel = anisotropicLevel;
       const rInitCtx = revealTexture.getContext() as CanvasRenderingContext2D;
       rInitCtx.save();
-      rInitCtx.scale(2, 2);
+      rInitCtx.scale(revTexW / 512, revTexH / 768);
       drawLockedInterior(rInitCtx);
       rInitCtx.restore();
       revealTexture.update(true);
@@ -1782,11 +1796,7 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
       );
       handlePlate.position = new Vector3(handleX, 0, -0.048);
       handlePlate.parent = panel;
-
-      const handleMat = new StandardMaterial(`handleMat-${doorNum}`, scene);
-      handleMat.diffuseColor = new Color3(0.95, 0.75, 0.25); // Antique polished brass
-      handleMat.specularColor = new Color3(1.0, 0.9, 0.6);
-      handlePlate.material = handleMat;
+      handlePlate.material = sharedHandleMat;
 
       // Metallic Knob mounted on the plate
       const handleKnob = MeshBuilder.CreateSphere(
@@ -1796,7 +1806,7 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
       );
       handleKnob.position = new Vector3(handleX, -0.03, -0.075);
       handleKnob.parent = panel;
-      handleKnob.material = handleMat;
+      handleKnob.material = sharedHandleMat;
 
       doorMeshesRef.current.set(doorNum, {
         frame,
@@ -1807,6 +1817,7 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
         revealMat,
         revealTexture,
         isOpen: false,
+        isSettled: false,
         status: "LOCKED",
         hingeRoot,
         openedAtTime: 0,
@@ -1915,36 +1926,64 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
       onOpenDoorRef.current(doorNum);
     });
 
-    // 6. Start Render Loop & Dynamic Interior Animation Loop
+    // 6. Start Render Loop & Dynamic Interior Animation Loop with Settle-State Freezing
     scene.onBeforeRenderObservable.add(() => {
       const now = performance.now();
+      const settleTimeout = performanceManager.getDoorSettleTimeoutMs();
       doorMeshesRef.current.forEach((door) => {
-        if (door.isOpen && door.status !== "LOCKED" && door.revealTexture) {
-          // Throttle updates to ~33ms (30fps) for smooth animations with zero lag
-          if (now - door.lastRenderTime >= 30) {
+        if (door.isOpen && door.status !== "LOCKED" && door.revealTexture && !door.isSettled) {
+          const elapsed = now - door.openedAtTime;
+          if (elapsed >= settleTimeout) {
+            // Door opening animation has finished - lock into steady-state and stop continuous GPU texture uploads
+            door.isSettled = true;
+            drawDoorInterior(door, now);
+          } else if (now - door.lastRenderTime >= 33) {
+            // Throttle active opening animation to ~30fps
             drawDoorInterior(door, now);
           }
         }
       });
     });
 
-    engine.runRenderLoop(() => {
+    const renderLoop = () => {
+      performanceManager.recordRenderFrame(performance.now());
       scene.render();
-    });
+    };
+
+    engine.runRenderLoop(renderLoop);
 
     // Trigger initial responsive camera framing
     updateCameraResponsive();
 
     const handleResize = () => {
       if (engine) {
-        const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
-        engine.setHardwareScalingLevel(1 / dpr);
+        engine.setHardwareScalingLevel(performanceManager.getHardwareScalingLevel());
         engine.resize();
       }
       updateCameraResponsive();
     };
     window.addEventListener("resize", handleResize);
     window.addEventListener("orientationchange", handleResize);
+
+    // Dynamic Quality Profile update (e.g. thermal throttling, auto adaptation, battery saver)
+    const unsubQuality = performanceManager.subscribe(() => {
+      if (engineRef.current) {
+        engineRef.current.setHardwareScalingLevel(performanceManager.getHardwareScalingLevel());
+        engineRef.current.resize();
+      }
+    });
+
+    // Pause WebGL rendering entirely when tab or browser is backgrounded to eliminate battery drain & heat
+    const handleVisibilityChange = () => {
+      if (!engineRef.current || !sceneRef.current) return;
+      if (document.hidden) {
+        engineRef.current.stopRenderLoop();
+      } else {
+        engineRef.current.stopRenderLoop();
+        engineRef.current.runRenderLoop(renderLoop);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     // Bulletproof container dimension observation (e.g. mobile virtual keyboard, orientation, layout reflow)
     let resizeObserver: ResizeObserver | null = null;
@@ -1956,6 +1995,8 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
     }
 
     return () => {
+      unsubQuality();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("orientationchange", handleResize);
       if (resizeObserver) {
@@ -1980,6 +2021,7 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
     if (!door) return;
 
     door.isOpen = true;
+    door.isSettled = false;
     door.status = result;
     if (latestDoorResult.clue) {
       door.clueText = latestDoorResult.clue;
@@ -2072,6 +2114,7 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
           sceneRef.current.stopAnimation(door.hingeRoot);
         }
         door.isOpen = false;
+        door.isSettled = false;
         door.status = "LOCKED";
         door.hingeRoot.rotation.y = 0;
         door.hingeRoot.animations = [];
@@ -2080,8 +2123,9 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
         door.stampSoundPlayed = false;
         if (door.revealTexture) {
           const rCtx = door.revealTexture.getContext() as CanvasRenderingContext2D;
+          const { width: texW, height: texH } = performanceManager.getDoorTextureDimensions();
           rCtx.save();
-          rCtx.scale(2, 2);
+          rCtx.scale(texW / 512, texH / 768);
           drawLockedInterior(rCtx);
           rCtx.restore();
           door.revealTexture.update(true);
@@ -2095,6 +2139,7 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
       const door = doorMeshesRef.current.get(doorId);
       if (door && !door.isOpen) {
         door.isOpen = true;
+        door.isSettled = true; // Historical/reconnected doors are already settled
         door.status = result;
         // Keep open outward
         door.hingeRoot.rotation.y = Math.PI * 0.65;
@@ -2117,6 +2162,7 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
       if (door.isOpen && door.status === "CLUE") {
         if (clueRiddles) door.clueRiddles = clueRiddles;
         if (activeClue) door.clueText = activeClue;
+        door.isSettled = false;
         drawDoorInterior(door, performance.now());
       }
     });
@@ -2141,3 +2187,5 @@ export const DoorOfMysteryScene: React.FC<DoorOfMysterySceneProps> = ({
     </div>
   );
 };
+
+export const DoorOfMysteryScene = React.memo(DoorOfMysterySceneComponent);

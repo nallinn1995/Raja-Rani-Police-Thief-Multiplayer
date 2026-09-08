@@ -21,6 +21,7 @@ import {
 } from "@babylonjs/core";
 import { Player } from "../../types/game";
 import { soundService } from "../../services/soundService";
+import { performanceManager } from "../../services/performanceManager";
 
 interface CardState {
   id: string;
@@ -88,7 +89,7 @@ const getCardTargetPosition = (idx: number, isMobile: boolean): { x: number; y: 
   }
 };
 
-export const BabylonRoleCardScene: React.FC<BabylonRoleCardSceneProps> = ({
+const BabylonRoleCardSceneComponent: React.FC<BabylonRoleCardSceneProps> = ({
   cardsState,
   players,
   currentPlayerId: _currentPlayerId,
@@ -357,8 +358,8 @@ export const BabylonRoleCardScene: React.FC<BabylonRoleCardSceneProps> = ({
         powerPreference: "high-performance",
         disableWebGL2Support: false,
       });
-      // Cap hardware scaling on high-DPI mobile screens to prevent GPU overheating
-      engine.setHardwareScalingLevel(window.devicePixelRatio > 1.5 ? 1.35 : 1.0);
+      // Adaptive GPU scaling to prevent mobile device heating and thermal throttling
+      engine.setHardwareScalingLevel(performanceManager.getHardwareScalingLevel());
       engineRef.current = engine;
     } catch (err) {
       console.warn("Babylon.js WebGL initialization failed, falling back to 2D UI:", err);
@@ -551,13 +552,17 @@ export const BabylonRoleCardScene: React.FC<BabylonRoleCardSceneProps> = ({
       }
     });
 
-    // Render Loop
-    engine.runRenderLoop(() => {
+    // Render Loop with frame telemetry
+    const renderLoop = () => {
+      performanceManager.recordRenderFrame(performance.now());
       scene.render();
-    });
+    };
+
+    engine.runRenderLoop(renderLoop);
 
     // Resize Handler
     const handleResize = () => {
+      engine.setHardwareScalingLevel(performanceManager.getHardwareScalingLevel());
       engine.resize();
       updateCameraResponsive();
       const aspectNow = (engine.getRenderWidth() || 800) / (engine.getRenderHeight() || 600);
@@ -577,22 +582,29 @@ export const BabylonRoleCardScene: React.FC<BabylonRoleCardSceneProps> = ({
     };
     window.addEventListener("resize", handleResize);
 
+    // Dynamic Quality Profile update (e.g. thermal throttling, auto adaptation, battery saver)
+    const unsubQuality = performanceManager.subscribe(() => {
+      if (engineRef.current) {
+        engineRef.current.setHardwareScalingLevel(performanceManager.getHardwareScalingLevel());
+        engineRef.current.resize();
+      }
+    });
+
     // Pause WebGL rendering when tab is hidden to save battery & prevent heating
     const handleVisibilityChange = () => {
-      if (!engine || !scene) return;
+      if (!engineRef.current || !sceneRef.current) return;
       if (document.hidden) {
-        engine.stopRenderLoop();
+        engineRef.current.stopRenderLoop();
       } else {
-        engine.stopRenderLoop();
-        engine.runRenderLoop(() => {
-          scene.render();
-        });
+        engineRef.current.stopRenderLoop();
+        engineRef.current.runRenderLoop(renderLoop);
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     // Component Unmount Cleanup
     return () => {
+      unsubQuality();
       window.removeEventListener("resize", handleResize);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (pointerObserver) {
@@ -754,3 +766,5 @@ export const BabylonRoleCardScene: React.FC<BabylonRoleCardSceneProps> = ({
     </div>
   );
 };
+
+export const BabylonRoleCardScene = React.memo(BabylonRoleCardSceneComponent);

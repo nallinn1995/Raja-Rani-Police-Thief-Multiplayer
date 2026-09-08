@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Shield, Home } from 'lucide-react';
+import { ArrowLeft, Shield, Home, BarChart3, ChevronRight } from 'lucide-react';
 import { Player, GameMode } from '../types/game';
 
 interface LeaderboardProps {
@@ -7,6 +7,7 @@ interface LeaderboardProps {
   gameMode?: GameMode;
   onPlayAgain: () => void;
   onBackToHome: () => void;
+  onOpenDashboard?: () => void;
 }
 
 export const Leaderboard: React.FC<LeaderboardProps> = ({
@@ -14,6 +15,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
   gameMode,
   onPlayAgain,
   onBackToHome,
+  onOpenDashboard,
 }) => {
   const isDetectiveMode = gameMode === GameMode.DETECTIVE_CHALLENGE;
   const getRankIcon = (rank: number) => {
@@ -150,6 +152,21 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
             </div>
           </button>
           
+          {/* User Profile Dashboard Link */}
+          {onOpenDashboard && (
+            <button
+              onClick={onOpenDashboard}
+              className="w-full relative group cursor-pointer"
+            >
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 rounded-2xl blur opacity-50 group-hover:opacity-90 transition duration-200"></div>
+              <div className="relative w-full bg-gradient-to-r from-[#2A1245] via-[#1E0B36] to-[#2A1245] border border-amber-400/60 hover:border-amber-300 text-amber-300 group-hover:text-yellow-200 font-bold py-3.5 px-6 rounded-2xl transition-all duration-300 transform group-hover:scale-105 shadow-xl flex items-center justify-center space-x-2.5">
+                <BarChart3 className="w-5 h-5 text-amber-400 group-hover:animate-pulse" />
+                <span className="tracking-wide text-sm sm:text-base font-extrabold uppercase">Check Profile & Stats</span>
+                <ChevronRight className="w-4 h-4 text-amber-400 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </button>
+          )}
+
           <button
             onClick={onBackToHome}
             className="w-full flex items-center justify-center space-x-2 py-4 px-6 rounded-2xl bg-[#0A0217] border border-[#3A1C61] text-gray-400 hover:text-white hover:border-[#5A2C81] transition-all duration-300 transform hover:scale-105 shadow-md font-medium tracking-wide"

@@ -33,10 +33,14 @@ import { NotificationSettingsModal } from "./components/settings/NotificationSet
 import { useNotificationPermission } from "./hooks/useNotificationPermission";
 import { pushNotificationService } from "./services/pushNotificationService";
 import { pwaUpdateManager } from "./pwa/pwaUpdateManager";
+import type { ActiveTab } from "./components/ProfileDashboard";
 
 // Lazy-loaded routes for performance & lightweight initial bundle
 const Leaderboard = lazy(() =>
   import("./components/Leaderboard").then((m) => ({ default: m.Leaderboard }))
+);
+const ModernRoom = lazy(() =>
+  import("./pages/modernMode/ModernRoom").then((m) => ({ default: m.ModernRoom }))
 );
 const GameInfo = lazy(() =>
   import("./components/GameInfo").then((m) => ({ default: m.GameInfo }))
@@ -89,6 +93,8 @@ function App() {
   const [currentUser, setCurrentUser] = useState<UserType | null>(authService.getCurrentUser());
   const [isAdminAuthed, setIsAdminAuthed] = useState<boolean>(adminService.isAdminLoggedIn());
   const [voiceControls, setVoiceControls] = useState<VoiceControlsState | null>(null);
+  const [dashboardInitialTab, setDashboardInitialTab] = useState<ActiveTab>("overview");
+  const [dashboardReturnState, setDashboardReturnState] = useState<AppState>("welcome");
 
   const handleVoiceControlsChange = useCallback((controls: VoiceControlsState | null) => {
     setVoiceControls((prev) => {
@@ -174,6 +180,19 @@ function App() {
     currentScreen: appState,
     hasAuthenticatedUser: !!currentUser,
   });
+
+  const handleOpenDashboard = useCallback((targetTab: ActiveTab = "overview", returnState: AppState = "welcome") => {
+    recordInteraction();
+    let user = currentUser;
+    if (!user) {
+      user = authService.loginGuest();
+      setCurrentUser(user);
+    }
+    setDashboardInitialTab(targetTab);
+    setDashboardReturnState(returnState);
+    sessionStorage.setItem("appState", "dashboard");
+    setAppState("dashboard");
+  }, [currentUser, recordInteraction]);
 
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   // 🔄 Reconnect UI state
@@ -1124,6 +1143,7 @@ useEffect(() => {
                     sessionStorage.setItem("appState", "offline-setup");
                     setAppState("offline-setup");
                   }}
+                  onOpenDashboard={() => handleOpenDashboard("classic-mode", "offline-playing")}
                 />
               );
 
@@ -1205,6 +1225,19 @@ useEffect(() => {
                     isHost={isHost}
                     initialPublicState={detectivePublicState}
                     onLeaveGame={handleBackToHome}
+                    onOpenDashboard={() => handleOpenDashboard("detective-challenge", "welcome")}
+                  />
+                );
+              }
+              if (room.gameMode === "MODERN_MODE") {
+                return (
+                  <ModernRoom
+                    socket={socket}
+                    roomCode={room.id}
+                    currentPlayerId={currentPlayerId}
+                    initialPlayers={room.players}
+                    onReturnHome={handleBackToHome}
+                    onOpenDashboard={() => handleOpenDashboard("modern-mode", "welcome")}
                   />
                 );
               }
@@ -1239,8 +1272,19 @@ useEffect(() => {
               return (
                 <Leaderboard
                   leaderboard={leaderboard}
+                  gameMode={room?.gameMode as any}
                   onPlayAgain={handlePlayAgain}
                   onBackToHome={handleBackToHome}
+                  onOpenDashboard={() =>
+                    handleOpenDashboard(
+                      room?.gameMode === "DETECTIVE_CHALLENGE"
+                        ? "detective-challenge"
+                        : room?.gameMode === "MODERN_MODE"
+                        ? "modern-mode"
+                        : "classic-mode",
+                      "leaderboard"
+                    )
+                  }
                 />
               );
 
@@ -1262,10 +1306,12 @@ useEffect(() => {
               return currentUser ? (
                 <ProfileDashboard
                   user={currentUser}
+                  initialTab={dashboardInitialTab}
                   onUpdateUser={(updatedUser) => setCurrentUser(updatedUser)}
                   onBack={() => {
-                    sessionStorage.setItem("appState", "welcome");
-                    setAppState("welcome");
+                    const fallback = dashboardReturnState || "welcome";
+                    sessionStorage.setItem("appState", fallback);
+                    setAppState(fallback);
                   }}
                 />
               ) : null;

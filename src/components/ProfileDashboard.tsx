@@ -42,6 +42,7 @@ interface ProfileDashboardProps {
   user: UserType;
   onBack: () => void;
   onUpdateUser?: (updatedUser: UserType) => void;
+  initialTab?: ActiveTab;
 }
 
 export type ActiveTab = 'overview' | 'classic-mode' | 'detective-challenge' | 'modern-mode' | 'police-mode' | 'statistics' | 'xp-breakdown' | 'roles' | 'achievements' | 'history' | 'records' | 'friends' | 'edit-profile';
@@ -73,12 +74,18 @@ const formatPlayTime = (totalSeconds: number): string => {
   return `${mins} min`;
 };
 
-export const ProfileDashboard: React.FC<ProfileDashboardProps> = ({ user, onBack, onUpdateUser }) => {
+export const ProfileDashboard: React.FC<ProfileDashboardProps> = ({ user, onBack, onUpdateUser, initialTab = 'overview' }) => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
+  const [activeTab, setActiveTab] = useState<ActiveTab>(initialTab || 'overview');
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [roleModeFilter, setRoleModeFilter] = useState<'all' | 'classic' | 'modern' | 'detective'>('all');
   const [historyModeFilter, setHistoryModeFilter] = useState<'all' | 'classic' | 'modern' | 'detective'>('all');

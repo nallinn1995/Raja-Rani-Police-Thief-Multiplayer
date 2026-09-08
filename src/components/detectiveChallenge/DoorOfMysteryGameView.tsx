@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Socket } from "socket.io-client";
 import {
   Shield,
@@ -20,6 +20,9 @@ import {
   Clock,
   Star,
   X,
+  BarChart3,
+  ChevronRight,
+  Zap,
 } from "lucide-react";
 import {
   DetectiveDoorOutcome,
@@ -38,6 +41,7 @@ import {
   playLifeLostSound,
   playTimerTickSound,
 } from "../../utils/mysteryAudio";
+import { performanceManager, QualityProfile } from "../../services/performanceManager";
 
 interface DoorOfMysteryGameViewProps {
   socket: Socket;
@@ -46,6 +50,7 @@ interface DoorOfMysteryGameViewProps {
   isHost: boolean;
   initialPublicState?: DetectivePublicGameState | null;
   onLeaveGame: () => void;
+  onOpenDashboard?: () => void;
 }
 
 export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
@@ -55,6 +60,7 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
   isHost,
   initialPublicState,
   onLeaveGame,
+  onOpenDashboard,
 }) => {
   // Game & Timer State
   const [secondsRemaining, setSecondsRemaining] = useState<number>(() => {
@@ -96,7 +102,19 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
   const [isPlayersAccordionOpen, setIsPlayersAccordionOpen] = useState<boolean>(false);
   const playersAccordionRef = useRef<HTMLDivElement | null>(null);
 
-  // Close accordion dropdown on outside click
+  // Graphics Quality Profile State
+  const [qualityProfile, setQualityProfile] = useState<QualityProfile>(() => performanceManager.getQualityProfile());
+  const [showQualityMenu, setShowQualityMenu] = useState<boolean>(false);
+  const qualityMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const unsub = performanceManager.subscribe((_tier, profile) => {
+      setQualityProfile(profile);
+    });
+    return unsub;
+  }, []);
+
+  // Close accordion & quality dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -105,14 +123,20 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
       ) {
         setIsPlayersAccordionOpen(false);
       }
+      if (
+        qualityMenuRef.current &&
+        !qualityMenuRef.current.contains(event.target as Node)
+      ) {
+        setShowQualityMenu(false);
+      }
     };
-    if (isPlayersAccordionOpen) {
+    if (isPlayersAccordionOpen || showQualityMenu) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [isPlayersAccordionOpen]);
+  }, [isPlayersAccordionOpen, showQualityMenu]);
 
   // Lock window scroll completely so detective challenge stays fixed in viewport with no layout shifts or auto-scroll
   useEffect(() => {
@@ -353,21 +377,24 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
     };
   }, [socket, roomCode, currentPlayerId]);
 
-  // Door click handler
-  const handleOpenDoor = (doorId: number) => {
-    if (isGameOver || myStatus !== "INVESTIGATING" || lives <= 0 || isRequestPending) {
-      return;
-    }
-    if (revealedDoors.has(doorId)) return;
+  // Stable Door click handler (useCallback prevents unnecessary DoorOfMysteryScene re-renders during timer ticks)
+  const handleOpenDoor = useCallback(
+    (doorId: number) => {
+      if (isGameOver || myStatus !== "INVESTIGATING" || lives <= 0 || isRequestPending) {
+        return;
+      }
+      if (revealedDoors.has(doorId)) return;
 
-    setIsRequestPending(true);
-    socket.emit("detective:openDoor", {
-      roomCode,
-      playerId: currentPlayerId,
-      doorId,
-      layout: currentLayout,
-    });
-  };
+      setIsRequestPending(true);
+      socket.emit("detective:openDoor", {
+        roomCode,
+        playerId: currentPlayerId,
+        doorId,
+        layout: currentLayout,
+      });
+    },
+    [isGameOver, myStatus, lives, isRequestPending, revealedDoors, socket, roomCode, currentPlayerId, currentLayout]
+  );
 
   const toggleMute = () => {
     const next = !isAudioMuted;
@@ -561,6 +588,56 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
                 )}
               </div>
             )}
+
+            {/* Graphics Quality Control Button & Popover */}
+            <div className="relative shrink-0" ref={qualityMenuRef}>
+              <button
+                onClick={() => setShowQualityMenu((prev) => !prev)}
+                className="flex items-center gap-1 px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-lg sm:rounded-xl bg-[#16062b]/80 border border-purple-500/30 text-purple-200 hover:text-amber-300 transition shadow cursor-pointer text-[9px] sm:text-xs font-bold shrink-0"
+                title="Graphics & Performance Quality"
+              >
+                <Zap className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400" />
+                <span className="hidden xs:inline uppercase text-[9px] tracking-wider font-extrabold">
+                  {qualityProfile === "POWER_SAVER" ? "SAVER" : qualityProfile}
+                </span>
+              </button>
+
+              {showQualityMenu && (
+                <div className="absolute right-0 top-full mt-1.5 w-48 bg-[#140428]/95 backdrop-blur-xl border border-amber-400/40 rounded-xl shadow-2xl p-1.5 z-50 animate-fade-in flex flex-col gap-1">
+                  <div className="px-2 py-1 text-[10px] font-black tracking-wider text-amber-300 uppercase border-b border-purple-500/20">
+                    Graphics Quality
+                  </div>
+                  {(["AUTO", "HIGH", "MEDIUM", "LOW", "POWER_SAVER"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      onClick={() => {
+                        performanceManager.setProfile(mode);
+                        setQualityProfile(mode);
+                        setShowQualityMenu(false);
+                      }}
+                      className={`flex items-center justify-between px-2 py-1 rounded-lg text-[10px] font-bold transition text-left cursor-pointer ${
+                        qualityProfile === mode
+                          ? "bg-amber-400/20 text-amber-300 border border-amber-400/40"
+                          : "text-purple-200 hover:bg-purple-900/40 hover:text-white"
+                      }`}
+                    >
+                      <span>
+                        {mode === "POWER_SAVER"
+                          ? "🍃 Power Saver"
+                          : mode === "AUTO"
+                          ? "⚡ Auto (Adaptive)"
+                          : mode === "HIGH"
+                          ? "💎 High Quality"
+                          : mode === "MEDIUM"
+                          ? "⚖️ Medium (Balanced)"
+                          : "🚀 Low Performance"}
+                      </span>
+                      {qualityProfile === mode && <span className="text-amber-400 text-xs">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Mute Button */}
             <button
@@ -1007,7 +1084,18 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
               );
             })()}
 
-            {/* Action Buttons: Play Again & Return to Home */}
+            {/* Action Buttons: Check Profile & Stats, Play Again, Return to Home */}
+            {onOpenDashboard && (
+              <button
+                onClick={onOpenDashboard}
+                className="w-full py-2.5 sm:py-3 px-4 rounded-2xl font-black bg-gradient-to-r from-amber-500/20 via-purple-900/80 to-amber-500/20 hover:from-amber-500/30 hover:to-amber-500/30 border-2 border-amber-400/80 hover:border-amber-300 text-amber-300 font-sans transition-all shadow-[0_0_20px_rgba(245,158,11,0.3)] flex items-center justify-center space-x-2 cursor-pointer transform hover:scale-[1.01] active:scale-95 text-xs sm:text-sm"
+              >
+                <BarChart3 className="w-4 h-4 text-amber-400" />
+                <span className="font-extrabold uppercase tracking-wide">Check Profile Dashboard & Stats</span>
+                <ChevronRight className="w-4 h-4 text-amber-400" />
+              </button>
+            )}
+
             <div className="flex items-center gap-2.5 sm:gap-3 pt-1">
               {isHost ? (
                 <button

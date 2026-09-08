@@ -1,19 +1,21 @@
 import React, { useEffect } from "react";
 import confetti from "canvas-confetti";
 import { DetectiveMatchResult } from "../../types/detectiveChallenge";
-import { Award, RotateCcw, Home, Crown } from "lucide-react";
+import { Award, RotateCcw, Home, Crown, BarChart3 } from "lucide-react";
 import { XpBreakdownCard } from "../common/XpBreakdownCard";
 
 interface FinalMatchViewProps {
   result: DetectiveMatchResult;
   onPlayAgain?: () => void;
   onHome?: () => void;
+  onOpenDashboard?: () => void;
 }
 
 export const FinalMatchView: React.FC<FinalMatchViewProps> = ({
   result,
   onPlayAgain,
   onHome,
+  onOpenDashboard,
 }) => {
   useEffect(() => {
     try {
@@ -187,6 +189,15 @@ export const FinalMatchView: React.FC<FinalMatchViewProps> = ({
 
           {/* Navigation Buttons */}
           <div className="pt-4 flex flex-col sm:flex-row items-center justify-end gap-3">
+            {onOpenDashboard && (
+              <button
+                onClick={onOpenDashboard}
+                className="w-full sm:w-auto px-6 py-3.5 bg-gradient-to-r from-amber-500/20 via-purple-900/60 to-amber-500/20 hover:from-amber-500/30 hover:to-amber-500/30 text-amber-300 border border-amber-400/60 hover:border-amber-300 font-black text-xs uppercase tracking-wider rounded-xl transition-all flex items-center justify-center space-x-2 shadow-lg hover:scale-[1.02] cursor-pointer"
+              >
+                <BarChart3 className="w-4 h-4 text-amber-400" />
+                <span>Check Profile & Stats</span>
+              </button>
+            )}
             {onHome && (
               <button
                 onClick={onHome}

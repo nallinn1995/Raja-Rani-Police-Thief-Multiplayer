@@ -18,6 +18,7 @@ interface ModernRoomProps {
   currentPlayerId: string;
   initialPlayers?: any[];
   onReturnHome: () => void;
+  onOpenDashboard?: () => void;
 }
 
 export const ModernRoom: React.FC<ModernRoomProps> = ({
@@ -26,6 +27,7 @@ export const ModernRoom: React.FC<ModernRoomProps> = ({
   currentPlayerId,
   initialPlayers = [],
   onReturnHome,
+  onOpenDashboard,
 }) => {
   const [currentPhase, setCurrentPhase] = useState<string>('rules');
   const [timerSeconds, setTimerSeconds] = useState<number>(25);
@@ -256,6 +258,7 @@ export const ModernRoom: React.FC<ModernRoomProps> = ({
         <ModernLeaderboard
           resultData={resultData}
           onReturnHome={onReturnHome}
+          onOpenDashboard={onOpenDashboard}
         />
       );
     }

@@ -1,16 +1,18 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Award, ArrowLeft, Sparkles } from 'lucide-react';
+import { Award, ArrowLeft, Sparkles, BarChart3 } from 'lucide-react';
 import { ModernRoundResultData } from '../../types/modernMode';
 
 interface ModernLeaderboardProps {
   resultData: ModernRoundResultData;
   onReturnHome: () => void;
+  onOpenDashboard?: () => void;
 }
 
 export const ModernLeaderboard: React.FC<ModernLeaderboardProps> = ({
   resultData,
   onReturnHome,
+  onOpenDashboard,
 }) => {
   const { scores, winner, currentRound } = resultData;
 
@@ -249,14 +251,26 @@ export const ModernLeaderboard: React.FC<ModernLeaderboardProps> = ({
           })}
         </div>
 
-        {/* Back Button */}
-        <button
-          onClick={onReturnHome}
-          className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-sm sm:text-base tracking-widest uppercase shadow-[0_0_25px_rgba(147,51,234,0.4)] transition flex items-center justify-center gap-2 cursor-pointer mx-auto active:scale-95"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span>RETURN TO HOME</span>
-        </button>
+        {/* Navigation Buttons: Check Profile & Stats + Return Home */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mt-6">
+          {onOpenDashboard && (
+            <button
+              onClick={onOpenDashboard}
+              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-sm sm:text-base tracking-wider uppercase shadow-[0_0_25px_rgba(255,215,0,0.5)] transition flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+            >
+              <BarChart3 className="w-5 h-5 text-slate-950 stroke-[2.5]" />
+              <span>CHECK PROFILE & STATS</span>
+            </button>
+          )}
+
+          <button
+            onClick={onReturnHome}
+            className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-sm sm:text-base tracking-widest uppercase shadow-[0_0_25px_rgba(147,51,234,0.4)] transition flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span>RETURN TO HOME</span>
+          </button>
+        </div>
       </motion.div>
     </div>
   );

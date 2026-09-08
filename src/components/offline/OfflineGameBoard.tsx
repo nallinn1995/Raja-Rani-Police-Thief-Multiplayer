@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Shield, Crown, Trophy, Bot, Sparkles, CheckCircle2, ArrowRight, RotateCcw, LogOut, Lock, HelpCircle } from 'lucide-react';
+import { Shield, Crown, Trophy, Bot, Sparkles, CheckCircle2, ArrowRight, RotateCcw, LogOut, Lock, HelpCircle, BarChart3 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { OfflineGameConfig } from './OfflineSetup';
 
@@ -24,6 +24,7 @@ interface OfflineGameBoardProps {
   config: OfflineGameConfig;
   onExit: () => void;
   onPlayAgain: () => void;
+  onOpenDashboard?: () => void;
 }
 
 const ROLE_INFO: Record<
@@ -74,6 +75,7 @@ export const OfflineGameBoard: React.FC<OfflineGameBoardProps> = ({
   config,
   onExit,
   onPlayAgain,
+  onOpenDashboard,
 }) => {
   const [currentRound, setCurrentRound] = useState(1);
   const [phase, setPhase] = useState<OfflinePhase>('card-selection');
@@ -801,6 +803,19 @@ export const OfflineGameBoard: React.FC<OfflineGameBoardProps> = ({
                 <span>Exit Menu</span>
               </button>
             </div>
+
+            {/* Profile & Stats Button */}
+            {onOpenDashboard && (
+              <div className="pt-1">
+                <button
+                  onClick={onOpenDashboard}
+                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-purple-900/90 via-[#2A084E] to-purple-900/90 hover:from-purple-800 hover:to-purple-800 border-2 border-amber-400/60 text-amber-300 font-extrabold text-xs sm:text-sm uppercase tracking-wider shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <BarChart3 className="w-4 h-4 text-amber-400" />
+                  <span>Check Profile & Stats</span>
+                </button>
+              </div>
+            )}
           </motion.div>
         )}
 
