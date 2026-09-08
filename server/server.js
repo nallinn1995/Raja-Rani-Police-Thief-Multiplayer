@@ -120,6 +120,8 @@ const app = express();
 const server = createServer(app);
 
 app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 // Ensure service worker scripts are always revalidated on every check
 app.get(['/sw.js', '/firebase-messaging-sw.js'], (req, res, next) => {
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -281,7 +283,7 @@ app.post("/api/auth/signup", async (req, res) => {
 // 2.5 Google Sign-In / Continue with Google
 app.post("/api/auth/google", async (req, res) => {
   try {
-    const { credential } = req.body;
+    const { credential } = req.body || {};
     if (!credential) {
       return res.status(400).json({ error: "Google credential token is required" });
     }
