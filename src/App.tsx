@@ -32,6 +32,7 @@ import { NotificationSoftPrompt } from "./components/pwa/NotificationSoftPrompt"
 import { NotificationSettingsModal } from "./components/settings/NotificationSettingsModal";
 import { useNotificationPermission } from "./hooks/useNotificationPermission";
 import { pushNotificationService } from "./services/pushNotificationService";
+import { pwaUpdateManager } from "./pwa/pwaUpdateManager";
 
 // Lazy-loaded routes for performance & lightweight initial bundle
 const Leaderboard = lazy(() =>
@@ -136,6 +137,25 @@ function App() {
 
   useEffect(() => {
     pushNotificationService.initForegroundListener();
+  }, []);
+
+  // Synchronize app state with PWA Update Manager for safe background updates
+  useEffect(() => {
+    pwaUpdateManager.setAppState(appState);
+  }, [appState]);
+
+  // Listen for background PWA update events to display non-intrusive in-game notification
+  useEffect(() => {
+    const unsubscribe = pwaUpdateManager.onUpdateAvailable(({ isPlaying }) => {
+      if (isPlaying) {
+        toast.info("✨ Game update ready! It will apply automatically after your match.", {
+          autoClose: 6000,
+          theme: "dark",
+          toastId: "pwa-update-in-game-notice",
+        });
+      }
+    });
+    return unsubscribe;
   }, []);
 
   const [showNotificationSettings, setShowNotificationSettings] = useState<boolean>(false);

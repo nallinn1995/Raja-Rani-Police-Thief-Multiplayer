@@ -1,6 +1,6 @@
 // Raja Rani Police Thief - Production Service Worker
-// Version: 1.0.0
-const CACHE_NAME = 'raja-rani-pwa-v1';
+// Version: 1.1.0 - Controlled Safe Automatic PWA Updates
+const CACHE_NAME = 'raja-rani-pwa-v1.1.0';
 
 // Core application shell assets to pre-cache on install
 const PRECACHE_ASSETS = [
@@ -16,7 +16,7 @@ const PRECACHE_ASSETS = [
   '/assets/images/background.jpg'
 ];
 
-// Install Event - Pre-cache critical app shell
+// Install Event - Pre-cache critical app shell in background without interrupting active gameplay
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -28,8 +28,16 @@ self.addEventListener('install', (event) => {
           })
         )
       );
-    }).then(() => self.skipWaiting())
+    })
   );
+});
+
+// Message Event - Controlled activation triggered only when user is in a safe state
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('[PWA SW] Received SKIP_WAITING from client. Activating worker safely...');
+    self.skipWaiting();
+  }
 });
 
 // Activate Event - Clean up stale cache versions

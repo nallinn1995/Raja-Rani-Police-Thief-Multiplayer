@@ -120,8 +120,25 @@ const app = express();
 const server = createServer(app);
 
 app.use(cors());
-app.use(express.json());
-app.use(express.static(path.join(__dirname, "../dist")));
+// Ensure service worker scripts are always revalidated on every check
+app.get(['/sw.js', '/firebase-messaging-sw.js'], (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+});
+
+app.use(express.static(path.join(__dirname, "../dist"), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('sw.js') || filePath.endsWith('firebase-messaging-sw.js')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    } else if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache');
+    }
+  }
+}));
 
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/raja_rani_db";
 const safeUri = MONGODB_URI.replace(/:([^@]+)@/, ":****@");
@@ -1720,8 +1737,9 @@ async function endGame(roomCode) {
   }, 60000);
 }
 
-// Serve SPA index.html for all non-API routes
+// Serve SPA index.html for all non-API routes with no-cache so client always sees new deployment
 app.get("*", (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache');
   res.sendFile(path.join(__dirname, "../dist", "index.html"));
 });
 
