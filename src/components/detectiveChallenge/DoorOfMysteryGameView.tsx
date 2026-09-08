@@ -81,7 +81,11 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
   const [isRequestPending, setIsRequestPending] = useState<boolean>(false);
 
   // Derive layout-specific riddle matching current screen matrix resolution
-  const effectiveClue = (clueRiddles && clueRiddles[currentLayout]) || activeClue;
+  // Strictly only active if the player has actually uncovered a CLUE door in the current match!
+  const hasRevealedClue = Array.from(revealedDoors.values()).includes("CLUE");
+  const effectiveClue = hasRevealedClue
+    ? (clueRiddles && clueRiddles[currentLayout]) || activeClue
+    : null;
 
   // Room Players Public Roster
   const [playersRoster, setPlayersRoster] = useState<DetectivePlayerPublicState[]>(() => {
@@ -167,6 +171,7 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
     }
     setBannerMessage(null);
     setActiveClue(null);
+    setClueRiddles(null);
     setIsPlayersAccordionOpen(false);
     setIsGameOver(false);
     setShowResultModal(false);
@@ -249,25 +254,33 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
           setClueRiddles(data.clueRiddles);
         }
         setActiveClue(data.clue || null);
-        const resolvedClue = (data.clueRiddles && data.clueRiddles[currentLayout]) || data.clue;
-        showBanner(`🔍 SECRET CLUE REVEALED: ${resolvedClue || "Check Crime Scene"}`, "info", 6000);
+        // Toast banner omitted as requested: only the pinned clue banner at the top shows
       } else if (data.result === "LIFE") {
         showBanner(`❤️ +1 EXTRA LIFE! Vitality Restored! (${data.livesRemaining} Lives)`, "safe", 5000);
       }
     };
 
-    const handlePlayerUpdated = (data: DetectivePlayerPublicState) => {
+    const handlePlayerUpdated = (data: DetectivePlayerPublicState & { playerId?: string }) => {
+      const targetId = data.id || data.playerId;
+      if (!targetId) return;
+      const updatedItem: DetectivePlayerPublicState = {
+        ...data,
+        id: targetId,
+      };
+
       setPlayersRoster((prev) => {
-        const exists = prev.some((p) => p.id === data.id);
-        if (exists) {
-          return prev.map((p) => (p.id === data.id ? { ...p, ...data } : p));
+        const index = prev.findIndex((p) => p.id === targetId);
+        if (index >= 0) {
+          const next = [...prev];
+          next[index] = { ...next[index], ...updatedItem };
+          return next;
         }
-        return [...prev, data];
+        return [...prev, updatedItem];
       });
 
-      if (data.id !== currentPlayerId) {
+      if (targetId !== currentPlayerId) {
         if (data.status === "CAUGHT") {
-          showBanner(`🏆 Detective ${data.name} CAUGHT the Thief!`, "thief", 4000);
+          showBanner(`🏆 Detective ${data.name} CAUGHT their Thief!`, "thief", 4000);
         } else if (data.status === "ELIMINATED") {
           showBanner(`⚠️ Detective ${data.name} was ELIMINATED by a bomb.`, "bomb", 3000);
         }
@@ -377,7 +390,11 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
 
   const canInteract = !isGameOver && myStatus === "INVESTIGATING" && lives > 0 && !isRequestPending;
 
-  const otherPlayers = playersRoster.filter((p) => p.id !== currentPlayerId);
+  const otherPlayers = useMemo(() => {
+    return playersRoster.filter(
+      (p) => p.id && String(p.id).trim() !== String(currentPlayerId).trim()
+    );
+  }, [playersRoster, currentPlayerId]);
 
   return (
     <div
@@ -436,21 +453,23 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
                   {otherPlayers[0].name}
                 </span>
                 <span
-                  className={`text-[7px] sm:text-[8px] font-black uppercase px-1 py-0.2 rounded ${
+                  className={`text-[7px] sm:text-[8px] font-black uppercase px-1.5 py-0.2 rounded ${
                     otherPlayers[0].status === "CAUGHT"
-                      ? "bg-amber-400 text-black"
+                      ? "bg-amber-400 text-black font-black"
                       : otherPlayers[0].status === "ELIMINATED"
                       ? "bg-rose-600 text-white"
                       : otherPlayers[0].status === "TIMEOUT"
                       ? "bg-slate-700 text-slate-300"
-                      : "bg-cyan-500/30 text-cyan-300"
+                      : "bg-cyan-500/30 text-cyan-300 border border-cyan-400/30 animate-pulse"
                   }`}
                 >
                   {otherPlayers[0].status === "CAUGHT"
-                    ? "CAUGHT"
+                    ? "🏆 CAUGHT"
                     : otherPlayers[0].status === "ELIMINATED"
-                    ? "OUT"
-                    : "SEARCH"}
+                    ? "💀 OUT"
+                    : otherPlayers[0].status === "TIMEOUT"
+                    ? "⏳ TIMEOUT"
+                    : "🕵️ Investigating..."}
                 </span>
               </div>
             )}
@@ -466,7 +485,7 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
                       ? "bg-purple-900 border-amber-400 text-amber-200 ring-2 ring-amber-400/40"
                       : "bg-[#16062b]/90 hover:bg-[#250a45] border-purple-500/40 text-purple-200 hover:text-white"
                   }`}
-                  title="Toggle Joined Detectives Roster"
+                  title="Toggle Other Detectives Roster"
                 >
                   <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-cyan-400 shrink-0" />
                   <span className="font-black">
@@ -481,12 +500,12 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
 
                 {/* Accordion Dropdown Menu */}
                 {isPlayersAccordionOpen && (
-                  <div className="absolute top-full right-0 mt-2 z-50 w-60 sm:w-72 bg-gradient-to-b from-[#1c0736] via-[#120424] to-[#0a0114] border-2 border-amber-400/60 shadow-[0_0_30px_rgba(0,0,0,0.9)] rounded-2xl p-3 backdrop-blur-xl animate-fade-in space-y-2">
+                  <div className="absolute top-full right-0 mt-2 z-50 w-64 sm:w-72 bg-gradient-to-b from-[#1c0736] via-[#120424] to-[#0a0114] border-2 border-amber-400/60 shadow-[0_0_30px_rgba(0,0,0,0.9)] rounded-2xl p-3 backdrop-blur-xl animate-fade-in space-y-2">
                     <div className="flex items-center justify-between border-b border-purple-500/30 pb-1.5">
                       <div className="flex items-center space-x-1.5">
                         <Users className="w-3.5 h-3.5 text-amber-400" />
                         <span className="text-[11px] sm:text-xs font-black text-amber-200 uppercase tracking-wide">
-                          Joined Detectives ({otherPlayers.length})
+                          Other Detectives ({otherPlayers.length})
                         </span>
                       </div>
                       <button
@@ -524,10 +543,16 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
                                 ? "bg-rose-600 text-white"
                                 : p.status === "TIMEOUT"
                                 ? "bg-slate-700 text-slate-300"
-                                : "bg-cyan-500/30 text-cyan-300 border border-cyan-400/30"
+                                : "bg-cyan-500/30 text-cyan-300 border border-cyan-400/30 animate-pulse"
                             }`}
                           >
-                            {p.status === "CAUGHT" ? "🏆 CAUGHT" : p.status === "ELIMINATED" ? "💀 OUT" : "🔍 SEARCH"}
+                            {p.status === "CAUGHT"
+                              ? "🏆 CAUGHT"
+                              : p.status === "ELIMINATED"
+                              ? "💀 OUT"
+                              : p.status === "TIMEOUT"
+                              ? "⏳ TIMEOUT"
+                              : "🕵️ Investigating..."}
                           </span>
                         </div>
                       ))}
@@ -595,7 +620,11 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
                   : "text-cyan-400"
               }`}
             >
-              {myStatus === "INVESTIGATING" ? "INVESTIGATING" : myStatus}
+              {myStatus === "CAUGHT" && !isGameOver
+                ? "🏆 THIEF CAUGHT — WAITING FOR OTHERS"
+                : myStatus === "INVESTIGATING"
+                ? "INVESTIGATING"
+                : myStatus}
               {investigationTimeMs && ` (${(investigationTimeMs / 1000).toFixed(1)}s)`}
             </span>
           </div>
@@ -631,6 +660,32 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
           roomCode={roomCode}
         />
       </main>
+
+      {/* WAITING FOR OTHERS OVERLAY (WHEN CURRENT PLAYER CAUGHT THIEF BUT OTHERS ARE STILL PLAYING) */}
+      {!isGameOver && myStatus === "CAUGHT" && (
+        <div className="absolute top-16 sm:top-20 inset-x-0 flex justify-center pointer-events-none z-30 px-3 animate-fade-in">
+          <div className="w-auto max-w-[92vw] sm:max-w-md bg-gradient-to-r from-amber-950/95 via-[#230a42]/95 to-amber-950/95 border-2 border-amber-400/80 px-4 sm:px-6 py-2 rounded-2xl shadow-[0_0_30px_rgba(245,158,11,0.5)] flex flex-col items-center text-center backdrop-blur-md">
+            <div className="flex items-center space-x-2 text-amber-300">
+              <span className="text-base sm:text-lg">🏆</span>
+              <span className="text-xs sm:text-sm font-black tracking-wider uppercase">Thief Captured!</span>
+            </div>
+            <div className="flex items-center space-x-2 mt-0.5">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+              </span>
+              <span className="text-xs font-bold text-purple-200">
+                Waiting for other detectives...
+              </span>
+            </div>
+            {otherPlayers.some((p) => p.status === "INVESTIGATING") && (
+              <span className="text-[10px] text-purple-300/80 mt-0.5">
+                {otherPlayers.filter((p) => p.status === "INVESTIGATING").length} detective(s) still investigating
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* PINNED SECRET CLUE BANNER (WHEN CLUE DOOR IS REVEALED) */}
       {effectiveClue && (
@@ -740,8 +795,22 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
               })()}
             </div>
 
-            {/* Non-collapsible Leaderboard / Player Cards - No Inner Scroll */}
-            <div className="space-y-2">
+            {/* Leaderboard / Player Cards (Scrollable when > 2 players) */}
+            <div
+              className={`space-y-2 ${
+                finalResults.leaderboard.length > 2
+                  ? "max-h-[38vh] sm:max-h-[44vh] overflow-y-auto pr-1.5"
+                  : ""
+              }`}
+              style={
+                finalResults.leaderboard.length > 2
+                  ? {
+                      scrollbarWidth: "thin",
+                      scrollbarColor: "#f59e0b #18082e",
+                    }
+                  : undefined
+              }
+            >
               {finalResults.leaderboard.map((entry: DetectiveLeaderboardEntry) => {
                 const isMe = entry.id === currentPlayerId;
                 const isFirst = entry.rank === 1;

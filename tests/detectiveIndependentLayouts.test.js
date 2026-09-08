@@ -342,8 +342,14 @@ async function runTests() {
     // Player 1 catches thief
     await DetectiveMysteryGameService.openDoor("ROOM_WIN", "p1", p1.secretLayout.thiefDoor, p1Socket);
 
+    // Player 1 is CAUGHT, but game remains ACTIVE while Player 2 is still investigating
     assert.strictEqual(p1.status, "CAUGHT");
-    assert.strictEqual(game.status, "FINISHED");
+    assert.strictEqual(game.status, "ACTIVE", "Game should remain active for other players who are still investigating");
+
+    // Player 2 now catches thief
+    await DetectiveMysteryGameService.openDoor("ROOM_WIN", "p2", p2.secretLayout.thiefDoor, p2Socket);
+    assert.strictEqual(p2.status, "CAUGHT");
+    assert.strictEqual(game.status, "FINISHED", "Game finishes once all players are resolved");
 
     // 30. Final result checks
     // p1Socket should receive their own thiefDoor

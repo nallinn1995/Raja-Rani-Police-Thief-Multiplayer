@@ -467,6 +467,7 @@ export class DetectiveMysteryGameService {
 
       // 2. Broadcast public status update to room (NO doorId or outcome leaked)
       game.io.to(upperCode).emit("detective:playerUpdated", {
+        id: player.id,
         playerId: player.id,
         name: player.name,
         lives: player.lives,
@@ -479,12 +480,13 @@ export class DetectiveMysteryGameService {
 
       console.log(`[DetectiveMystery] ${player.name} opened Door #${numDoorId} -> ${outcome} (Lives: ${player.lives})`);
 
-      // 3. Check if any player caught their thief or all players in room are resolved
+      // 3. Check if all players in room are now resolved (each is CAUGHT or ELIMINATED)
       const allResolved = Array.from(game.players.values()).every(
         (p) => p.status === "CAUGHT" || p.status === "ELIMINATED"
       );
 
-      if (outcome === "THIEF" || allResolved) {
+      if (allResolved) {
+        console.log(`[DetectiveMystery] All players in ${upperCode} resolved! Finalizing match.`);
         this.finishGame(upperCode);
       }
     } finally {
