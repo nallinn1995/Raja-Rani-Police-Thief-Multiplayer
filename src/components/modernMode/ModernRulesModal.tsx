@@ -81,16 +81,24 @@ export const ModernRulesModal: React.FC<ModernRulesModalProps> = ({
     onToggleReady(checked);
   };
 
+  const isTransitioningRef = React.useRef(false);
+
   const nextSlide = () => {
-    if (currentSlide < RULE_STEPS.length - 1) {
-      setCurrentSlide((prev) => prev + 1);
-    }
+    if (isTransitioningRef.current) return;
+    isTransitioningRef.current = true;
+    setCurrentSlide((prev) => Math.min(RULE_STEPS.length - 1, prev + 1));
+    setTimeout(() => {
+      isTransitioningRef.current = false;
+    }, 280);
   };
 
   const prevSlide = () => {
-    if (currentSlide > 0) {
-      setCurrentSlide((prev) => prev - 1);
-    }
+    if (isTransitioningRef.current) return;
+    isTransitioningRef.current = true;
+    setCurrentSlide((prev) => Math.max(0, prev - 1));
+    setTimeout(() => {
+      isTransitioningRef.current = false;
+    }, 280);
   };
 
   const activeStep = RULE_STEPS[currentSlide];
@@ -160,11 +168,22 @@ export const ModernRulesModal: React.FC<ModernRulesModalProps> = ({
           <AnimatePresence mode="wait">
             <motion.div
               key={activeStep.id}
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.2}
+              onDragEnd={(_, info) => {
+                const swipeThreshold = 40;
+                if ((info.offset.x < -swipeThreshold || info.velocity.x < -400) && currentSlide < RULE_STEPS.length - 1) {
+                  nextSlide();
+                } else if ((info.offset.x > swipeThreshold || info.velocity.x > 400) && currentSlide > 0) {
+                  prevSlide();
+                }
+              }}
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
-              className={`p-5 rounded-2xl bg-gradient-to-b ${activeStep.color} border ${activeStep.borderColor} shadow-lg relative min-h-[190px] flex flex-col justify-between`}
+              className={`p-5 rounded-2xl bg-gradient-to-b ${activeStep.color} border ${activeStep.borderColor} shadow-lg relative min-h-[190px] flex flex-col justify-between cursor-grab active:cursor-grabbing touch-pan-y select-none`}
             >
               <div>
                 <div className="flex items-center justify-between mb-2">

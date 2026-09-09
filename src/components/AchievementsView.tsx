@@ -422,6 +422,7 @@ export const AchievementsView: React.FC<AchievementsViewProps> = ({ userAchievem
     loop: false,
     align: 'start',
     containScroll: 'trimSnaps',
+    skipSnaps: false,
   });
 
   // Extract user metrics dynamically from userStats & userAchievements API response

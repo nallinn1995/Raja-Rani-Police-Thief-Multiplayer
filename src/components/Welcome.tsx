@@ -1,10 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { BookOpen, ShieldCheck, Bot, Menu, X } from 'lucide-react';
+import { ShieldCheck, Bot } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { UserProfile } from './UserProfile';
 import { configService, FullSystemConfig } from '../services/configService';
 import { PWAInstallBanner } from './pwa/PWAInstallBanner';
-import { PWAHeaderButton } from './pwa/PWAHeaderButton';
 import { LegalModal, LegalDocType } from './legal/LegalModal';
 
 interface WelcomeProps {
@@ -20,20 +18,13 @@ interface WelcomeProps {
 
 export const Welcome: React.FC<WelcomeProps> = ({
   startGame,
-  onOpenGameInfo,
   onOpenAuth,
   currentUser,
-  onLogout,
-  onOpenDashboard,
-  onOpenAdminDashboard,
-  onOpenNotificationSettings,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mobileMenuRef = useRef<HTMLDivElement>(null);
   const [config, setConfig] = useState<FullSystemConfig>(configService.getConfig());
   const [legalModalOpen, setLegalModalOpen] = useState<boolean>(false);
   const [legalTab, setLegalTab] = useState<LegalDocType>('terms');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const openLegalModal = (tab: LegalDocType) => {
     setLegalTab(tab);
@@ -43,21 +34,6 @@ export const Welcome: React.FC<WelcomeProps> = ({
   useEffect(() => {
     return configService.subscribe(setConfig);
   }, []);
-
-  // Close mobile dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
-        setIsMobileMenuOpen(false);
-      }
-    };
-    if (isMobileMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isMobileMenuOpen]);
 
   // IntersectionObserver for smooth scroll reveal animations
   useEffect(() => {
@@ -98,122 +74,6 @@ export const Welcome: React.FC<WelcomeProps> = ({
 
   return (
     <div ref={containerRef} className="min-h-screen bg-[#080320] text-[#F1ECEC] font-sans overflow-x-hidden relative selection:bg-[#782287] selection:text-white">
-      
-      {/* Pinned Sticky Header Navigation - ALWAYS VISIBLE ON SCROLL */}
-      <header className="sticky top-0 z-50 w-full bg-[#080320]/95 backdrop-blur-md border-b border-[#3F1152]/70 shadow-2xl px-2.5 sm:px-8 md:px-12 py-2 sm:py-2.5 transition-all duration-300">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
-          
-          {/* Header Left: Crown Logo */}
-          <div 
-            className="flex items-center gap-2 sm:gap-3 cursor-pointer group flex-shrink-0" 
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          >
-            <img 
-              src="/assets/images/Landing Page/section_centered_iimage.png" 
-              alt="Raja Rani Police Thief Logo" 
-              className="h-8 sm:h-11 md:h-13 w-auto object-contain transition-transform duration-300 group-hover:scale-105 filter drop-shadow-[0_0_16px_rgba(172,65,215,0.4)]"
-            />
-          </div>
-
-          {/* Header Right - Desktop & Tablet (>= sm): Full Inline Controls */}
-          <div className="hidden sm:flex items-center gap-2 sm:gap-3 md:gap-4 flex-nowrap flex-shrink-0">
-            <button
-              onClick={() => {
-                if (onOpenGameInfo) {
-                  onOpenGameInfo();
-                } else {
-                  sessionStorage.setItem("appState", "game-info");
-                  window.location.reload();
-                }
-              }}
-              className="flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 bg-[#0c0524]/90 hover:bg-[#21073F] border border-[#FBE278]/70 rounded-full text-xs md:text-sm font-bold text-[#FBE278] hover:text-white shadow-[0_0_12px_rgba(251,226,120,0.2)] hover:shadow-[0_0_20px_rgba(251,226,120,0.4)] transition-all duration-200 cursor-pointer active:scale-95 whitespace-nowrap flex-shrink-0"
-              title="Game Rules & Info"
-            >
-              <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#FBE278]" />
-              <span>Game Info</span>
-            </button>
-
-            {/* PWA Install Button */}
-            <PWAHeaderButton />
-
-            {currentUser ? (
-              <UserProfile
-                user={currentUser}
-                onLogout={onLogout || (() => {})}
-                onOpenDashboard={onOpenDashboard || (() => {})}
-                onOpenAdminDashboard={onOpenAdminDashboard}
-                onOpenNotificationSettings={onOpenNotificationSettings}
-              />
-            ) : (
-              <button
-                onClick={handlePlayNow}
-                className="px-4 sm:px-6 py-1.5 sm:py-2 bg-gradient-to-r from-[#AC41D7] via-[#9B2ECB] to-[#782287] hover:opacity-95 text-white font-bold text-xs md:text-sm rounded-full shadow-[0_0_16px_rgba(172,65,215,0.5)] hover:shadow-[0_0_24px_rgba(172,65,215,0.8)] transition-all duration-200 cursor-pointer active:scale-95 whitespace-nowrap flex-shrink-0"
-              >
-                Play Now
-              </button>
-            )}
-          </div>
-
-          {/* Header Right - Mobile (< sm): Primary Action + Menu Button */}
-          <div className="flex sm:hidden items-center gap-1.5 flex-nowrap flex-shrink-0 relative" ref={mobileMenuRef}>
-            {currentUser ? (
-              <UserProfile
-                user={currentUser}
-                onLogout={onLogout || (() => {})}
-                onOpenDashboard={onOpenDashboard || (() => {})}
-                onOpenAdminDashboard={onOpenAdminDashboard}
-                onOpenNotificationSettings={onOpenNotificationSettings}
-              />
-            ) : (
-              <button
-                onClick={handlePlayNow}
-                className="px-3 py-1.5 bg-gradient-to-r from-[#AC41D7] via-[#9B2ECB] to-[#782287] hover:opacity-95 text-white font-bold text-xs rounded-full shadow-[0_0_12px_rgba(172,65,215,0.5)] active:scale-95 whitespace-nowrap flex-shrink-0 cursor-pointer"
-              >
-                Play Now
-              </button>
-            )}
-
-            {/* Mobile Hamburger Menu Toggle */}
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-1.5 rounded-full bg-[#1A0B3B]/90 border border-purple-500/40 text-yellow-300 hover:text-white transition-all shadow-md active:scale-95 cursor-pointer"
-              title="Open Navigation Menu"
-              aria-label="Open Navigation Menu"
-            >
-              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
-
-            {/* Mobile Secondary Dropdown Menu */}
-            {isMobileMenuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-56 max-w-[calc(100vw-1.5rem)] rounded-2xl bg-[#120424]/95 backdrop-blur-xl border border-purple-500/40 shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 space-y-1">
-                {/* Game Info Option */}
-                <button
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    if (onOpenGameInfo) {
-                      onOpenGameInfo();
-                    } else {
-                      sessionStorage.setItem("appState", "game-info");
-                      window.location.reload();
-                    }
-                  }}
-                  className="w-full px-3.5 py-2.5 text-left text-xs sm:text-sm text-yellow-300 hover:text-white hover:bg-purple-900/40 rounded-xl font-bold flex items-center gap-2.5 transition-all cursor-pointer"
-                >
-                  <BookOpen className="w-4 h-4 text-yellow-400 shrink-0" />
-                  <span>Game Rules & Info</span>
-                </button>
-
-                {/* Install App Option (if installable) */}
-                <PWAHeaderButton
-                  asMenuItem
-                  onActionTriggered={() => setIsMobileMenuOpen(false)}
-                />
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
-
       {/* SECTION 1: HERO SECTION & FEATURE PILL BAR (BACKGROUND VIDEO SCOPED STRICTLY TO THIS SECTION ONLY) */}
       <section className="relative w-full overflow-hidden min-h-[calc(100vh-70px)] flex flex-col justify-between pt-2 sm:pt-4 pb-8 sm:pb-10 border-b border-[#3F1152]/50">
         

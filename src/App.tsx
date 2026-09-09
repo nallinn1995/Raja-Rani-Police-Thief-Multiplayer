@@ -10,7 +10,7 @@ import { WaitingRoom } from "./components/WaitingRoom";
 import { GameBoard } from "./components/GameBoard";
 import { RoundResult } from "./components/RoundResult";
 import { Welcome } from "./components/Welcome";
-import { AppHeader } from "./components/AppHeader";
+import { MainHeader } from "./components/MainHeader";
 import { PlayTypeSelection } from "./components/PlayTypeSelection";
 import { OfflineSetup, OfflineGameConfig } from "./components/offline/OfflineSetup";
 import { OfflineGameBoard } from "./components/offline/OfflineGameBoard";
@@ -979,42 +979,48 @@ useEffect(() => {
         <source src="/assets/audio/royal_kingdom_bgm.ogg" type="audio/ogg" />
       </audio>
 
-      {/* Sticky App Header after login for all screens (except during active gameplay) */}
-      {appState !== "welcome" && currentUser && appState !== "playing" && (
-        <AppHeader
-          currentUser={currentUser}
-          room={room}
-          appState={appState}
-          voiceControls={voiceControls}
-          onOpenGameInfo={() => {
-            sessionStorage.setItem("appState", "game-info");
-            setAppState("game-info");
-          }}
-          onGoHome={() => {
-            sessionStorage.setItem("appState", "play-type");
-            setAppState("play-type");
-          }}
-          onLogout={() => {
-            authService.logout();
-            adminService.logout();
-            setIsAdminAuthed(false);
-            setCurrentUser(null);
-            sessionStorage.setItem("appState", "welcome");
-            setAppState("welcome");
-            toast.info("Logged out successfully");
-          }}
-          onOpenDashboard={() => {
-            sessionStorage.setItem("appState", "dashboard");
-            setAppState("dashboard");
-          }}
-          onOpenAdminDashboard={() => {
-            setIsAdminAuthed(true);
-            sessionStorage.setItem("appState", "admin");
-            setAppState("admin");
-          }}
-          onOpenNotificationSettings={() => setShowNotificationSettings(true)}
-        />
-      )}
+      {/* Universal Sticky Main Header - visible on all screens */}
+      <MainHeader
+        currentUser={currentUser}
+        appState={appState}
+        room={room}
+        voiceControls={voiceControls}
+        onOpenAuth={() => setShowAuthModal(true)}
+        onOpenGameInfo={() => {
+          sessionStorage.setItem("appState", "game-info");
+          setAppState("game-info");
+        }}
+        onGoHome={() => {
+          sessionStorage.setItem("appState", "welcome");
+          setAppState("welcome");
+        }}
+        onLogout={() => {
+          authService.logout();
+          adminService.logout();
+          setIsAdminAuthed(false);
+          setCurrentUser(null);
+          sessionStorage.setItem("appState", "welcome");
+          setAppState("welcome");
+          toast.info("Logged out successfully");
+        }}
+        onOpenDashboard={() => {
+          recordInteraction();
+          sessionStorage.setItem("appState", "dashboard");
+          setAppState("dashboard");
+        }}
+        onOpenAdminDashboard={() => {
+          setIsAdminAuthed(true);
+          sessionStorage.setItem("appState", "admin");
+          setAppState("admin");
+        }}
+        onOpenNotificationSettings={() => setShowNotificationSettings(true)}
+        onStartGame={() => {
+          recordInteraction();
+          sessionStorage.setItem("appState", "play-type");
+          setAppState("play-type");
+        }}
+        isInRoomOrGame={appState === "waiting" || appState === "playing" || appState === "offline-playing"}
+      />
 
       {/* Royal In-App Notification Soft Prompt - Only shown on eligible non-gameplay screens after user interaction */}
       <NotificationSoftPrompt
@@ -1049,35 +1055,11 @@ useEffect(() => {
                 <Welcome
                   currentUser={currentUser}
                   onOpenAuth={() => setShowAuthModal(true)}
-                  onOpenGameInfo={() => {
-                    sessionStorage.setItem("appState", "game-info");
-                    setAppState("game-info");
-                  }}
                   startGame={() => {
                     recordInteraction();
                     sessionStorage.setItem("appState", "play-type");
                     setAppState("play-type");
                   }}
-                  onLogout={() => {
-                    authService.logout();
-                    adminService.logout();
-                    setIsAdminAuthed(false);
-                    setCurrentUser(null);
-                    sessionStorage.setItem("appState", "welcome");
-                    setAppState("welcome");
-                    toast.info("Logged out successfully");
-                  }}
-                  onOpenDashboard={() => {
-                    recordInteraction();
-                    sessionStorage.setItem("appState", "dashboard");
-                    setAppState("dashboard");
-                  }}
-                  onOpenAdminDashboard={() => {
-                    setIsAdminAuthed(true);
-                    sessionStorage.setItem("appState", "admin");
-                    setAppState("admin");
-                  }}
-                  onOpenNotificationSettings={() => setShowNotificationSettings(true)}
                 />
               );
 

@@ -426,7 +426,7 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
   return (
     <div
       style={{ backgroundImage: "url('/assets/images/background.jpg'), url('/assets/images/background.png')" }}
-      className="fixed inset-0 w-full h-full overflow-hidden bg-[#0A041A] bg-cover bg-center bg-no-repeat font-sans text-white select-none touch-none overscroll-none flex flex-col"
+      className="fixed inset-x-0 bottom-0 top-[45px] sm:top-[53px] w-full overflow-hidden bg-[#0A041A] bg-cover bg-center bg-no-repeat font-sans text-white select-none touch-none overscroll-none flex flex-col"
     >
       {/* Dark palace vignette overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#0A021A]/70 via-transparent to-[#0A021A]/85 pointer-events-none z-0" />

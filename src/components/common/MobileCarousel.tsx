@@ -25,20 +25,33 @@ export const MobileCarousel: React.FC<MobileCarouselProps> = ({
 
   const handleScroll = () => {
     if (!scrollRef.current) return;
-    const { scrollLeft, clientWidth } = scrollRef.current;
-    if (clientWidth > 0) {
-      const index = Math.round(scrollLeft / clientWidth);
-      setActiveIndex(index);
+    const container = scrollRef.current;
+    const containerCenter = container.scrollLeft + container.clientWidth / 2;
+    let closestIndex = 0;
+    let minDistance = Infinity;
+
+    for (let i = 0; i < container.children.length; i++) {
+      const child = container.children[i] as HTMLElement;
+      const childCenter = child.offsetLeft + child.offsetWidth / 2;
+      const distance = Math.abs(containerCenter - childCenter);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestIndex = i;
+      }
     }
+    setActiveIndex(closestIndex);
   };
 
   const scrollToSlide = (index: number) => {
     if (!scrollRef.current) return;
-    const clientWidth = scrollRef.current.clientWidth;
-    scrollRef.current.scrollTo({
-      left: index * clientWidth,
-      behavior: 'smooth',
-    });
+    const container = scrollRef.current;
+    const targetChild = container.children[index] as HTMLElement;
+    if (targetChild) {
+      container.scrollTo({
+        left: targetChild.offsetLeft,
+        behavior: 'smooth',
+      });
+    }
     setActiveIndex(index);
   };
 
@@ -66,11 +79,15 @@ export const MobileCarousel: React.FC<MobileCarouselProps> = ({
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="flex overflow-x-auto snap-x snap-mandatory scrollbar-none space-x-3 pb-1 transition-all scroll-smooth"
+          className="flex overflow-x-auto snap-x snap-mandatory scrollbar-none gap-3 pb-1 transition-all scroll-smooth"
           style={{ scrollSnapType: 'x mandatory' }}
         >
           {children.map((child, idx) => (
-            <div key={idx} className="w-full shrink-0 snap-center">
+            <div
+              key={idx}
+              className="w-full shrink-0 snap-center snap-always"
+              style={{ scrollSnapStop: 'always' }}
+            >
               {child}
             </div>
           ))}
