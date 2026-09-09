@@ -35,6 +35,44 @@ export const XP_CONFIG = {
     { level: 9, minXp: 12500, requiredXp: 3500 },
     { level: 10, minXp: 16000, requiredXp: 4000 },
   ],
+  // Classic Mode Base & Bonus Constants
+  CLASSIC_MODE: {
+    PARTICIPATION_XP: 20,
+    COMPLETION_XP: 30,
+    SCORE_DIVISOR: 10, // Score / 10
+    WINNER_BONUS: 100,
+    POLICE_CATCH_BONUS: 30, // 30 per correct catch
+  },
+
+  // Detective Challenge Mode Base & Bonus Constants
+  DETECTIVE_CHALLENGE: {
+    PARTICIPATION_XP: 20,
+    COMPLETION_XP: 30,
+    CORRECT_GUESS_BONUS: 40, // 40 per correct catch
+    CHAMPION_BONUS: 120,
+    ACCURACY_MILESTONES: [
+      { threshold: 100, bonus: 100 },
+      { threshold: 90, bonus: 80 },
+      { threshold: 80, bonus: 60 },
+      { threshold: 70, bonus: 40 },
+      { threshold: 60, bonus: 20 },
+      { threshold: 0, bonus: 10 },
+    ],
+    SPEED_BONUS: 15, // if guess time <= 5s
+  },
+
+  // Modern Kingdom Mode Base & Bonus Constants
+  MODERN_MODE: {
+    PARTICIPATION_XP: 20,
+    COMPLETION_XP: 30,
+    SCORE_DIVISOR: 10, // Score / 10
+    WINNER_BONUS: 100,
+    MANTRI_SHIELD_BONUS: 30, // Per successful shield
+    RAJA_INTUITION_BONUS: 25, // Found Rani
+    RANI_INTUITION_BONUS: 25, // Found Raja
+    POLICE_CATCH_BONUS: 40, // Caught Thief
+    THIEF_ESCAPE_BONUS: 40, // Escaped Police
+  },
 };
 
 export function calculateLevel(xp = 0): LevelInfo {
@@ -79,5 +117,144 @@ export function calculateLevel(xp = 0): LevelInfo {
     xpInCurrentLevel,
     xpNeededForNextLevel,
     progressPercent: Math.round(progressPercent * 10) / 10,
+  };
+}
+
+export function calculateAccuracyBonus(accuracy = 0): number {
+  const acc = Number(accuracy) || 0;
+  for (const milestone of XP_CONFIG.DETECTIVE_CHALLENGE.ACCURACY_MILESTONES) {
+    if (acc >= milestone.threshold) {
+      return milestone.bonus;
+    }
+  }
+  return 10;
+}
+
+export function calculateClassicXP(p: any = {}): MatchXPBreakdown {
+  const participationXP = XP_CONFIG.CLASSIC_MODE.PARTICIPATION_XP;
+  const completionXP = XP_CONFIG.CLASSIC_MODE.COMPLETION_XP;
+  const scoreXP = Math.round((Number(p.score) || 0) / XP_CONFIG.CLASSIC_MODE.SCORE_DIVISOR);
+  const winnerBonus = p.isWinner ? XP_CONFIG.CLASSIC_MODE.WINNER_BONUS : 0;
+  const policeBonus = (Number(p.correctCatches) || 0) * XP_CONFIG.CLASSIC_MODE.POLICE_CATCH_BONUS;
+  const accuracyBonus = 0;
+  const speedBonus = 0;
+  const achievementBonus = Number(p.achievementBonus) || 0;
+  const dailyBonus = Number(p.dailyBonus) || 0;
+
+  const totalXP =
+    participationXP +
+    completionXP +
+    scoreXP +
+    winnerBonus +
+    policeBonus +
+    accuracyBonus +
+    speedBonus +
+    achievementBonus +
+    dailyBonus;
+
+  return {
+    participationXP,
+    completionXP,
+    scoreXP,
+    winnerBonus,
+    policeBonus,
+    accuracyBonus,
+    speedBonus,
+    achievementBonus,
+    dailyBonus,
+    totalXP,
+  };
+}
+
+export function calculateDetectiveXP(p: any = {}): MatchXPBreakdown {
+  const participationXP = XP_CONFIG.DETECTIVE_CHALLENGE.PARTICIPATION_XP;
+  const completionXP = XP_CONFIG.DETECTIVE_CHALLENGE.COMPLETION_XP;
+  const scoreXP = 0;
+  const winnerBonus = p.isChampion || p.isWinner ? XP_CONFIG.DETECTIVE_CHALLENGE.CHAMPION_BONUS : 0;
+  const policeBonus = (Number(p.correctCount || p.correctCatches) || 0) * XP_CONFIG.DETECTIVE_CHALLENGE.CORRECT_GUESS_BONUS;
+  const accuracyBonus = calculateAccuracyBonus(p.accuracy || p.overallAccuracy);
+  const speedBonus = p.fastestGuess && p.fastestGuess <= 5 && p.fastestGuess > 0 ? XP_CONFIG.DETECTIVE_CHALLENGE.SPEED_BONUS : 0;
+  const achievementBonus = Number(p.achievementBonus) || 0;
+  const dailyBonus = Number(p.dailyBonus) || 0;
+
+  const totalXP =
+    participationXP +
+    completionXP +
+    scoreXP +
+    winnerBonus +
+    policeBonus +
+    accuracyBonus +
+    speedBonus +
+    achievementBonus +
+    dailyBonus;
+
+  return {
+    participationXP,
+    completionXP,
+    scoreXP,
+    winnerBonus,
+    policeBonus,
+    accuracyBonus,
+    speedBonus,
+    achievementBonus,
+    dailyBonus,
+    totalXP,
+  };
+}
+
+export function calculateModernXP(p: any = {}): MatchXPBreakdown {
+  const participationXP = XP_CONFIG.MODERN_MODE.PARTICIPATION_XP;
+  const completionXP = XP_CONFIG.MODERN_MODE.COMPLETION_XP;
+  const scoreXP = Math.round((Number(p.finalScore ?? p.score) || 0) / XP_CONFIG.MODERN_MODE.SCORE_DIVISOR);
+  const winnerBonus = p.isWinner ? XP_CONFIG.MODERN_MODE.WINNER_BONUS : 0;
+
+  let roleBonus = 0;
+  if (p.role === "Mantri" && p.mantriShieldSuccess) {
+    roleBonus += XP_CONFIG.MODERN_MODE.MANTRI_SHIELD_BONUS;
+  }
+  if (p.role === "Raja" && p.rajaGuessSuccess) {
+    roleBonus += XP_CONFIG.MODERN_MODE.RAJA_INTUITION_BONUS;
+  }
+  if (p.role === "Rani" && p.raniGuessSuccess) {
+    roleBonus += XP_CONFIG.MODERN_MODE.RANI_INTUITION_BONUS;
+  }
+  if (p.role === "Police" && p.policeGuessSuccess) {
+    roleBonus += XP_CONFIG.MODERN_MODE.POLICE_CATCH_BONUS;
+  }
+  if (p.role === "Thief" && !p.policeGuessSuccess) {
+    roleBonus += XP_CONFIG.MODERN_MODE.THIEF_ESCAPE_BONUS;
+  }
+
+  if (roleBonus === 0 && p.bonusPoints) {
+    roleBonus = Math.min(60, Math.round(Number(p.bonusPoints) / 4));
+  }
+
+  const accuracyBonus = 0;
+  const speedBonus = 0;
+  const achievementBonus = Number(p.achievementBonus) || 0;
+  const dailyBonus = Number(p.dailyBonus) || 0;
+
+  const totalXP =
+    participationXP +
+    completionXP +
+    scoreXP +
+    winnerBonus +
+    roleBonus +
+    accuracyBonus +
+    speedBonus +
+    achievementBonus +
+    dailyBonus;
+
+  return {
+    participationXP,
+    completionXP,
+    scoreXP,
+    winnerBonus,
+    policeBonus: roleBonus,
+    accuracyBonus,
+    speedBonus,
+    achievementBonus,
+    dailyBonus,
+    totalXP,
   };
 }

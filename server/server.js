@@ -35,6 +35,7 @@ import {
   recordMatchResult as recordDetectiveMatch,
 } from "./controllers/detectiveChallenge/detectiveChallengeController.js";
 import { DetectiveMysteryGameService } from "./services/detectiveChallenge/DetectiveMysteryGameService.js";
+import { ModernModeService } from "./services/modernMode/ModernModeService.js";
 import {
   adminLogin,
   getOverviewStats,
@@ -780,6 +781,7 @@ gameNotificationService.setSocketServer(io);
 
 // Game state storage
 const rooms = new Map();
+const modernRooms = new Map();
 const playerSockets = new Map();
 const DISCONNECT_TIMEOUT = 30000;
 
@@ -1008,6 +1010,16 @@ app.post(
       });
       setTimeout(() => startGame(roomCode), 2000);
     }
+
+    // Auto-start for Modern Mode when full (5 players)
+    if (room.players.length === 5 && room.gameMode === "MODERN_MODE") {
+      const userIds = room.players.map((p) => p.userId).filter(Boolean);
+      gameNotificationService.dispatchRoomReady({
+        roomCode: roomCode.toUpperCase(),
+        recipientUserIds: userIds,
+      });
+      setTimeout(() => startModernGame(roomCode), 1500);
+    }
   }
 );
 
@@ -1099,6 +1111,35 @@ io.on("connection", (socket) => {
       const recState = DetectiveMysteryGameService.getReconnectingPlayerState(upperCode, playerId);
       if (recState) {
         socket.emit("detective:reconnectSync", recState);
+      }
+    }
+
+    // Sync reconnect state for Modern Mode if game active
+    if (room.gameMode === "MODERN_MODE" && modernRooms.has(upperCode)) {
+      const session = modernRooms.get(upperCode);
+      if (session && session.state) {
+        const mState = session.state;
+        const mp = mState.players.find((p) => p.id === playerId);
+        if (mp) {
+          mp.socketId = socket.id;
+          socket.emit("modern:yourRole", { role: mp.role });
+          if (mState.phase === "rules") {
+            socket.emit("modern:rulesState", {
+              readyCount: mState.readyPlayers.size,
+              readyPlayerIds: Array.from(mState.readyPlayers),
+              players: mState.players,
+            });
+          } else if (mState.phase === "result-phase" && mState.lastRoundResultData) {
+            socket.emit("modern:roundResult", mState.lastRoundResultData);
+          } else {
+            socket.emit("modern:gameStateUpdate", {
+              phase: mState.phase,
+              timerSeconds: session.timerSeconds || 20,
+              maxTimerSeconds: session.maxTimerSeconds || 20,
+              players: mState.players,
+            });
+          }
+        }
       }
     }
 
@@ -1543,6 +1584,188 @@ io.on("connection", (socket) => {
     DetectiveMysteryGameService.startGame(upperCode, room.players, io);
   });
 
+  // ==========================================
+  // MODERN KINGDOM MODE (5 PLAYERS)
+  // ==========================================
+  socket.on("modern:ruleReady", ({ roomCode, playerId, isReady }) => {
+    if (!roomCode || !playerId) return;
+    const upperCode = roomCode.toUpperCase();
+    const session = modernRooms.get(upperCode);
+    if (!session || !session.state) return;
+    const modernState = session.state;
+
+    if (isReady) {
+      modernState.readyPlayers.add(playerId);
+    } else {
+      modernState.readyPlayers.delete(playerId);
+    }
+
+    io.to(upperCode).emit("modern:rulesState", {
+      readyCount: modernState.readyPlayers.size,
+      readyPlayerIds: Array.from(modernState.readyPlayers),
+      players: modernState.players,
+    });
+  });
+
+  socket.on("modern:startGame", ({ roomCode, playerId }) => {
+    if (!roomCode || !playerId) return;
+    const upperCode = roomCode.toUpperCase();
+    const session = modernRooms.get(upperCode);
+    if (!session || !session.state) return;
+    const modernState = session.state;
+
+    const player = modernState.players.find((p) => p.id === playerId);
+    if (!player || !player.isHost) {
+      if (modernState.readyPlayers.size < 5) {
+        socket.emit("error", { message: "Only the host can start the Kingdom." });
+        return;
+      }
+    }
+
+    runModernPhase(upperCode, "mantri-shield");
+  });
+
+  socket.on("modern:submitMantriShield", ({ roomCode, playerId, targetId }) => {
+    if (!roomCode || !playerId) return;
+    const upperCode = roomCode.toUpperCase();
+    const session = modernRooms.get(upperCode);
+    if (!session || !session.state) return;
+    const modernState = session.state;
+    if (modernState.phase !== "mantri-shield") return;
+
+    const mantri = modernState.players.find((p) => p.role === "Mantri");
+    if (!mantri || mantri.id !== playerId) return;
+
+    modernState.mantriShieldTargetId = targetId || null;
+    mantri.hasSubmittedAction = true;
+
+    if (targetId) {
+      const targetPlayer = modernState.players.find((p) => p.id === targetId);
+      if (targetPlayer) {
+        targetPlayer.isShielded = true;
+        const room = rooms.get(upperCode);
+        const rp = room?.players.find((p) => p.id === targetId);
+        const sId = targetPlayer.socketId || rp?.socketId;
+        if (sId) {
+          io.to(sId).emit("modern:youAreProtected", {
+            message: "🛡️ You are protected by the Mantri Royal Shield!",
+          });
+        }
+      }
+    }
+
+    setTimeout(() => {
+      if (modernState.phase === "mantri-shield") {
+        ModernModeService.executeLootPhase(modernState);
+        runModernPhase(upperCode, "royal-phase");
+      }
+    }, 1200);
+  });
+
+  socket.on("modern:submitRajaGuess", ({ roomCode, playerId, targetId }) => {
+    if (!roomCode || !playerId || !targetId) return;
+    const upperCode = roomCode.toUpperCase();
+    const session = modernRooms.get(upperCode);
+    if (!session || !session.state) return;
+    const modernState = session.state;
+    if (modernState.phase !== "royal-phase") return;
+
+    const raja = modernState.players.find((p) => p.role === "Raja");
+    if (!raja || raja.id !== playerId) return;
+
+    modernState.rajaGuessId = targetId;
+    raja.hasSubmittedAction = true;
+
+    const rani = modernState.players.find((p) => p.role === "Rani");
+    if (rani && rani.hasSubmittedAction) {
+      setTimeout(() => {
+        if (modernState.phase === "royal-phase") {
+          runModernPhase(upperCode, "investigation-phase");
+        }
+      }, 1200);
+    }
+  });
+
+  socket.on("modern:submitRaniGuess", ({ roomCode, playerId, targetId }) => {
+    if (!roomCode || !playerId || !targetId) return;
+    const upperCode = roomCode.toUpperCase();
+    const session = modernRooms.get(upperCode);
+    if (!session || !session.state) return;
+    const modernState = session.state;
+    if (modernState.phase !== "royal-phase") return;
+
+    const rani = modernState.players.find((p) => p.role === "Rani");
+    if (!rani || rani.id !== playerId) return;
+
+    modernState.raniGuessId = targetId;
+    rani.hasSubmittedAction = true;
+
+    const raja = modernState.players.find((p) => p.role === "Raja");
+    if (raja && raja.hasSubmittedAction) {
+      setTimeout(() => {
+        if (modernState.phase === "royal-phase") {
+          runModernPhase(upperCode, "investigation-phase");
+        }
+      }, 1200);
+    }
+  });
+
+  socket.on("modern:submitPoliceGuess", ({ roomCode, playerId, targetId }) => {
+    if (!roomCode || !playerId || !targetId) return;
+    const upperCode = roomCode.toUpperCase();
+    const session = modernRooms.get(upperCode);
+    if (!session || !session.state) return;
+    const modernState = session.state;
+    if (modernState.phase !== "investigation-phase") return;
+
+    const police = modernState.players.find((p) => p.role === "Police");
+    if (!police || police.id !== playerId) return;
+
+    modernState.policeGuessId = targetId;
+    police.hasSubmittedAction = true;
+
+    setTimeout(() => {
+      if (modernState.phase === "investigation-phase") {
+        finishModernRound(upperCode);
+      }
+    }, 1200);
+  });
+
+  socket.on("modern:nextRound", ({ roomCode, playerId }) => {
+    if (!roomCode || !playerId) return;
+    const upperCode = roomCode.toUpperCase();
+    const session = modernRooms.get(upperCode);
+    if (!session || !session.state) return;
+    const modernState = session.state;
+
+    const player = modernState.players.find((p) => p.id === playerId);
+    if (!player || !player.isHost) {
+      socket.emit("error", { message: "Only host can start the next round." });
+      return;
+    }
+
+    if (modernState.isGameOver) {
+      return;
+    }
+
+    ModernModeService.resetForNextRound(modernState);
+    const room = rooms.get(upperCode);
+    if (room) {
+      room.currentRound = modernState.currentRound;
+    }
+
+    // Send new secret roles to each player
+    modernState.players.forEach((p) => {
+      const roomPlayer = room?.players.find((rp) => rp.id === p.id);
+      const sId = p.socketId || roomPlayer?.socketId;
+      if (sId) {
+        io.to(sId).emit("modern:yourRole", { role: p.role });
+      }
+    });
+
+    runModernPhase(upperCode, "mantri-shield");
+  });
+
   socket.on("disconnect", () => {
     console.log("Client disconnected:", socket.id);
     if (socket.data?.userId) {
@@ -1617,6 +1840,177 @@ function startGame(roomCode) {
   const room = rooms.get(roomCode.toUpperCase());
   if (room && room.players.length === 4) {
     startNextRound(roomCode);
+  }
+}
+
+// ------------------------------------------
+// Modern Mode Game State & Loop Functions
+// ------------------------------------------
+
+function startModernGame(roomCode) {
+  const upperCode = roomCode.toUpperCase();
+  const room = rooms.get(upperCode);
+  if (!room || room.players.length !== 5) return;
+
+  room.gameState = "playing";
+  room.startTime = Date.now();
+
+  const modernState = ModernModeService.createRoomState(upperCode, room.players, {
+    totalRounds: room.totalRounds || 3,
+    winCondition: room.winCondition || "rounds",
+    targetScore: room.targetScore || 5000,
+  });
+
+  // Assign socket IDs to modern players
+  modernState.players.forEach((mp) => {
+    const rp = room.players.find((p) => p.id === mp.id);
+    if (rp) {
+      mp.socketId = rp.socketId;
+      mp.userId = rp.userId;
+      mp.guestDeviceId = rp.guestDeviceId;
+    }
+  });
+
+  modernRooms.set(upperCode, {
+    state: modernState,
+    timer: null,
+    timerSeconds: 20,
+    maxTimerSeconds: 20,
+  });
+
+  io.to(upperCode).emit("game-started", {
+    id: room.id,
+    name: room.name,
+    gameMode: "MODERN_MODE",
+    gameState: "rules",
+    totalRounds: room.totalRounds,
+    winCondition: room.winCondition,
+    targetScore: room.targetScore,
+    players: room.players,
+  });
+
+  io.to(upperCode).emit("modern:rulesState", {
+    readyCount: modernState.readyPlayers.size,
+    readyPlayerIds: Array.from(modernState.readyPlayers),
+    players: modernState.players,
+  });
+
+  modernState.players.forEach((p) => {
+    const sId = p.socketId;
+    if (sId) {
+      io.to(sId).emit("modern:yourRole", { role: p.role });
+    }
+  });
+}
+
+function runModernPhase(upperCode, phase) {
+  const session = modernRooms.get(upperCode);
+  if (!session || !session.state) return;
+
+  if (session.timer) {
+    clearInterval(session.timer);
+    session.timer = null;
+  }
+
+  const modernState = session.state;
+  modernState.phase = phase;
+
+  let duration = 20;
+  if (phase === "mantri-shield") {
+    duration = 20;
+    io.to(upperCode).emit("modern:phaseTransition", {
+      title: "🛡️ Mantri Royal Shield Phase",
+      subtitle: "The Mantri is choosing a player to shield from the Thief!",
+      icon: "🏛️",
+    });
+  } else if (phase === "royal-phase") {
+    duration = 20;
+    io.to(upperCode).emit("modern:phaseTransition", {
+      title: "👑 Royal Intuition Phase",
+      subtitle: "Raja and Rani are seeking each other...",
+      icon: "👑",
+    });
+  } else if (phase === "investigation-phase") {
+    duration = 25;
+    io.to(upperCode).emit("modern:phaseTransition", {
+      title: "🚨 Police Investigation Phase",
+      subtitle: "The Police is identifying the Thief!",
+      icon: "👮",
+    });
+  }
+
+  session.timerSeconds = duration;
+  session.maxTimerSeconds = duration;
+
+  const broadcastState = () => {
+    io.to(upperCode).emit("modern:gameStateUpdate", {
+      phase: modernState.phase,
+      timerSeconds: session.timerSeconds,
+      maxTimerSeconds: session.maxTimerSeconds,
+      players: modernState.players.map((p) => ({
+        id: p.id,
+        name: p.name,
+        isHost: p.isHost,
+        score: p.score,
+        role: p.role,
+        hasSubmittedAction: !!p.hasSubmittedAction,
+        isShielded: !!p.isShielded,
+      })),
+    });
+  };
+
+  broadcastState();
+
+  session.timer = setInterval(() => {
+    session.timerSeconds -= 1;
+    broadcastState();
+
+    if (session.timerSeconds <= 0) {
+      clearInterval(session.timer);
+      session.timer = null;
+
+      if (phase === "mantri-shield") {
+        ModernModeService.executeLootPhase(modernState);
+        runModernPhase(upperCode, "royal-phase");
+      } else if (phase === "royal-phase") {
+        runModernPhase(upperCode, "investigation-phase");
+      } else if (phase === "investigation-phase") {
+        finishModernRound(upperCode);
+      }
+    }
+  }, 1000);
+}
+
+async function finishModernRound(upperCode) {
+  const session = modernRooms.get(upperCode);
+  if (!session || !session.state) return;
+
+  if (session.timer) {
+    clearInterval(session.timer);
+    session.timer = null;
+  }
+
+  const modernState = session.state;
+  modernState.phase = "result-phase";
+
+  const resultData = ModernModeService.finalizeMatchResults(modernState);
+  io.to(upperCode).emit("modern:roundResult", resultData);
+
+  const room = rooms.get(upperCode);
+  if (room && resultData.scores) {
+    room.players.forEach((rp) => {
+      const matchScore = resultData.scores.find((s) => s.playerId === rp.id);
+      if (matchScore) {
+        rp.score = matchScore.cumulativeScore;
+      }
+    });
+  }
+
+  if (resultData.isGameOver) {
+    if (room) {
+      room.gameState = "finished";
+    }
+    await ModernModeService.recordMatch(upperCode, modernState, resultData);
   }
 }
 
@@ -1733,9 +2127,13 @@ async function endGame(roomCode) {
     console.error("Error recording match results in endGame:", err);
   }
 
-  // Clean up room after 5 minutes
+  // Clean up room after 1 minute
   setTimeout(() => {
-    rooms.delete(roomCode.toUpperCase());
+    const upperCode = roomCode.toUpperCase();
+    const mSession = modernRooms.get(upperCode);
+    if (mSession?.timer) clearInterval(mSession.timer);
+    modernRooms.delete(upperCode);
+    rooms.delete(upperCode);
   }, 60000);
 }
 

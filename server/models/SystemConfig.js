@@ -98,9 +98,9 @@ const systemConfigSchema = new mongoose.Schema(
       defaultGameMode: { type: String, default: "CLASSIC_POINTS" },
       announcement: { type: String, default: "" },
       detectiveEnabled: { type: Boolean, default: true },
-      modernEnabled: { type: Boolean, default: false },
+      modernEnabled: { type: Boolean, default: true },
       detectiveButtonText: { type: String, default: "Play Now" },
-      modernButtonText: { type: String, default: "Coming Soon" },
+      modernButtonText: { type: String, default: "Play Now" },
     },
   },
   { timestamps: true }

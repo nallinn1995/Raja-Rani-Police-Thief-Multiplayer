@@ -45,6 +45,17 @@ export const systemConfig = {
   allowGuestLogin: true,
   maxPlayersPerRoom: 10,
   defaultGameMode: "CLASSIC_POINTS",
+  systemSettings: {
+    maintenanceMode: false,
+    allowGuestLogin: true,
+    maxPlayersPerRoom: 10,
+    defaultGameMode: "CLASSIC_POINTS",
+    announcement: "",
+    detectiveEnabled: true,
+    modernEnabled: true,
+    detectiveButtonText: "Play Now",
+    modernButtonText: "Play Now",
+  },
   pointsRules: {
     raja: 1000,
     rani: 800,
@@ -828,6 +839,8 @@ export async function updatePlayerStatsRecord(req, res) {
         if (updateData.modernStats.gamesWon !== undefined) mStats.gamesWon = Number(updateData.modernStats.gamesWon);
         if (updateData.modernStats.totalScore !== undefined) mStats.totalScore = Number(updateData.modernStats.totalScore);
         if (updateData.modernStats.highestScore !== undefined) mStats.highestScore = Number(updateData.modernStats.highestScore);
+        if (updateData.modernStats.xp !== undefined) mStats.xp = Number(updateData.modernStats.xp);
+        if (updateData.modernStats.level !== undefined) mStats.level = Number(updateData.modernStats.level);
         await mStats.save();
       }
     }

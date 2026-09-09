@@ -63,6 +63,21 @@ const playerStatsSchema = new mongoose.Schema(
       bestRoundScore: { type: Number, default: 0 },
       totalPointsEarned: { type: Number, default: 0 },
       averageScore: { type: Number, default: 0 },
+      xp: { type: Number, default: 0 },
+    },
+
+    modernMode: {
+      gamesPlayed: { type: Number, default: 0 },
+      gamesWon: { type: Number, default: 0 },
+      highestScore: { type: Number, default: 0 },
+      totalScore: { type: Number, default: 0 },
+      xp: { type: Number, default: 0 },
+    },
+
+    detectiveMode: {
+      gamesPlayed: { type: Number, default: 0 },
+      gamesWon: { type: Number, default: 0 },
+      xp: { type: Number, default: 0 },
     },
 
     policeMode: {

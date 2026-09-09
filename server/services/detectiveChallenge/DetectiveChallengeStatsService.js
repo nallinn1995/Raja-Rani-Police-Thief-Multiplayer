@@ -1,5 +1,6 @@
 import DetectiveChallengeStats from "../../models/detectiveChallenge/DetectiveChallengeStats.js";
 import DetectiveChallengeTitle from "../../models/detectiveChallenge/DetectiveChallengeTitle.js";
+import PlayerStats from "../../models/PlayerStats.js";
 import { DetectiveChallengeTitleService } from "./DetectiveChallengeTitleService.js";
 import { calculateDetectiveXP, calculateLevel } from "../../config/xpConfig.js";
 
@@ -21,21 +22,53 @@ export class DetectiveChallengeStatsService {
     if (!user || user.isGuest) return null;
 
     let stats = await this.getOrCreateStats(user._id, user.username);
+    let playerStats = await PlayerStats.findOne({ userId: user._id });
+    if (!playerStats) {
+      playerStats = new PlayerStats({
+        userId: user._id,
+        username: user.username,
+      });
+    }
 
     // Global XP & Leveling calculation using XP_CONFIG
-    const oldXp = stats.xp || user.xp || 0;
-    const oldLevelInfo = calculateLevel(oldXp);
+    const oldGlobalXp = playerStats.xp || user.xp || 0;
+    const oldLevelInfo = calculateLevel(oldGlobalXp);
 
     const matchXP = calculateDetectiveXP(playerMatchData);
     const earnedXp = matchXP.totalXP;
 
-    stats.xp = oldXp + earnedXp;
-    const newLevelInfo = calculateLevel(stats.xp);
-    stats.level = newLevelInfo.level;
+    // Mode-specific Detective stats XP
+    stats.xp = (stats.xp || 0) + earnedXp;
+    const newDcLevelInfo = calculateLevel(stats.xp);
+    stats.level = newDcLevelInfo.level;
     stats.lastPlayedAt = new Date();
 
-    user.xp = stats.xp;
-    user.level = stats.level;
+    // Unified Global PlayerStats
+    if (!playerStats.detectiveMode) {
+      playerStats.detectiveMode = { gamesPlayed: 0, gamesWon: 0, xp: 0 };
+    }
+    playerStats.detectiveMode.gamesPlayed = (playerStats.detectiveMode.gamesPlayed || 0) + 1;
+    if (playerMatchData.isChampion) {
+      playerStats.detectiveMode.gamesWon = (playerStats.detectiveMode.gamesWon || 0) + 1;
+    }
+    playerStats.detectiveMode.xp = (playerStats.detectiveMode.xp || 0) + earnedXp;
+
+    playerStats.totalGames = (playerStats.totalGames || 0) + 1;
+    if (playerMatchData.isChampion) {
+      playerStats.totalWins = (playerStats.totalWins || 0) + 1;
+    } else {
+      playerStats.totalLosses = (playerStats.totalLosses || 0) + 1;
+    }
+    playerStats.totalTimePlayed = (playerStats.totalTimePlayed || 0) + (matchDuration || 0);
+
+    playerStats.xp = oldGlobalXp + earnedXp;
+    const newGlobalLevelInfo = calculateLevel(playerStats.xp);
+    playerStats.level = newGlobalLevelInfo.level;
+    playerStats.lastPlayedAt = new Date();
+    await playerStats.save();
+
+    user.xp = playerStats.xp;
+    user.level = playerStats.level;
     await user.save();
 
     // Match Counts

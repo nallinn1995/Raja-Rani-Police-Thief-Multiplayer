@@ -560,6 +560,12 @@ export class ModernModeService {
               totalLosses: p.isWinner ? 0 : 1,
               totalTimePlayed: matchDuration,
               totalScore: Math.round(p.finalScore || 0),
+              "modernMode.gamesPlayed": 1,
+              "modernMode.gamesWon": p.isWinner ? 1 : 0,
+              "modernMode.totalScore": Math.round(p.finalScore || 0),
+            },
+            $max: {
+              "modernMode.highestScore": Math.round(p.finalScore || 0),
             },
           },
           { upsert: true }
@@ -572,7 +578,12 @@ export class ModernModeService {
         const xpEarned = calculateModernModeXP({
           finalScore: p.finalScore || 0,
           isWinner: p.isWinner,
-          isBonusEarned: (p.bonusPoints || 0) > 0,
+          role: p.role,
+          mantriShieldSuccess: modernState.mantriShieldSuccess,
+          rajaGuessSuccess: modernState.rajaGuessSuccess,
+          raniGuessSuccess: modernState.raniGuessSuccess,
+          policeGuessSuccess: modernState.policeGuessSuccess,
+          bonusPoints: p.bonusPoints,
         });
         await awardModernModeXP(targetUserId, xpEarned, p.name);
       }

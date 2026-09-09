@@ -103,9 +103,9 @@ export const defaultConfig: FullSystemConfig = {
     defaultGameMode: "CLASSIC_POINTS",
     announcement: "",
     detectiveEnabled: true,
-    modernEnabled: false,
+    modernEnabled: true,
     detectiveButtonText: "Play Now",
-    modernButtonText: "Coming Soon",
+    modernButtonText: "Play Now",
   },
 };
 

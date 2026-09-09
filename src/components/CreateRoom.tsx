@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, ArrowRight, Shield, Crown, Lock, Check, Sparkles } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowLeft, ArrowRight, Shield, Crown, Check, Sparkles } from 'lucide-react';
 import { GameMode } from '../types/game';
 import { authService } from '../services/authService';
-import { configService, defaultConfig } from '../services/configService';
 
 interface CreateRoomProps {
   onBack: () => void;
@@ -31,30 +30,6 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onBack, onRoomCreated, c
   });
   const [gameMode, setGameMode] = useState<GameMode>(GameMode.CLASSIC_POINTS);
   const [detectiveMaxPlayers, setDetectiveMaxPlayers] = useState<number>(1);
-
-
-  // Modern mode availability from admin config
-  const [modernEnabled, setModernEnabled] = useState(
-    defaultConfig.systemSettings!.modernEnabled
-  );
-  const [modernButtonText, setModernButtonText] = useState(
-    defaultConfig.systemSettings!.modernButtonText
-  );
-
-  useEffect(() => {
-    const unsub = configService.subscribe((cfg) => {
-      const s = cfg.systemSettings;
-      if (s) {
-        setModernEnabled(!!s.modernEnabled);
-        setModernButtonText(s.modernButtonText || 'Coming Soon');
-        if (!s.modernEnabled && gameMode === GameMode.MODERN_MODE) {
-          setGameMode(GameMode.CLASSIC_POINTS);
-        }
-      }
-    });
-    return unsub;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   React.useEffect(() => {
     if (currentUser?.username && !playerName) {
@@ -366,24 +341,16 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onBack, onRoomCreated, c
                     {/* Modern - mobile tab */}
                     <button
                       type="button"
-                      onClick={() => modernEnabled && setGameMode(GameMode.MODERN_MODE)}
-                      disabled={!modernEnabled}
-                      className={`flex-1 py-1.5 px-1 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 relative ${!modernEnabled
-                          ? 'text-gray-600 cursor-not-allowed opacity-60'
-                          : gameMode === GameMode.MODERN_MODE
-                            ? 'bg-gradient-to-r from-amber-950 via-purple-950 to-indigo-950 text-yellow-300 border border-yellow-400/60 shadow-md'
-                            : 'text-gray-400 hover:text-white'
-                        }`}
+                      onClick={() => setGameMode(GameMode.MODERN_MODE)}
+                      className={`flex-1 py-1.5 px-1 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 relative cursor-pointer ${
+                        gameMode === GameMode.MODERN_MODE
+                          ? 'bg-gradient-to-r from-amber-950 via-purple-950 to-indigo-950 text-yellow-300 border border-yellow-400/60 shadow-md'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
                     >
                       <Crown className="w-3.5 h-3.5 text-yellow-400" />
-                      {modernEnabled ? (
-                        <>
-                          <span>Modern</span>
-                          <span className="text-[9px] px-1 py-0.2 rounded bg-yellow-400 text-black font-black">6P</span>
-                        </>
-                      ) : (
-                        <span className="text-[9px] font-black text-orange-400">{modernButtonText}</span>
-                      )}
+                      <span>Modern</span>
+                      <span className="text-[9px] px-1 py-0.2 rounded bg-yellow-400 text-black font-black">5P</span>
                     </button>
                   </div>
 
@@ -430,8 +397,8 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onBack, onRoomCreated, c
                 </div>
 
                 {/* DESKTOP VIEW (>=640px): 3-Column Grid Cards */}
-                <div className="hidden sm:grid sm:grid-cols-3 gap-3">
-                  {/* Classic Points */}
+                <div className="hidden sm:grid grid-cols-3 gap-3.5">
+                  {/* Classic Points Mode */}
                   <button
                     type="button"
                     onClick={() => setGameMode(GameMode.CLASSIC_POINTS)}
@@ -441,17 +408,17 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onBack, onRoomCreated, c
                       }`}
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <div className="w-9 h-9 rounded-xl bg-purple-950 border border-purple-400/40 flex items-center justify-center shrink-0">
-                        <img src="/assets/images/trophy.png" className="w-5 h-5 object-contain" alt="Trophy" />
+                      <div className="w-9 h-9 rounded-xl bg-purple-950 border border-purple-400/40 flex items-center justify-center shrink-0 p-1">
+                        <img src="/assets/images/trophy.png" className="w-full h-full object-contain" alt="Classic" />
                       </div>
-                      <span className="px-2 py-0.5 rounded-full bg-yellow-400 text-black text-[10px] font-black uppercase">
+                      <span className="px-2 py-0.5 rounded-full bg-amber-400 text-black text-[10px] font-black uppercase">
                         4P
                       </span>
                     </div>
                     <div>
                       <h3 className="font-bold text-sm text-white">Classic Points</h3>
                       <p className="text-xs text-gray-300 leading-normal font-sans mt-1">
-                        Traditional paper slips with custom score points & turn-based guessing.
+                        Traditional paper game with custom score points & turn-based guessing.
                       </p>
                     </div>
                   </button>
@@ -481,24 +448,16 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onBack, onRoomCreated, c
                     </div>
                   </button>
 
-                  {/* Modern Mode - with Coming Soon overlay when disabled */}
+                  {/* Modern Mode - Permanently Enabled */}
                   <button
                     type="button"
-                    onClick={() => modernEnabled && setGameMode(GameMode.MODERN_MODE)}
-                    disabled={!modernEnabled}
-                    className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition-all duration-300 relative overflow-hidden ${!modernEnabled
-                        ? 'bg-[#0a0a1a]/90 border-[#2A1040] cursor-not-allowed opacity-70'
-                        : gameMode === GameMode.MODERN_MODE
-                          ? 'bg-gradient-to-b from-amber-900/90 via-purple-900/90 to-indigo-950/90 border-yellow-400 shadow-[0_0_20px_rgba(250,204,21,0.5)] ring-2 ring-yellow-400/50'
-                          : 'bg-[#11052C]/90 border-[#4A2078] hover:border-yellow-500 opacity-75 hover:opacity-100 cursor-pointer'
-                      }`}
+                    onClick={() => setGameMode(GameMode.MODERN_MODE)}
+                    className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition-all duration-300 relative overflow-hidden cursor-pointer ${
+                      gameMode === GameMode.MODERN_MODE
+                        ? 'bg-gradient-to-b from-amber-900/90 via-purple-900/90 to-indigo-950/90 border-yellow-400 shadow-[0_0_20px_rgba(250,204,21,0.5)] ring-2 ring-yellow-400/50'
+                        : 'bg-[#11052C]/90 border-[#4A2078] hover:border-yellow-500 opacity-75 hover:opacity-100'
+                    }`}
                   >
-                    {!modernEnabled && (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black/55 backdrop-blur-[2px] rounded-2xl">
-                        <Lock className="w-5 h-5 text-orange-400 mb-1" />
-                        <span className="text-xs font-extrabold text-orange-400 tracking-wider uppercase">{modernButtonText}</span>
-                      </div>
-                    )}
                     <div className="flex items-center justify-between mb-2">
                       <div className="w-9 h-9 rounded-xl bg-amber-950 border border-yellow-400/40 flex items-center justify-center shrink-0">
                         <Crown className="w-5 h-5 text-yellow-400" />

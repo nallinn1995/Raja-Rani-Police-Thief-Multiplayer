@@ -289,6 +289,7 @@ export async function recordMatchResults(matchData) {
           cm.highestScore = p.score;
         }
         cm.averageScore = Math.round(cm.totalPointsEarned / cm.gamesPlayed);
+        cm.xp = (cm.xp || 0) + earnedXp;
 
         // Personal Lifetime Records
         const rec = stats.records;
