@@ -35,6 +35,7 @@ import {
   DetectiveReconnectSyncPayload,
 } from "../../types/detectiveChallenge";
 import { DoorOfMysteryScene } from "./DoorOfMysteryScene";
+import { MobileCarousel, MobileCarouselRef } from "../common/MobileCarousel";
 import {
   setMysteryAudioMuted,
   getMysteryAudioMuted,
@@ -106,6 +107,7 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
   const [qualityProfile, setQualityProfile] = useState<QualityProfile>(() => performanceManager.getQualityProfile());
   const [showQualityMenu, setShowQualityMenu] = useState<boolean>(false);
   const qualityMenuRef = useRef<HTMLDivElement | null>(null);
+  const leaderboardCarouselRef = useRef<MobileCarouselRef>(null);
 
   useEffect(() => {
     const unsub = performanceManager.subscribe((_tier, profile) => {
@@ -801,11 +803,11 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
         </div>
       )}
 
-      {/* FINAL LEADERBOARD & RESULT MODAL - MATCHING ROYAL REFERENCE DESIGN */}
+      {/* FINAL LEADERBOARD & RESULT MODAL - REDESIGNED RESPONSIVE ROYAL DESIGN */}
       {showResultModal && finalResults && (
-        <div className="fixed inset-0 z-50 overflow-y-auto p-4 sm:p-6 bg-black/85 backdrop-blur-md animate-fade-in flex min-h-full">
-          {/* Main Modal Frame - Vertically and Horizontally Centered with Constant Padding */}
-          <div className="relative w-full max-w-lg bg-gradient-to-b from-[#18042b] via-[#120224] to-[#0a0114] border-2 border-amber-400/80 rounded-3xl p-4 sm:p-6 shadow-[0_0_50px_rgba(245,158,11,0.35)] text-white font-sans flex flex-col gap-3 m-auto">
+        <div className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden p-2.5 sm:p-6 bg-[#080214]/90 backdrop-blur-md animate-fade-in flex flex-col items-center justify-start sm:justify-center overscroll-contain">
+          {/* Main Modal Frame - Vertically Centered with Mobile-Responsive Padding & Constraints */}
+          <div className="relative w-full max-w-lg bg-gradient-to-b from-[#1c0533] via-[#120224] to-[#090114] border-2 border-amber-400/80 rounded-2xl sm:rounded-3xl p-3 sm:p-6 shadow-[0_0_50px_rgba(245,158,11,0.35)] text-white font-sans flex flex-col gap-2.5 sm:gap-3.5 my-auto shrink-0">
             {/* Ambient Palace Torch Glow Accents */}
             <div className="absolute -top-10 -left-10 w-40 h-40 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute -top-10 -right-10 w-40 h-40 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
@@ -813,18 +815,18 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
             {/* Top Right Circular Close Button */}
             <button
               onClick={onLeaveGame}
-              className="absolute top-3 right-3 sm:top-4 sm:right-4 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#200738]/90 border border-purple-400/60 hover:border-amber-400 text-purple-200 hover:text-white flex items-center justify-center shadow-[0_0_15px_rgba(168,85,247,0.4)] transition cursor-pointer z-20 group"
+              className="absolute top-2.5 right-2.5 sm:top-4 sm:right-4 w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-[#200738]/90 border border-purple-400/60 hover:border-amber-400 text-purple-200 hover:text-white flex items-center justify-center shadow-[0_0_15px_rgba(168,85,247,0.4)] transition cursor-pointer z-20 group"
               title="Close & Return to Home"
             >
-              <X className="w-4 h-4 text-amber-300 group-hover:scale-110 transition-transform" />
+              <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-300 group-hover:scale-110 transition-transform" />
             </button>
 
             {/* Header: Trophy, Laurels & 3D Ribbon Banner */}
-            <div className="flex flex-col items-center text-center relative pt-1">
+            <div className="flex flex-col items-center text-center relative pt-0.5">
               {/* Circular Halo Ring with Laurel Leaves & Golden Trophy */}
               <div className="relative flex items-center justify-center mb-1">
-                <div className="absolute w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-amber-400/20 blur-xl animate-pulse" />
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-b from-amber-400/30 via-purple-900/50 to-[#120324] border-2 border-amber-400/80 flex items-center justify-center shadow-[0_0_25px_rgba(245,158,11,0.5),inset_0_0_15px_rgba(251,191,36,0.3)] relative">
+                <div className="absolute w-16 h-16 sm:w-24 sm:h-24 rounded-full bg-amber-400/20 blur-xl animate-pulse" />
+                <div className="w-13 h-13 sm:w-18 sm:h-18 p-2.5 sm:p-3 rounded-full bg-gradient-to-b from-amber-400/30 via-purple-900/50 to-[#120324] border-2 border-amber-400/80 flex items-center justify-center shadow-[0_0_25px_rgba(245,158,11,0.5),inset_0_0_15px_rgba(251,191,36,0.3)] relative">
                   {/* Laurel Wreath SVG */}
                   <svg className="absolute inset-0 w-full h-full text-amber-400 pointer-events-none drop-shadow-[0_0_6px_rgba(245,158,11,0.8)]" viewBox="0 0 100 100" fill="currentColor">
                     <path d="M 28,70 C 20,55 20,38 32,24 C 28,32 26,45 32,58 Z" opacity="0.9" />
@@ -838,19 +840,19 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
                   </svg>
                   {/* Golden Trophy with Star */}
                   <div className="relative flex flex-col items-center justify-center">
-                    <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-amber-300 drop-shadow-[0_0_12px_rgba(251,191,36,0.9)]" />
-                    <Star className="w-3 h-3 text-amber-200 fill-amber-200 absolute -top-1" />
+                    <Trophy className="w-6 h-6 sm:w-9 sm:h-9 text-amber-300 drop-shadow-[0_0_12px_rgba(251,191,36,0.9)]" />
+                    <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-200 fill-amber-200 absolute -top-1" />
                   </div>
                 </div>
               </div>
 
               {/* 3D Royal Purple & Gold Ribbon */}
-              <div className="relative w-full max-w-xs sm:max-w-sm my-1 flex justify-center items-center">
-                <div className="w-full bg-gradient-to-r from-[#2c094d] via-[#48117d] to-[#2c094d] border-y-2 border-amber-400 px-4 sm:px-6 py-1.5 sm:py-2 rounded-lg shadow-[0_6px_20px_rgba(0,0,0,0.8),0_0_25px_rgba(245,158,11,0.3)] flex flex-col items-center">
-                  <span className="text-[9px] sm:text-[10px] font-black tracking-[0.25em] text-amber-300 uppercase drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
+              <div className="relative w-full max-w-[260px] sm:max-w-sm my-0.5 sm:my-1 flex justify-center items-center">
+                <div className="w-full bg-gradient-to-r from-[#2c094d] via-[#48117d] to-[#2c094d] border-y-2 border-amber-400 px-3 sm:px-6 py-1 sm:py-2 rounded-lg shadow-[0_6px_20px_rgba(0,0,0,0.8),0_0_25px_rgba(245,158,11,0.3)] flex flex-col items-center">
+                  <span className="text-[8px] sm:text-[10px] font-black tracking-[0.2em] text-amber-300 uppercase drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
                     DETECTIVE CHALLENGE
                   </span>
-                  <h2 className="text-xl sm:text-2xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-b from-amber-100 via-yellow-300 to-amber-500 uppercase drop-shadow-[0_2px_8px_rgba(245,158,11,0.5)] leading-tight mt-0.5">
+                  <h2 className="text-base sm:text-2xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-b from-amber-100 via-yellow-300 to-amber-500 uppercase drop-shadow-[0_2px_8px_rgba(245,158,11,0.5)] leading-tight mt-0.5">
                     COMPLETE
                   </h2>
                 </div>
@@ -862,7 +864,7 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
                 const myThief = myEntry?.thiefDoor ?? finalResults.secretLayout?.thiefDoor;
                 const formattedDoor = myThief ? (myThief < 10 ? `0${myThief}` : `${myThief}`) : null;
                 return (
-                  <div className="mt-1 px-3 sm:px-4 py-1 rounded-xl bg-[#1a052e]/90 border border-amber-400/50 shadow-[0_0_15px_rgba(0,0,0,0.6)] flex items-center justify-center space-x-1.5 text-xs sm:text-sm text-purple-200">
+                  <div className="mt-1 px-3 py-0.5 sm:py-1 rounded-xl bg-[#1a052e]/90 border border-amber-400/50 shadow-md flex items-center justify-center space-x-1.5 text-[11px] sm:text-sm text-purple-200">
                     <span>Your hidden Thief was behind</span>
                     <span className="text-amber-400 font-black font-mono tracking-wide">
                       {formattedDoor ? `Door #${formattedDoor}` : "Unknown"}
@@ -872,127 +874,184 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
               })()}
             </div>
 
-            {/* Leaderboard / Player Cards (Scrollable when > 2 players) */}
-            <div
-              className={`space-y-2 ${
-                finalResults.leaderboard.length > 2
-                  ? "max-h-[38vh] sm:max-h-[44vh] overflow-y-auto pr-1.5"
-                  : ""
-              }`}
-              style={
-                finalResults.leaderboard.length > 2
-                  ? {
-                      scrollbarWidth: "thin",
-                      scrollbarColor: "#f59e0b #18082e",
-                    }
-                  : undefined
-              }
-            >
-              {finalResults.leaderboard.map((entry: DetectiveLeaderboardEntry) => {
+            {/* Leaderboard Section: Single Card if 1 player, or MobileCarousel Slider if > 1 players */}
+            {(() => {
+              const renderCard = (entry: DetectiveLeaderboardEntry) => {
                 const isMe = entry.id === currentPlayerId;
                 const isFirst = entry.rank === 1;
 
                 return (
                   <div
                     key={entry.id}
-                    className={`p-2.5 sm:p-3.5 rounded-2xl border-2 flex items-center justify-between gap-2 transition ${
+                    className={`w-full p-2.5 sm:p-3.5 rounded-2xl border-2 flex flex-col gap-2 transition ${
                       isFirst
-                        ? "bg-gradient-to-r from-[#2c0847]/95 via-[#1e0536]/95 to-[#2c0847]/95 border-amber-400/80 shadow-[0_0_20px_rgba(245,158,11,0.25)]"
+                        ? "bg-gradient-to-b from-[#2c0847]/95 via-[#1e0536]/95 to-[#24063d]/95 border-amber-400/80 shadow-[0_0_20px_rgba(245,158,11,0.25)]"
                         : isMe
-                        ? "bg-gradient-to-r from-purple-950/90 to-indigo-950/90 border-amber-400/60 shadow-md"
+                        ? "bg-gradient-to-b from-purple-950/90 via-[#1a0631]/90 to-indigo-950/90 border-amber-400/60 shadow-md"
                         : "bg-[#18082e]/85 border-purple-700/40"
                     }`}
                   >
-                    {/* Left: Medallion with Crown on Top */}
-                    <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
-                      <div className="relative shrink-0 pt-2">
-                        {isFirst && (
-                          <Crown className="w-4 h-4 text-amber-300 fill-amber-300 absolute top-0 left-1/2 -translate-x-1/2 drop-shadow-[0_0_6px_rgba(245,158,11,0.8)]" />
-                        )}
-                        <div
-                          className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full font-black text-sm sm:text-base flex items-center justify-center shrink-0 shadow-md ${
-                            isFirst
-                              ? "bg-gradient-to-b from-yellow-300 via-amber-400 to-amber-600 text-slate-950 border border-amber-200 shadow-[0_0_12px_rgba(245,158,11,0.6)]"
-                              : entry.rank === 2
-                              ? "bg-gradient-to-b from-slate-200 to-slate-400 text-slate-950 border border-slate-300"
-                              : entry.rank === 3
-                              ? "bg-gradient-to-b from-amber-700 to-amber-900 text-amber-200 border border-amber-600"
-                              : "bg-purple-950/80 text-purple-300 border border-purple-600/40"
-                          }`}
-                        >
-                          #{entry.rank}
+                    {/* Header Row: Rank Medallion + Name & Status on Left, Score on Right */}
+                    <div className="flex items-center justify-between gap-2">
+                      {/* Left: Medallion + Name + Status */}
+                      <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
+                        <div className="relative shrink-0 pt-1">
+                          {isFirst && (
+                            <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-300 fill-amber-300 absolute top-0 left-1/2 -translate-x-1/2 drop-shadow-[0_0_6px_rgba(245,158,11,0.8)]" />
+                          )}
+                          <div
+                            className={`w-9 h-9 sm:w-11 sm:h-11 rounded-full font-black text-xs sm:text-base flex items-center justify-center shrink-0 shadow-md ${
+                              isFirst
+                                ? "bg-gradient-to-b from-yellow-300 via-amber-400 to-amber-600 text-slate-950 border border-amber-200 shadow-[0_0_12px_rgba(245,158,11,0.6)]"
+                                : entry.rank === 2
+                                ? "bg-gradient-to-b from-slate-200 to-slate-400 text-slate-950 border border-slate-300"
+                                : entry.rank === 3
+                                ? "bg-gradient-to-b from-amber-700 to-amber-900 text-amber-200 border border-amber-600"
+                                : "bg-purple-950/80 text-purple-300 border border-purple-600/40"
+                            }`}
+                          >
+                            #{entry.rank}
+                          </div>
+                        </div>
+
+                        {/* Name & Status Pill */}
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h4 className="font-extrabold text-xs sm:text-sm text-white break-words max-w-[130px] sm:max-w-[200px] leading-tight">
+                              {entry.name}
+                            </h4>
+                            {isMe && (
+                              <span className="text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded bg-amber-400 text-slate-950 font-black uppercase shrink-0 leading-none">
+                                YOU
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="mt-1 flex items-center">
+                            {entry.status === "CAUGHT" ? (
+                              <span className="inline-flex items-center gap-1 text-[8px] sm:text-[10px] font-black uppercase tracking-wider text-emerald-400 bg-emerald-950/70 border border-emerald-500/40 px-1.5 py-0.5 rounded leading-none">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                Thief Caught
+                              </span>
+                            ) : entry.status === "ELIMINATED" ? (
+                              <span className="inline-flex items-center gap-1 text-[8px] sm:text-[10px] font-black uppercase tracking-wider text-rose-400 bg-rose-950/70 border border-rose-500/40 px-1.5 py-0.5 rounded leading-none">
+                                <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+                                Bomb Detonated
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[8px] sm:text-[10px] font-black uppercase tracking-wider text-amber-300 bg-amber-950/70 border border-amber-500/40 px-1.5 py-0.5 rounded leading-none">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                                Time Expired
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
 
-                      {/* Name & Subtitle & 3 Stats Row */}
-                      <div className="min-w-0">
-                        <div className="flex items-center space-x-1.5">
-                          <h4 className="font-extrabold text-xs sm:text-sm text-white truncate max-w-[110px] sm:max-w-[160px]">
-                            {entry.name}
-                          </h4>
-                          {isMe && (
-                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-400 text-slate-950 font-black uppercase shrink-0">
-                              YOU
-                            </span>
-                          )}
+                      {/* Right: Score Card */}
+                      <div className="px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-[#140426]/95 border border-purple-500/40 text-center shrink-0 min-w-[70px] sm:min-w-[84px] shadow-inner flex flex-col items-center justify-center">
+                        <div className="flex items-center gap-0.5">
+                          <Crown className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-400 fill-amber-400" />
+                          <span className="text-[7px] sm:text-[8px] text-purple-300 font-extrabold uppercase tracking-wider">
+                            SCORE
+                          </span>
                         </div>
-
-                        <div className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-amber-300 leading-tight mt-0.5">
-                          {entry.status === "CAUGHT" ? (
-                            <span>THIEF CAUGHT</span>
-                          ) : entry.status === "ELIMINATED" ? (
-                            <span className="text-rose-400">BOMB DETONATED</span>
-                          ) : (
-                            <span className="text-slate-400">TIME EXPIRED</span>
-                          )}
-                        </div>
-
-                        {/* 3 Stats in a Row */}
-                        <div className="flex items-center gap-2 sm:gap-3 text-[9px] sm:text-[11px] text-purple-200 mt-1">
-                          <div className="flex items-center space-x-1" title="Time Taken">
-                            <Clock className="w-3 h-3 text-amber-400 shrink-0" />
-                            <span className="font-bold">{entry.investigationTimeSec ? `${entry.investigationTimeSec.toFixed(1)}s` : "--"}</span>
-                            <span className="text-purple-400 text-[8px] uppercase">TIME</span>
-                          </div>
-                          <div className="flex items-center space-x-1" title="Accuracy">
-                            <Target className="w-3 h-3 text-rose-400 shrink-0" />
-                            <span className="font-bold">{entry.accuracyPercent}%</span>
-                            <span className="text-purple-400 text-[8px] uppercase">ACC</span>
-                          </div>
-                          <div className="flex items-center space-x-1" title="Lives Remaining">
-                            <Heart className="w-3 h-3 text-rose-500 fill-rose-500 shrink-0" />
-                            <span className="font-bold">{entry.livesRemaining}</span>
-                            <span className="text-purple-400 text-[8px] uppercase">{entry.livesRemaining === 1 ? "LIFE" : "LIVES"}</span>
-                          </div>
-                        </div>
+                        <span className="text-sm sm:text-base font-black text-amber-300 font-mono tracking-tight leading-tight mt-0.5">
+                          {entry.finalScore.toFixed(2)}
+                        </span>
+                        <span className="inline-block px-1.5 py-0.5 rounded text-[7px] sm:text-[8px] font-black uppercase bg-purple-900/80 border border-amber-400/50 text-amber-300 tracking-wide mt-0.5 leading-none">
+                          {entry.finalScore >= 90
+                            ? "EXCELLENT!"
+                            : entry.finalScore >= 75
+                            ? "GREAT JOB!"
+                            : entry.finalScore >= 50
+                            ? "GOOD EFFORT!"
+                            : "COMPLETED"}
+                        </span>
                       </div>
                     </div>
 
-                    {/* Right: Score Card with Crown & Evaluation Pill */}
-                    <div className="p-2 sm:p-2.5 rounded-xl bg-[#140426]/90 border border-purple-500/40 text-center shrink-0 min-w-[72px] sm:min-w-[84px] shadow-inner">
-                      <Crown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400 fill-amber-400 mx-auto" />
-                      <span className="text-[8px] sm:text-[9px] text-purple-300 font-bold uppercase tracking-wider block leading-tight">
-                        SCORE
-                      </span>
-                      <span className="text-sm sm:text-lg font-black text-amber-300 font-mono tracking-tight block leading-tight mt-0.5">
-                        {entry.finalScore.toFixed(2)}
-                      </span>
-                      <span className="inline-block px-1.5 py-0.2 rounded-full text-[7px] sm:text-[8px] font-black uppercase bg-purple-900/90 border border-amber-400/60 text-amber-300 tracking-wide mt-1">
-                        {entry.finalScore >= 90
-                          ? "EXCELLENT!"
-                          : entry.finalScore >= 75
-                          ? "GREAT JOB!"
-                          : entry.finalScore >= 50
-                          ? "GOOD EFFORT!"
-                          : "COMPLETED"}
-                      </span>
+                    {/* Dedicated 3-Column Stats Grid - Clear, Spacious, NEVER Collapsed */}
+                    <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pt-1.5 border-t border-purple-800/30">
+                      {/* Stat 1: Time */}
+                      <div className="bg-[#100324]/90 border border-purple-800/40 rounded-xl p-1 sm:p-1.5 text-center flex flex-col items-center justify-center shadow-inner">
+                        <div className="flex items-center gap-1 text-amber-400 text-[8px] sm:text-[9px] font-bold uppercase tracking-wider mb-0.5">
+                          <Clock className="w-2.5 h-2.5 shrink-0" />
+                          <span>Time</span>
+                        </div>
+                        <span className="font-mono font-black text-white text-[11px] sm:text-xs">
+                          {entry.investigationTimeSec ? `${entry.investigationTimeSec.toFixed(1)}s` : "--"}
+                        </span>
+                      </div>
+
+                      {/* Stat 2: Accuracy */}
+                      <div className="bg-[#100324]/90 border border-purple-800/40 rounded-xl p-1 sm:p-1.5 text-center flex flex-col items-center justify-center shadow-inner">
+                        <div className="flex items-center gap-1 text-rose-400 text-[8px] sm:text-[9px] font-bold uppercase tracking-wider mb-0.5">
+                          <Target className="w-2.5 h-2.5 shrink-0" />
+                          <span>Accuracy</span>
+                        </div>
+                        <span className="font-mono font-black text-white text-[11px] sm:text-xs">
+                          {entry.accuracyPercent}%
+                        </span>
+                      </div>
+
+                      {/* Stat 3: Lives */}
+                      <div className="bg-[#100324]/90 border border-purple-800/40 rounded-xl p-1 sm:p-1.5 text-center flex flex-col items-center justify-center shadow-inner">
+                        <div className="flex items-center gap-1 text-rose-500 text-[8px] sm:text-[9px] font-bold uppercase tracking-wider mb-0.5">
+                          <Heart className="w-2.5 h-2.5 fill-rose-500 shrink-0" />
+                          <span>Lives</span>
+                        </div>
+                        <span className="font-mono font-black text-white text-[11px] sm:text-xs">
+                          {entry.livesRemaining} <span className="text-[8px] font-sans font-medium text-purple-300">/ 3</span>
+                        </span>
+                      </div>
                     </div>
                   </div>
                 );
-              })}
-            </div>
+              };
 
-            {/* YOUR SCORE BREAKDOWN Card */}
+              if (finalResults.leaderboard.length <= 1) {
+                return (
+                  <div className="w-full">
+                    {finalResults.leaderboard.map(renderCard)}
+                  </div>
+                );
+              }
+
+              const myIndex = finalResults.leaderboard.findIndex((e: DetectiveLeaderboardEntry) => e.id === currentPlayerId);
+
+              return (
+                <div className="w-full">
+                  <MobileCarousel
+                    ref={leaderboardCarouselRef}
+                    plain
+                    title="Detective Standings"
+                    icon={<Trophy className="w-4 h-4 text-amber-400 shrink-0" />}
+                    badge={
+                      <span className="text-[9px] sm:text-[10px] font-black uppercase text-amber-300 bg-purple-950/80 border border-amber-400/40 px-2 py-0.5 rounded-full">
+                        {finalResults.leaderboard.length} Detectives
+                      </span>
+                    }
+                    actionButton={
+                      myIndex > 0 ? (
+                        <button
+                          onClick={() => leaderboardCarouselRef.current?.scrollToSlide(myIndex)}
+                          className="text-[9px] sm:text-[10px] font-bold text-amber-300 hover:text-amber-100 bg-purple-900/90 hover:bg-purple-800 border border-amber-400/50 px-2 py-0.5 rounded-full flex items-center gap-1 transition cursor-pointer shadow-sm active:scale-95"
+                          title="Jump to your standing"
+                        >
+                          <Crown className="w-2.5 h-2.5 text-amber-400 fill-amber-400" />
+                          <span>My Card (#{myIndex + 1})</span>
+                        </button>
+                      ) : null
+                    }
+                  >
+                    {finalResults.leaderboard.map(renderCard)}
+                  </MobileCarousel>
+                </div>
+              );
+            })()}
+
+            {/* YOUR SCORE BREAKDOWN Card - Responsive 2x2 Grid on Mobile, 4-Cols on Desktop */}
             {(() => {
               const myEntry = finalResults.leaderboard.find((e) => e.id === currentPlayerId);
               if (!myEntry) return null;
@@ -1005,59 +1064,99 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
                       <Award className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                       <span>YOUR SCORE BREAKDOWN</span>
                     </span>
-                    <span className="text-amber-300 font-mono font-black tracking-wider">
+                    <span className="text-amber-300 font-mono font-black tracking-wider text-xs sm:text-sm">
                       {myEntry.finalScore.toFixed(2)} / 100 PTS
                     </span>
                   </div>
 
-                  {/* 4 Score Breakdown Cards */}
-                  <div className="grid grid-cols-4 gap-1.5 sm:gap-2 text-center">
+                  {/* 4 Score Breakdown Cards: 2-Cols on Mobile (<640px), 4-Cols on Desktop */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2">
                     {/* Accuracy Card */}
-                    <div className="p-1.5 sm:p-2 rounded-xl bg-purple-950/60 border border-purple-800/40 flex flex-col items-center justify-between">
-                      <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-rose-500/20 flex items-center justify-center mb-1">
-                        <Target className="w-3 h-3 text-rose-400" />
+                    <div className="p-2 rounded-xl bg-purple-950/60 border border-purple-800/40 flex flex-col justify-between">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-purple-300 text-[9px] sm:text-[10px] font-bold">Accuracy</span>
+                        <div className="w-4 h-4 rounded-full bg-rose-500/20 flex items-center justify-center shrink-0">
+                          <Target className="w-2.5 h-2.5 text-rose-400" />
+                        </div>
                       </div>
-                      <strong className="text-white font-mono text-xs sm:text-sm font-black block">
-                        {myEntry.breakdown.accuracyScore.toFixed(1)}
-                      </strong>
-                      <span className="text-purple-300 text-[9px] sm:text-[10px] block leading-tight mt-0.5">Accuracy</span>
-                      <span className="text-purple-400 text-[8px] sm:text-[9px] font-mono">(40)</span>
+                      <div className="flex items-baseline justify-between">
+                        <strong className="text-white font-mono text-xs sm:text-sm font-black">
+                          {myEntry.breakdown.accuracyScore.toFixed(1)}
+                        </strong>
+                        <span className="text-purple-400 text-[8px] sm:text-[9px] font-mono">Max 40</span>
+                      </div>
+                      <div className="w-full bg-purple-950 rounded-full h-1 mt-1 overflow-hidden">
+                        <div
+                          className="bg-gradient-to-r from-rose-500 to-amber-400 h-full rounded-full"
+                          style={{ width: `${Math.min(100, (myEntry.breakdown.accuracyScore / 40) * 100)}%` }}
+                        />
+                      </div>
                     </div>
 
                     {/* Time Card */}
-                    <div className="p-1.5 sm:p-2 rounded-xl bg-purple-950/60 border border-purple-800/40 flex flex-col items-center justify-between">
-                      <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-amber-500/20 flex items-center justify-center mb-1">
-                        <Clock className="w-3 h-3 text-amber-400" />
+                    <div className="p-2 rounded-xl bg-purple-950/60 border border-purple-800/40 flex flex-col justify-between">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-purple-300 text-[9px] sm:text-[10px] font-bold">Time Bonus</span>
+                        <div className="w-4 h-4 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                          <Clock className="w-2.5 h-2.5 text-amber-400" />
+                        </div>
                       </div>
-                      <strong className="text-white font-mono text-xs sm:text-sm font-black block">
-                        {myEntry.breakdown.timeScore.toFixed(1)}
-                      </strong>
-                      <span className="text-purple-300 text-[9px] sm:text-[10px] block leading-tight mt-0.5">Time</span>
-                      <span className="text-purple-400 text-[8px] sm:text-[9px] font-mono">(30)</span>
+                      <div className="flex items-baseline justify-between">
+                        <strong className="text-white font-mono text-xs sm:text-sm font-black">
+                          {myEntry.breakdown.timeScore.toFixed(1)}
+                        </strong>
+                        <span className="text-purple-400 text-[8px] sm:text-[9px] font-mono">Max 30</span>
+                      </div>
+                      <div className="w-full bg-purple-950 rounded-full h-1 mt-1 overflow-hidden">
+                        <div
+                          className="bg-gradient-to-r from-amber-500 to-yellow-300 h-full rounded-full"
+                          style={{ width: `${Math.min(100, (myEntry.breakdown.timeScore / 30) * 100)}%` }}
+                        />
+                      </div>
                     </div>
 
                     {/* Lives Card */}
-                    <div className="p-1.5 sm:p-2 rounded-xl bg-purple-950/60 border border-purple-800/40 flex flex-col items-center justify-between">
-                      <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-rose-500/20 flex items-center justify-center mb-1">
-                        <Heart className="w-3 h-3 text-rose-400 fill-rose-400" />
+                    <div className="p-2 rounded-xl bg-purple-950/60 border border-purple-800/40 flex flex-col justify-between">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-purple-300 text-[9px] sm:text-[10px] font-bold">Lives Left</span>
+                        <div className="w-4 h-4 rounded-full bg-rose-500/20 flex items-center justify-center shrink-0">
+                          <Heart className="w-2.5 h-2.5 text-rose-400 fill-rose-400" />
+                        </div>
                       </div>
-                      <strong className="text-white font-mono text-xs sm:text-sm font-black block">
-                        {myEntry.breakdown.livesScore.toFixed(1)}
-                      </strong>
-                      <span className="text-purple-300 text-[9px] sm:text-[10px] block leading-tight mt-0.5">Lives</span>
-                      <span className="text-purple-400 text-[8px] sm:text-[9px] font-mono">(20)</span>
+                      <div className="flex items-baseline justify-between">
+                        <strong className="text-white font-mono text-xs sm:text-sm font-black">
+                          {myEntry.breakdown.livesScore.toFixed(1)}
+                        </strong>
+                        <span className="text-purple-400 text-[8px] sm:text-[9px] font-mono">Max 20</span>
+                      </div>
+                      <div className="w-full bg-purple-950 rounded-full h-1 mt-1 overflow-hidden">
+                        <div
+                          className="bg-gradient-to-r from-rose-500 to-pink-500 h-full rounded-full"
+                          style={{ width: `${Math.min(100, (myEntry.breakdown.livesScore / 20) * 100)}%` }}
+                        />
+                      </div>
                     </div>
 
                     {/* Efficiency Card */}
-                    <div className="p-1.5 sm:p-2 rounded-xl bg-purple-950/60 border border-purple-800/40 flex flex-col items-center justify-between">
-                      <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-yellow-500/20 flex items-center justify-center mb-1">
-                        <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                    <div className="p-2 rounded-xl bg-purple-950/60 border border-purple-800/40 flex flex-col justify-between">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-purple-300 text-[9px] sm:text-[10px] font-bold">Efficiency</span>
+                        <div className="w-4 h-4 rounded-full bg-yellow-500/20 flex items-center justify-center shrink-0">
+                          <Star className="w-2.5 h-2.5 text-yellow-400 fill-yellow-400" />
+                        </div>
                       </div>
-                      <strong className="text-white font-mono text-xs sm:text-sm font-black block">
-                        {myEntry.breakdown.efficiencyScore.toFixed(1)}
-                      </strong>
-                      <span className="text-purple-300 text-[9px] sm:text-[10px] block leading-tight mt-0.5">Efficiency</span>
-                      <span className="text-purple-400 text-[8px] sm:text-[9px] font-mono">(10)</span>
+                      <div className="flex items-baseline justify-between">
+                        <strong className="text-white font-mono text-xs sm:text-sm font-black">
+                          {myEntry.breakdown.efficiencyScore.toFixed(1)}
+                        </strong>
+                        <span className="text-purple-400 text-[8px] sm:text-[9px] font-mono">Max 10</span>
+                      </div>
+                      <div className="w-full bg-purple-950 rounded-full h-1 mt-1 overflow-hidden">
+                        <div
+                          className="bg-gradient-to-r from-yellow-400 to-amber-300 h-full rounded-full"
+                          style={{ width: `${Math.min(100, (myEntry.breakdown.efficiencyScore / 10) * 100)}%` }}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1068,12 +1167,12 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
             {(() => {
               const myEntry = finalResults.leaderboard.find((e) => e.id === currentPlayerId);
               return (
-                <div className="relative px-3 sm:px-4 py-1.5 rounded-xl bg-gradient-to-r from-[#1b0533] via-[#2a084e] to-[#1b0533] border border-amber-400/60 shadow-[0_0_15px_rgba(245,158,11,0.2)] text-center">
+                <div className="relative px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-[#1b0533] via-[#2a084e] to-[#1b0533] border border-amber-400/60 shadow-[0_0_15px_rgba(245,158,11,0.2)] text-center">
                   <span className="text-amber-400 font-serif text-base mr-1">“</span>
-                  <span className="text-amber-200 text-xs sm:text-sm font-semibold italic tracking-wide">
+                  <span className="text-amber-200 text-[11px] sm:text-sm font-semibold italic tracking-wide">
                     {myEntry?.status === "CAUGHT"
                       ? myEntry.finalScore >= 90
-                        ? "Excellent investigation!"
+                        ? "Excellent investigation! Uncovered the thief with supreme precision!"
                         : "Great detective work! You caught the thief!"
                       : myEntry?.status === "ELIMINATED"
                       ? "Perilous mission! Watch out for bombs next time!"
@@ -1088,35 +1187,35 @@ export const DoorOfMysteryGameView: React.FC<DoorOfMysteryGameViewProps> = ({
             {onOpenDashboard && (
               <button
                 onClick={onOpenDashboard}
-                className="w-full py-2.5 sm:py-3 px-4 rounded-2xl font-black bg-gradient-to-r from-amber-500/20 via-purple-900/80 to-amber-500/20 hover:from-amber-500/30 hover:to-amber-500/30 border-2 border-amber-400/80 hover:border-amber-300 text-amber-300 font-sans transition-all shadow-[0_0_20px_rgba(245,158,11,0.3)] flex items-center justify-center space-x-2 cursor-pointer transform hover:scale-[1.01] active:scale-95 text-xs sm:text-sm"
+                className="w-full py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl sm:rounded-2xl font-black bg-gradient-to-r from-amber-500/20 via-purple-900/80 to-amber-500/20 hover:from-amber-500/30 hover:to-amber-500/30 border-2 border-amber-400/80 hover:border-amber-300 text-amber-300 font-sans transition-all shadow-[0_0_20px_rgba(245,158,11,0.3)] flex items-center justify-center space-x-1.5 cursor-pointer transform hover:scale-[1.01] active:scale-95 text-xs sm:text-sm"
               >
-                <BarChart3 className="w-4 h-4 text-amber-400" />
-                <span className="font-extrabold uppercase tracking-wide">Check Profile Dashboard & Stats</span>
-                <ChevronRight className="w-4 h-4 text-amber-400" />
+                <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
+                <span className="font-extrabold uppercase tracking-wide truncate">Profile Dashboard & Stats</span>
+                <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
               </button>
             )}
 
-            <div className="flex items-center gap-2.5 sm:gap-3 pt-1">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3 pt-0.5 pb-1">
               {isHost ? (
                 <button
                   onClick={handlePlayAgain}
-                  className="flex-1 py-2.5 sm:py-3 px-4 rounded-2xl font-black bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-300 hover:to-yellow-300 text-slate-950 transition-all shadow-[0_0_20px_rgba(245,158,11,0.4)] flex items-center justify-center space-x-2 cursor-pointer transform hover:scale-[1.02] active:scale-95 text-xs sm:text-sm"
+                  className="py-2.5 sm:py-3 px-2 sm:px-4 rounded-xl sm:rounded-2xl font-black bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-300 hover:to-yellow-300 text-slate-950 transition-all shadow-[0_0_20px_rgba(245,158,11,0.4)] flex items-center justify-center space-x-1.5 cursor-pointer transform hover:scale-[1.02] active:scale-95 text-xs sm:text-sm"
                 >
-                  <RotateCcw className="w-4 h-4 text-slate-950 stroke-[2.5]" />
-                  <span>Play Again</span>
+                  <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-950 stroke-[2.5] shrink-0" />
+                  <span className="truncate font-bold">Play Again</span>
                 </button>
               ) : (
-                <div className="flex-1 text-center text-xs text-purple-300 font-semibold italic py-2">
-                  Waiting for host to restart game...
+                <div className="text-center text-[10px] sm:text-xs text-purple-300 font-semibold italic py-2 flex items-center justify-center bg-purple-950/40 rounded-xl border border-purple-800/30 px-1">
+                  <span className="truncate">Waiting for host...</span>
                 </div>
               )}
 
               <button
                 onClick={onLeaveGame}
-                className="flex-1 py-2.5 sm:py-3 px-4 rounded-2xl font-bold bg-gradient-to-r from-[#17052c] to-[#250847] hover:bg-[#320a5e] border-2 border-purple-500/50 hover:border-amber-400 text-white transition-all shadow-[0_0_20px_rgba(0,0,0,0.6)] flex items-center justify-center space-x-2 cursor-pointer transform hover:scale-[1.02] active:scale-95 text-xs sm:text-sm"
+                className="py-2.5 sm:py-3 px-2 sm:px-4 rounded-xl sm:rounded-2xl font-bold bg-gradient-to-r from-[#17052c] to-[#250847] hover:bg-[#320a5e] border-2 border-purple-500/50 hover:border-amber-400 text-white transition-all shadow-[0_0_20px_rgba(0,0,0,0.6)] flex items-center justify-center space-x-1.5 cursor-pointer transform hover:scale-[1.02] active:scale-95 text-xs sm:text-sm"
               >
-                <Home className="w-4 h-4 text-purple-300" />
-                <span>Return to Home</span>
+                <Home className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-300 shrink-0" />
+                <span className="truncate font-bold">Return Home</span>
               </button>
             </div>
           </div>

@@ -51,6 +51,8 @@
   body {
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
+    background-color: #080320;
+    color: #F1ECEC;
     padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
     padding-left: env(safe-area-inset-left, 0px);
@@ -59,6 +61,7 @@
 
   body {
     font-family: 'Playfair Display', serif;
+    background-color: #080320;
   }
 
   h1,
